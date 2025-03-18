@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Django specific
+*.log
+local_settings.py
+db.sqlite3
+media/
+staticfiles/
+.env
+*.env
+.env.*
+
+# VSCode, PyCharm, editor folders
+.vscode/
+.idea/
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+
+# Migrations (optional)
+**/migrations/
+!*/migrations/__init__.py
+
+# Coverage reports
+htmlcov/
+.coverage
+.tox/
+.nox/
+.cache/
+coverage.xml
+
+# Pytest
+.pytest_cache/
+pytest.ini
+
+# MyPy & other linters
+.mypy_cache/
+.dmypy.json
+.pyre/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Docker
+*.pid
+*.seed
+*.bak
+*.swp
+docker-compose.override.yml
+
+# System files
+.DS_Store
+Thumbs.db
