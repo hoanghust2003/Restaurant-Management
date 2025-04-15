@@ -1,0 +1,38 @@
+Tôi đang xây dựng một hệ thống quản lý vận hành nhà hàng cho đồ án tốt nghiệp. Hệ thống bao gồm các phân hệ:
+
+1. **Gọi món tại bàn (customer UI)**
+   - Khách hàng quét QR tại bàn để truy cập landing page
+   - Xem menu và gọi món
+   - Theo dõi trạng thái món ăn (đang chuẩn bị, sắp mang ra,...)
+
+2. **Bếp (chef UI)**
+   - Nhận đơn hàng mới theo thời gian thực
+   - Cập nhật trạng thái từng món (đang làm, đã xong, đã giao)
+   - Quản lý chế biến nhiều món giống nhau cùng lúc
+
+3. **Kho (inventory)**
+   - Theo dõi nguyên liệu, cảnh báo nguyên liệu sắp hết
+   - Theo dõi hạn sử dụng
+   - Truy xuất lịch sử sử dụng nguyên liệu
+
+4. **Tiếp tân / Điều phối viên**
+   - Cập nhật trạng thái bàn (trống, có khách, đang dọn dẹp,...)
+   - Giao tiếp giữa khách và bếp
+
+5. **Quản lý nhà hàng**
+   - Xem thống kê doanh thu, nguyên liệu, món bán chạy
+   - Quản lý tài khoản nhân viên và phân quyền
+
+### Công nghệ:
+- **Backend:** NestJS, TypeORM, PostgreSQL, WebSocket
+- **Frontend:** React / NextJS, TailwindCSS
+- **Triển khai:** Docker, Render.com
+- **Realtime:** Sử dụng WebSocket (gateway trong NestJS)
+
+Yêu cầu Copilot:
+- Viết mã backend (controllers, services, entities) bằng NestJS và TypeORM cho các phân hệ
+- Thiết kế API cho các chức năng: gọi món, cập nhật món, quản lý kho, thống kê
+- Tích hợp WebSocket để cập nhật đơn hàng theo thời gian thực giữa bếp và khách
+- Tạo UI React/NextJS đơn giản cho từng vai trò (khách, bếp, tiếp tân, admin)
+- Hỗ trợ gợi ý migration schema cho PostgreSQL
+
