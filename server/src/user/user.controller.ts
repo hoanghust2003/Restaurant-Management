@@ -3,7 +3,7 @@ import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { UserRole } from './entities/user.entity';
+import { RoleEnum } from './entities/role.enum';
 
 @Controller('users')
 export class UserController {
@@ -13,7 +13,7 @@ export class UserController {
   @Post()
   create(@Body() createUserDto: CreateUserDto, @Request() req) {
     // Chỉ admin hoặc manager mới có thể tạo người dùng mới
-    if (req.user.role !== UserRole.ADMIN && req.user.role !== UserRole.MANAGER) {
+    if (req.user.role !== RoleEnum.ADMIN && req.user.role !== RoleEnum.MANAGER) {
       throw new Error('Forbidden: Insufficient permissions');
     }
     return this.userService.create(createUserDto);
@@ -23,7 +23,7 @@ export class UserController {
   @Get()
   findAll(@Request() req) {
     // Chỉ admin hoặc manager mới có thể xem tất cả người dùng
-    if (req.user.role !== UserRole.ADMIN && req.user.role !== UserRole.MANAGER) {
+    if (req.user.role !== RoleEnum.ADMIN && req.user.role !== RoleEnum.MANAGER) {
       throw new Error('Forbidden: Insufficient permissions');
     }
     return this.userService.findAll();
@@ -33,7 +33,7 @@ export class UserController {
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number, @Request() req) {
     // Người dùng chỉ có thể xem thông tin của chính họ hoặc admin/manager có thể xem của tất cả
-    if (req.user.userId !== id && req.user.role !== UserRole.ADMIN && req.user.role !== UserRole.MANAGER) {
+    if (req.user.userId !== id && req.user.role !== RoleEnum.ADMIN && req.user.role !== RoleEnum.MANAGER) {
       throw new Error('Forbidden: Insufficient permissions');
     }
     return this.userService.findOne(id);
@@ -44,11 +44,11 @@ export class UserController {
   update(@Param('id', ParseIntPipe) id: number, @Body() updateUserDto: UpdateUserDto, @Request() req) {
     // Người dùng chỉ có thể cập nhật thông tin của chính họ hoặc admin/manager có thể cập nhật của tất cả
     // Chỉ admin mới có thể thay đổi vai trò (role)
-    if (req.user.userId !== id && req.user.role !== UserRole.ADMIN && req.user.role !== UserRole.MANAGER) {
+    if (req.user.userId !== id && req.user.role !== RoleEnum.ADMIN && req.user.role !== RoleEnum.MANAGER) {
       throw new Error('Forbidden: Insufficient permissions');
     }
     
-    if (updateUserDto.role && req.user.role !== UserRole.ADMIN) {
+    if (updateUserDto.role && req.user.role !== RoleEnum.ADMIN) {
       throw new Error('Forbidden: Only admins can change user roles');
     }
     
@@ -59,7 +59,7 @@ export class UserController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number, @Request() req) {
     // Chỉ admin hoặc manager mới có thể xóa người dùng
-    if (req.user.role !== UserRole.ADMIN && req.user.role !== UserRole.MANAGER) {
+    if (req.user.role !== RoleEnum.ADMIN && req.user.role !== RoleEnum.MANAGER) {
       throw new Error('Forbidden: Insufficient permissions');
     }
     return this.userService.remove(id);

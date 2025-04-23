@@ -5,9 +5,24 @@ import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
-  app.enableCors();
-  await app.listen(3000);
-  console.log('Server is running on http://localhost:3000');
+  
+  // Sử dụng ValidationPipe toàn cục với whitelist để loại bỏ các thuộc tính không được định nghĩa
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true, // Tự động chuyển đổi các tham số đến đúng kiểu dữ liệu
+      forbidNonWhitelisted: true, // Từ chối các thuộc tính không được định nghĩa trong DTO
+    })
+  );
+  
+  app.enableCors({
+    origin: process.env.CORS_ORIGIN || true, // Cấu hình CORS linh hoạt hơn
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
+  
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+  console.log(`Server is running on http://localhost:${port}`);
 }
 bootstrap();

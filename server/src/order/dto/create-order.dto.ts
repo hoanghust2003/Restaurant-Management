@@ -1,24 +1,33 @@
-import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsNotEmpty, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateOrderItemDto {
-  @IsNotEmpty()
-  @IsNumber()
-  menuItemId: number;
+  @IsOptional()
+  @IsUUID()
+  dishId?: string;
+
+  @IsOptional()
+  menuItemId?: number;
 
   @IsNotEmpty()
-  @IsNumber()
   quantity: number;
 
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
 }
 
 export class CreateOrderDto {
   @IsNotEmpty()
-  @IsNumber()
-  tableId: number;
+  tableId: string | number;
+
+  @IsOptional()
+  @IsString()
+  customerId?: string;
 
   @IsArray()
   @ValidateNested({ each: true })

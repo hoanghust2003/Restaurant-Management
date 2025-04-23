@@ -1,22 +1,18 @@
-import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsPositive, IsString, Max, Min } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString, Length, Min } from 'class-validator';
 import { TableStatus } from '../entities/table.entity';
 
 export class CreateTableDto {
   @IsNotEmpty()
   @IsString()
-  tableNumber: string;
+  @Length(1, 50)
+  name: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @IsPositive()
+  capacity: number;
 
   @IsOptional()
   @IsEnum(TableStatus)
-  status?: TableStatus = TableStatus.AVAILABLE;
-
-  @IsOptional()
-  @IsInt()
-  @IsPositive()
-  @Max(20)
-  capacity?: number = 4;
-  
-  @IsOptional()
-  @IsString()
-  qrCode?: string;
+  status: TableStatus = TableStatus.VACANT;
 }

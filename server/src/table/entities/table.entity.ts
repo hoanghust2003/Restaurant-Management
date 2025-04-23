@@ -2,33 +2,35 @@ import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { Order } from '../../order/entities/order.entity';
 
 export enum TableStatus {
-  AVAILABLE = 'available',
+  VACANT = 'vacant',
   OCCUPIED = 'occupied',
   RESERVED = 'reserved',
+  MAINTENANCE = 'maintenance',
   CLEANING = 'cleaning',
+  AVAILABLE = 'vacant' // Alias for VACANT to maintain backward compatibility
 }
 
 @Entity('tables')
 export class Table {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column()
-  tableNumber: string;
+  @Column({ length: 50 })
+  name: string;
 
-  @Column({
+  @Column('int')
+  capacity: number;
+
+  @Column({ 
     type: 'enum',
     enum: TableStatus,
-    default: TableStatus.AVAILABLE,
+    default: TableStatus.VACANT
   })
   status: TableStatus;
 
-  @Column({ default: 4 })
-  capacity: number;
-
   @Column({ nullable: true })
-  qrCode: string;
+  qrCodeUrl: string;
 
-  @OneToMany(() => Order, (order) => order.table)
+  @OneToMany(() => Order, order => order.table)
   orders: Order[];
 }

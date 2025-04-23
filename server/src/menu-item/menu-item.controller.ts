@@ -4,7 +4,7 @@ import { CreateMenuItemDto } from './dto/create-menu-item.dto';
 import { UpdateMenuItemDto } from './dto/update-menu-item.dto';
 import { MenuItem, MenuItemCategory } from './entities/menu-item.entity';
 import { AuthGuard } from '@nestjs/passport';
-import { UserRole } from '../user/entities/user.entity';
+import { CreateMenuItemIngredientsDto, MenuItemIngredientDto } from './dto/menu-item-ingredient.dto';
 
 @Controller('menu-items')
 export class MenuItemController {
@@ -58,5 +58,36 @@ export class MenuItemController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.menuItemService.remove(id);
+  }
+
+  // Endpoints quản lý nguyên liệu cho món ăn
+  @UseGuards(AuthGuard('jwt'))
+  @Post('ingredients')
+  addIngredients(@Body() createIngredientsDto: CreateMenuItemIngredientsDto) {
+    return this.menuItemService.addIngredients(createIngredientsDto);
+  }
+
+  @Get(':id/ingredients')
+  getMenuItemIngredients(@Param('id', ParseIntPipe) id: number) {
+    return this.menuItemService.getMenuItemIngredients(id);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch(':menuItemId/ingredients/:ingredientId')
+  updateIngredient(
+    @Param('menuItemId', ParseIntPipe) menuItemId: number,
+    @Param('ingredientId', ParseIntPipe) ingredientId: number,
+    @Body() updateData: MenuItemIngredientDto,
+  ) {
+    return this.menuItemService.updateIngredient(menuItemId, ingredientId, updateData);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Delete(':menuItemId/ingredients/:ingredientId')
+  removeIngredient(
+    @Param('menuItemId', ParseIntPipe) menuItemId: number,
+    @Param('ingredientId', ParseIntPipe) ingredientId: number,
+  ) {
+    return this.menuItemService.removeIngredient(menuItemId, ingredientId);
   }
 }

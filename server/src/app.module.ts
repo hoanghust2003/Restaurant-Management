@@ -7,6 +7,12 @@ import { MenuItemModule } from './menu-item/menu-item.module';
 import { TableModule } from './table/table.module';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
+import { InventoryModule } from './inventory/inventory.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { RestaurantModule } from './restaurant/restaurant.module';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import typeOrmConfig from './config/typeorm.config';
 
 @Module({
   imports: [
@@ -19,8 +25,10 @@ import { AuthModule } from './auth/auth.module';
         username: process.env.DB_USER || 'postgres',
         password: process.env.DB_PASS || 'postgres',
         database: process.env.DB_NAME || 'restaurant_management',
-        autoLoadEntities: true,
-        synchronize: process.env.NODE_ENV !== 'production', // chỉ dùng trong dev!
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        migrations: [__dirname + '/migrations/*{.ts,.js}'],
+        synchronize: process.env.NODE_ENV !== 'production',
+        logging: process.env.NODE_ENV !== 'production',
       }),
     }),
     OrderModule,
@@ -28,6 +36,11 @@ import { AuthModule } from './auth/auth.module';
     TableModule,
     UserModule,
     AuthModule,
+    InventoryModule,
+    AnalyticsModule,
+    RestaurantModule
   ],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}

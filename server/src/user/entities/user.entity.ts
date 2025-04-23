@@ -1,46 +1,38 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
-
-export enum UserRole {
-  ADMIN = 'admin',
-  MANAGER = 'manager',
-  RECEPTION = 'reception',
-  CHEF = 'chef',
-  WAITER = 'waiter',
-}
+import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Order } from '../../order/entities/order.entity';
+import { Feedback } from '../../order/entities/feedback.entity';
+import { KitchenLog } from '../../order/entities/kitchen-log.entity';
+import { UserRole } from './user-role.entity';
 
 @Entity('users')
 export class User {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column({ unique: true })
-  username: string;
+  @Column({ length: 255 })
+  name: string;
 
-  @Column()
-  password: string;
-
-  @Column()
-  fullName: string;
-
-  @Column({ unique: true })
+  @Column({ length: 255, unique: true })
   email: string;
 
-  @Column({
-    type: 'enum',
-    enum: UserRole,
-    default: UserRole.WAITER,
-  })
-  role: UserRole;
-
-  @Column({ default: true })
-  isActive: boolean;
+  @Column({ length: 255 })
+  password: string;
 
   @Column({ nullable: true })
   refreshToken: string;
 
   @CreateDateColumn()
-  createdAt: Date;
+  created_at: Date;
 
-  @UpdateDateColumn()
-  updatedAt: Date;
+  @OneToMany(() => Order, order => order.customer)
+  orders: Order[];
+
+  @OneToMany(() => Feedback, feedback => feedback.user)
+  feedbacks: Feedback[];
+
+  @OneToMany(() => KitchenLog, log => log.user)
+  kitchenLogs: KitchenLog[];
+
+  @OneToMany(() => UserRole, userRole => userRole.user)
+  userRoles: UserRole[];
 }

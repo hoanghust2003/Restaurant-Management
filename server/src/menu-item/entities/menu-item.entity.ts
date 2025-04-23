@@ -1,6 +1,9 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { OrderItem } from '../../order/entities/order-item.entity';
+import { MenuItemIngredient } from './menu-item-ingredient.entity';
+import { Dish } from './dish.entity';
 
+// Giữ enum MenuItemCategory để tương thích ngược với code cũ
 export enum MenuItemCategory {
   APPETIZER = 'appetizer',
   MAIN_COURSE = 'main_course',
@@ -8,6 +11,7 @@ export enum MenuItemCategory {
   BEVERAGE = 'beverage',
 }
 
+// Lớp cha để tương thích với code cũ
 @Entity('menu_items')
 export class MenuItem {
   @PrimaryGeneratedColumn()
@@ -37,6 +41,12 @@ export class MenuItem {
   @Column({ default: 0 })
   preparationTimeMinutes: number;
 
-  @OneToMany(() => OrderItem, (orderItem) => orderItem.menuItem)
+  // Quan hệ với OrderItem được cập nhật để phù hợp với cả Dish
+  @OneToMany(() => OrderItem, (orderItem) => orderItem.dish)
   orderItems: OrderItem[];
+  
+  @OneToMany(() => MenuItemIngredient, (ingredient) => ingredient.menuItem, {
+    cascade: true,
+  })
+  ingredients: MenuItemIngredient[];
 }

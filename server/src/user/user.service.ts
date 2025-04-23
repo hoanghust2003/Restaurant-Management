@@ -17,7 +17,7 @@ export class UserService {
     // Kiểm tra xem username hoặc email đã tồn tại chưa
     const existingUser = await this.userRepository.findOne({
       where: [
-        { username: createUserDto.username },
+        { name: createUserDto.name },
         { email: createUserDto.email },
       ],
     });
@@ -54,7 +54,7 @@ export class UserService {
 
   async findOne(id: number): Promise<User> {
     const user = await this.userRepository.findOne({
-      where: { id },
+      where: { id: id.toString() },
     });
 
     if (!user) {
@@ -66,7 +66,7 @@ export class UserService {
 
   async findByUsername(username: string): Promise<User> {
     const user = await this.userRepository.findOne({
-      where: { username },
+      where: { name: username },
     });
 
     if (!user) {
@@ -90,7 +90,7 @@ export class UserService {
         where: { email: updateUserDto.email },
       });
 
-      if (userWithEmail && userWithEmail.id !== id) {
+      if (userWithEmail && Number(userWithEmail.id) !== id) {
         throw new ConflictException(`Email ${updateUserDto.email} is already in use`);
       }
     }
@@ -111,7 +111,7 @@ export class UserService {
     await this.userRepository.remove(user);
   }
 
-  async setRefreshToken(userId: number, refreshToken: string): Promise<void> {
+  async setRefreshToken(userId: string | number, refreshToken: string): Promise<void> {
     let hashedRefreshToken: string | undefined;
     
     if (refreshToken) {

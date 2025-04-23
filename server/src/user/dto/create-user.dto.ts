@@ -1,28 +1,20 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
-import { UserRole } from '../entities/user.entity';
+import { IsEmail, IsNotEmpty, IsString, Length, Matches } from 'class-validator';
 
 export class CreateUserDto {
   @IsNotEmpty()
   @IsString()
-  username: string;
-
-  @IsNotEmpty()
-  @IsString()
-  @MinLength(6)
-  password: string;
-
-  @IsNotEmpty()
-  @IsString()
-  fullName: string;
+  @Length(3, 255)
+  name: string;
 
   @IsNotEmpty()
   @IsEmail()
   email: string;
 
-  @IsOptional()
-  @IsEnum(UserRole)
-  role?: UserRole;
-
-  @IsOptional()
-  isActive?: boolean = true;
+  @IsNotEmpty()
+  @IsString()
+  @Length(8, 30)
+  @Matches(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
+    message: 'Password is too weak',
+  })
+  password: string;
 }
