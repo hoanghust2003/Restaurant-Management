@@ -31,7 +31,7 @@ export class UserController {
 
   @UseGuards(AuthGuard('jwt'))
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number, @Request() req) {
+  findOne(@Param('id', ParseIntPipe) id: string, @Request() req) {
     // Người dùng chỉ có thể xem thông tin của chính họ hoặc admin/manager có thể xem của tất cả
     if (req.user.userId !== id && req.user.role !== RoleEnum.ADMIN && req.user.role !== RoleEnum.MANAGER) {
       throw new Error('Forbidden: Insufficient permissions');
@@ -41,7 +41,7 @@ export class UserController {
 
   @UseGuards(AuthGuard('jwt'))
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateUserDto: UpdateUserDto, @Request() req) {
+  update(@Param('id', ParseIntPipe) id: string, @Body() updateUserDto: UpdateUserDto, @Request() req) {
     // Người dùng chỉ có thể cập nhật thông tin của chính họ hoặc admin/manager có thể cập nhật của tất cả
     // Chỉ admin mới có thể thay đổi vai trò (role)
     if (req.user.userId !== id && req.user.role !== RoleEnum.ADMIN && req.user.role !== RoleEnum.MANAGER) {
@@ -57,7 +57,7 @@ export class UserController {
 
   @UseGuards(AuthGuard('jwt'))
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number, @Request() req) {
+  remove(@Param('id', ParseIntPipe) id: string, @Request() req) {
     // Chỉ admin hoặc manager mới có thể xóa người dùng
     if (req.user.role !== RoleEnum.ADMIN && req.user.role !== RoleEnum.MANAGER) {
       throw new Error('Forbidden: Insufficient permissions');

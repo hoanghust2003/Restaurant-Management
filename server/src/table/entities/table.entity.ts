@@ -2,12 +2,11 @@ import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { Order } from '../../order/entities/order.entity';
 
 export enum TableStatus {
-  VACANT = 'vacant',
   OCCUPIED = 'occupied',
   RESERVED = 'reserved',
   MAINTENANCE = 'maintenance',
   CLEANING = 'cleaning',
-  AVAILABLE = 'vacant' // Alias for VACANT to maintain backward compatibility
+  VACANT = 'vacant' // Alias for VACANT to maintain backward compatibility
 }
 
 @Entity('tables')

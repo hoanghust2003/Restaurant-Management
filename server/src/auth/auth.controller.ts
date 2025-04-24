@@ -3,10 +3,14 @@ import { AuthService } from './auth.service';
 import { LoginDto } from '../user/dto/login.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { User } from '../user/entities/user.entity';
+import { UserService } from '../user/user.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private userService: UserService
+  ) {}
 
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
@@ -21,12 +25,14 @@ export class AuthController {
 
   @UseGuards(AuthGuard('jwt'))
   @Get('profile')
-  getProfile(@Request() req) {
-    return req.user;
+  async getProfile(@Request() req) {
+    const user = await this.userService.findOne(req.user.userId);
+    const { password, refreshToken, ...result } = user;
+    return result;
   }
 
   @Post('refresh')
-  async refreshTokens(@Body() body: { userId: number; refreshToken: string }) {
-    return this.authService.refreshTokens(body.userId, body.refreshToken);
+  async refreshTokens(@Body() body: { refreshToken: string }) {
+    return this.authService.refreshTokens(body.refreshToken);
   }
 }

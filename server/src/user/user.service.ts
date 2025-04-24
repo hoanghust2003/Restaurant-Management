@@ -6,6 +6,7 @@ import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
+
 @Injectable()
 export class UserService {
   constructor(
@@ -52,7 +53,7 @@ export class UserService {
     });
   }
 
-  async findOne(id: number): Promise<User> {
+  async findOne(id: string): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { id: id.toString() },
     });
@@ -76,7 +77,7 @@ export class UserService {
     return user;
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
 
     // Nếu có cập nhật mật khẩu, hash mật khẩu mới
@@ -90,7 +91,7 @@ export class UserService {
         where: { email: updateUserDto.email },
       });
 
-      if (userWithEmail && Number(userWithEmail.id) !== id) {
+      if (userWithEmail && userWithEmail.id !== id) {
         throw new ConflictException(`Email ${updateUserDto.email} is already in use`);
       }
     }
@@ -106,7 +107,7 @@ export class UserService {
     return result as User;
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     const user = await this.findOne(id);
     await this.userRepository.remove(user);
   }
@@ -117,6 +118,8 @@ export class UserService {
     if (refreshToken) {
       // Hash refresh token trước khi lưu
       hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+    } else {
+      hashedRefreshToken = '';
     }
     
     await this.userRepository.update(userId, {
