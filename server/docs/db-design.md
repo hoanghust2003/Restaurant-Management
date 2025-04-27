@@ -1,44 +1,3 @@
-# Restaurant Management System - Database Design
-
-This system is built for a restaurant to manage daily operations such as orders, dishes, tables, inventory, and more.
-
-## Roles (Users):
-- admin
-- manager
-- waiter
-- chef
-- cashier
-- warehouse
-- customer
-
-## Key Features:
-- Ordering and payment
-- Inventory tracking (ingredients, batches, expiry date)
-- Feedback from customer stored in orders
-- Menu and category structure
-- Sales reporting by day/week/month/quarter
-- Best-selling dishes
-- Possible chatbot integration for dish recommendations (future)
-
-## Tables Overview:
-
-- users (with role enum)
-- restaurants
-- ingredients (with unit as string)
-- ingredient_batches
-- categories
-- dishes
-- dish_ingredients
-- menus, menu_dishes
-- tables
-- orders (with feedback)
-- order_items
-
-Note: ingredient units are stored directly in the ingredient table.
-
-
-database dự kiến:
-
 Table users {
   id UUID [pk]
   name varchar(255)
@@ -68,15 +27,24 @@ Table ingredients {
   created_at timestamp [default: `now()`]
 }
 
+Table suppliers {
+  id UUID [pk]
+  name varchar(255) [note: 'Tên nhà cung cấp']
+  contact_name varchar(255) [note: 'Tên người liên hệ']
+  contact_phone varchar(20) [note: 'Số điện thoại người liên hệ']
+  contact_email varchar(255) [note: 'Email người liên hệ']
+  address text [note: 'Địa chỉ nhà cung cấp']
+  created_at timestamp [default: `now()`]
+}
+
+
 Table ingredient_batches {
   id UUID [pk]
-  ingredient_id UUID [ref: > ingredients.id]
-  supplier_name varchar(255)
-  batch_code varchar(100)
-  quantity float
+  supplier_id UUID [ref: > suppliers.id]
   expiry_date date
-  imported_at timestamp [default: `now()`]
+  price float
 }
+
 
 Table categories {
   id UUID [pk]
@@ -135,6 +103,18 @@ Table orders {
   updated_at timestamp [default: `now()`]
 }
 
+Table inventory_transactions {
+  id UUID [pk]
+  ingredient_id UUID [ref: > ingredients.id]
+  created_by UUID [ref: > users.id]
+  type varchar(20) [note: 'Enum: import, export, adjust']
+  quantity float
+  unit varchar(50)
+  related_batch_id UUID [ref: > ingredient_batches.id, null] 
+  reason text 
+  created_at timestamp [default: `now()`]
+}
+
 Table order_items {
   id UUID [pk]
   order_id UUID [ref: > orders.id]
@@ -143,4 +123,15 @@ Table order_items {
   note text
   status varchar(20) [note: 'Enum: waiting, preparing, done, failed']
   prepared_at timestamp
+}
+
+Table financial_records {
+  id UUID [pk]
+  type varchar(20) [note: 'Enum: income, expense']
+  amount float
+  description text
+  created_by UUID [ref: > users.id]
+  related_inventory_transaction_id UUID [ref: > inventory_transactions.id, null]
+  related_order_id UUID [ref: > orders.id, null]
+  created_at timestamp [default: `now()`]
 }

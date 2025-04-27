@@ -1,38 +1,42 @@
-Tôi đang xây dựng một hệ thống quản lý vận hành nhà hàng cho đồ án tốt nghiệp. Hệ thống bao gồm các phân hệ:
-
-1. **Gọi món tại bàn (customer UI)**
-   - Khách hàng quét QR tại bàn để truy cập landing page
-   - Xem menu và gọi món
-   - Theo dõi trạng thái món ăn (đang chuẩn bị, sắp mang ra,...)
-
-2. **Bếp (chef UI)**
-   - Nhận đơn hàng mới theo thời gian thực
-   - Cập nhật trạng thái từng món (đang làm, đã xong, đã giao)
-   - Quản lý chế biến nhiều món giống nhau cùng lúc
-
-3. **Kho (inventory)**
-   - Theo dõi nguyên liệu, cảnh báo nguyên liệu sắp hết
-   - Theo dõi hạn sử dụng
-   - Truy xuất lịch sử sử dụng nguyên liệu
-
-4. **Tiếp tân / Điều phối viên**
-   - Cập nhật trạng thái bàn (trống, có khách, đang dọn dẹp,...)
-   - Giao tiếp giữa khách và bếp
-
-5. **Quản lý nhà hàng**
-   - Xem thống kê doanh thu, nguyên liệu, món bán chạy
-   - Quản lý tài khoản nhân viên và phân quyền
-
-### Công nghệ:
-- **Backend:** NestJS, TypeORM, PostgreSQL, WebSocket
-- **Frontend:** React / NextJS, TailwindCSS
-- **Triển khai:** Docker, Render.com
-- **Realtime:** Sử dụng WebSocket (gateway trong NestJS)
-
-Yêu cầu Copilot:
-- Viết mã backend (controllers, services, entities) bằng NestJS và TypeORM cho các phân hệ
-- Thiết kế API cho các chức năng: gọi món, cập nhật món, quản lý kho, thống kê
-- Tích hợp WebSocket để cập nhật đơn hàng theo thời gian thực giữa bếp và khách
-- Tạo UI React/NextJS đơn giản cho từng vai trò (khách, bếp, tiếp tân, admin)
-- Hỗ trợ gợi ý migration schema cho PostgreSQL
-
+- Gọi món:
+    - Quét QR.
+    - Hiện menu.
+    - Chọn món.
+    - Chat bot gợi ý chọn món.
+- Đánh giá đơn hàng
+- Thanh toán (Admin):
+    - Xem danh sách đơn
+    - Chỉnh sửa đơn
+    - Thanh toán. Thanh toán xong tự động cập nhật trạng thái bàn là available
+- Bếp: socket.
+    - Hiển thị danh sách món cần làm.
+    - Xem chi tiết đơn.
+    - Xác nhận bắt đầu làm.
+    - Cập nhật trạng thái món.
+    - Xem lịch sử chế biến.
+- Quản lý tài khoản.
+    - Xem danh sách tài khoản
+    - Thêm sửa xóa tài khoản.
+- Quản lý kho:
+    - Quản lý nguyên liệu:
+        - CRUD nguyên liệu.
+        - Search nguyên liệu.
+    - CRUD category
+    - Quản lý nhà cung ứng.
+    - Nhập xuất nguyên liệu:
+        - Nhập
+        - Xuất
+        - Quản lý hàng tồn.
+        - Lịch sử nhập xuất, in hóa đơn.
+- Báo cáo thống kê
+    - Thống kê doanh thu
+    - Thống kê món bán chạy
+    - Truy xuất nguồn gốc nguyên liệu đơn cụ thể.
+    - Thêm khoản thu, thêm khoản chi.
+    - In báo cáo.
+- Quản lý bàn:
+    - Xem danh sách bàn
+    - CRUD bàn
+    - Cập nhật trạng thái bàn.
+    - Xem danh sách bàn trống.
+- Đăng nhập., đăng xuất.
