@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity('ingredients')
 export class Ingredient {
@@ -12,11 +12,8 @@ export class Ingredient {
   unit: string;
 
   @Column('float')
-  current_quantity: number;
-
-  @Column('float')
   threshold: number;
 
-  @CreateDateColumn()
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
 }

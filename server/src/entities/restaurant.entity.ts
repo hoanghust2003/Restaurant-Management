@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity('restaurants')
 export class Restaurant {
@@ -14,12 +14,12 @@ export class Restaurant {
   @Column({ length: 20 })
   phone: string;
 
-  @Column({ nullable: true, length: 255 })
+  @Column({ nullable: true})
   logo_url: string;
 
-  @Column({ nullable: true, length: 255 })
+  @Column({ nullable: true})
   cover_image_url: string;
 
-  @CreateDateColumn()
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
 }
