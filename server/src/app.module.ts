@@ -6,7 +6,6 @@ import { typeOrmConfig } from './config/typeorm.config';
 import { UsersModule } from './users/users.module';
 import { RestaurantsModule } from './restaurants/restaurants.module';
 import { IngredientsModule } from './ingredients/ingredients.module';
-import { IngredientBatchesModule } from './ingredient-batches/ingredient-batches.module';
 import { AuthModule } from './auth/auth.module';
 import { TablesModule } from './tables/tables.module';
 import { DishesModule } from './dishes/dishes.module';
@@ -25,7 +24,6 @@ import { ReportsModule } from './reports/reports.module';
     UsersModule,
     RestaurantsModule,
     IngredientsModule,
-    IngredientBatchesModule,
     AuthModule,
     TablesModule,
     DishesModule,
