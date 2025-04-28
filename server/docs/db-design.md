@@ -22,7 +22,6 @@ Table ingredients {
   id UUID [pk]
   name varchar(255)
   unit varchar(50)
-  current_quantity float
   threshold float
   created_at timestamp [default: `now()`]
 }
@@ -36,15 +35,6 @@ Table suppliers {
   address text [note: 'Địa chỉ nhà cung cấp']
   created_at timestamp [default: `now()`]
 }
-
-
-Table ingredient_batches {
-  id UUID [pk]
-  supplier_id UUID [ref: > suppliers.id]
-  expiry_date date
-  price float
-}
-
 
 Table categories {
   id UUID [pk]
@@ -103,17 +93,34 @@ Table orders {
   updated_at timestamp [default: `now()`]
 }
 
-Table inventory_transactions {
+Table ingredient_exports {
   id UUID [pk]
-  ingredient_id UUID [ref: > ingredients.id]
   created_by UUID [ref: > users.id]
-  type varchar(20) [note: 'Enum: import, export, adjust']
-  quantity float
-  unit varchar(50)
-  related_batch_id UUID [ref: > ingredient_batches.id, null] 
   reason text 
   created_at timestamp [default: `now()`]
 }
+
+Table export_items {
+  id UUID [pk]
+  export_id UUID [ref: > ingredient_exports.id]
+  batch_id UUID [ref: > batches.id]
+  ingredient_id UUID [ref: > ingredients.id]
+  quantity float
+}
+
+Table batches {
+  id UUID [pk]
+  ingredient_id UUID [ref: > ingredients.id]
+  name varchar(250)
+  supplier_id UUID [ref: > suppliers.id]
+  quantity float
+  remaining_quantity float
+  expiry_date date
+  price float
+  created_by UUID [ref: > users.id]
+  created_at timestamp [default: `now()`]
+}
+
 
 Table order_items {
   id UUID [pk]
@@ -131,7 +138,7 @@ Table financial_records {
   amount float
   description text
   created_by UUID [ref: > users.id]
-  related_inventory_transaction_id UUID [ref: > inventory_transactions.id, null]
+  related_batch UUID [ref: > batches.id, null]
   related_order_id UUID [ref: > orders.id, null]
   created_at timestamp [default: `now()`]
 }
