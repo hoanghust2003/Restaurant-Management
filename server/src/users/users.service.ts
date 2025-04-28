@@ -1,8 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import * as bcrypt from 'bcrypt';
+import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -11,14 +15,16 @@ export class UsersService {
     private userRepository: Repository<User>,
   ) {}
 
-  async findById(id: string): Promise<User> {
+  async findById(id: string): Promise<Partial<User>> {
     const user = await this.userRepository.findOne({ where: { id } });
     
     if (!user) {
       throw new NotFoundException(`Không tìm thấy người dùng với ID: ${id}`);
     }
     
-    return user;
+    // Remove password from returned object
+    const { password, ...result } = user;
+    return result;
   }
 
   async findByEmail(email: string): Promise<User> {
@@ -31,34 +37,122 @@ export class UsersService {
     return user;
   }
 
-  async findAll(): Promise<User[]> {
-    return this.userRepository.find();
-  }
-
-  async create(userData: Partial<User>): Promise<User> {
-    // Hash mật khẩu trước khi lưu
-    if (userData.password) {
-      userData.password = await bcrypt.hash(userData.password, 10);
-    }
+  async findAll(): Promise<Partial<User>[]> {
+    const users = await this.userRepository.find();
     
-    const newUser = this.userRepository.create(userData);
-    return this.userRepository.save(newUser);
+    // Remove password from all users
+    return users.map(user => {
+      const { password, ...result } = user;
+      return result;
+    });
   }
 
-  async update(id: string, userData: Partial<User>): Promise<User> {
+  async create(userData: CreateUserDto): Promise<Partial<User>> {
+    // Check if email already exists
+    const existingUser = await this.userRepository.findOne({ where: { email: userData.email } });
+    if (existingUser) {
+      throw new BadRequestException('Email đã được sử dụng');
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(userData.password, 10);
+    
+    // Create new user
+    const newUser = this.userRepository.create({
+      ...userData,
+      password: hashedPassword
+    });
+    
+    await this.userRepository.save(newUser);
+    
+    // Remove password from returned object
+    const { password, ...result } = newUser;
+    return result;
+  }
+
+  async update(id: string, userData: UpdateUserDto): Promise<Partial<User>> {
     const user = await this.findById(id);
     
-    // Hash mật khẩu nếu được cung cấp
-    if (userData.password) {
-      userData.password = await bcrypt.hash(userData.password, 10);
+    // Check if trying to change email to an already used one
+    if (userData.email && userData.email !== user.email) {
+      const existingUser = await this.userRepository.findOne({ 
+        where: { email: userData.email } 
+      });
+      
+      if (existingUser) {
+        throw new BadRequestException('Email đã được sử dụng');
+      }
     }
     
-    Object.assign(user, userData);
-    return this.userRepository.save(user);
+    // Apply updates
+    const updatedUser = await this.userRepository.save({
+      id,
+      ...user,
+      ...userData
+    });
+    
+    // Remove password from returned object
+    const { password, ...result } = updatedUser;
+    return result;
+  }
+
+  async updateProfile(id: string, profileData: UpdateUserProfileDto): Promise<Partial<User>> {
+    const user = await this.findById(id);
+    
+    // Check if trying to change email to an already used one
+    if (profileData.email && profileData.email !== user.email) {
+      const existingUser = await this.userRepository.findOne({ 
+        where: { email: profileData.email }
+      });
+      
+      if (existingUser) {
+        throw new BadRequestException('Email đã được sử dụng');
+      }
+    }
+    
+    // Apply updates
+    const updatedUser = await this.userRepository.save({
+      id,
+      ...user,
+      ...profileData
+    });
+    
+    // Remove password from returned object
+    const { password, ...result } = updatedUser;
+    return result;
+  }
+
+  async changePassword(id: string, changePasswordDto: ChangePasswordDto): Promise<{ message: string }> {
+    const user = await this.userRepository.findOne({ where: { id } });
+
+    if (!user) {
+      throw new NotFoundException(`Không tìm thấy người dùng với ID: ${id}`);
+    }
+
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(
+      changePasswordDto.currentPassword,
+      user.password,
+    );
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Mật khẩu hiện tại không đúng');
+    }
+
+    // Hash new password
+    user.password = await bcrypt.hash(changePasswordDto.newPassword, 10);
+    await this.userRepository.save(user);
+
+    return { message: 'Đổi mật khẩu thành công' };
   }
 
   async remove(id: string): Promise<void> {
-    const user = await this.findById(id);
+    const user = await this.userRepository.findOne({ where: { id } });
+    
+    if (!user) {
+      throw new NotFoundException(`Không tìm thấy người dùng với ID: ${id}`);
+    }
+    
     await this.userRepository.remove(user);
   }
 }
