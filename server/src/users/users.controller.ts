@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Request, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Request, ForbiddenException, UseInterceptors, UploadedFile, ParseFilePipe, FileTypeValidator, MaxFileSizeValidator } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
@@ -6,10 +7,14 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRole } from '../enums/user-role.enum';
+import { FileUploadService } from '../file-upload/file-upload.service';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly fileUploadService: FileUploadService
+  ) {}
 
   // Get current user profile - accessible to authenticated users
   @UseGuards(JwtAuthGuard)
@@ -18,13 +23,33 @@ export class UsersController {
     return this.usersService.findById(req.user.userId);
   }
 
-  // Update current user profile - accessible to authenticated users
+  // Update current user profile with avatar - accessible to authenticated users
   @UseGuards(JwtAuthGuard)
   @Patch('me')
+  @UseInterceptors(FileInterceptor('avatar'))
   async updateProfile(
     @Request() req,
     @Body() updateProfileDto: UpdateUserProfileDto,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new FileTypeValidator({ fileType: '.(png|jpeg|jpg)' }),
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
+        ],
+        fileIsRequired: false,
+      }),
+    ) avatar: Express.Multer.File,
   ) {
+    if (avatar) {
+      // Upload avatar to S3 using our enhanced method
+      const avatarUrl = await this.fileUploadService.uploadFile(avatar, 'avatars');
+      
+      // Only add avatar URL if it's not null
+      if (avatarUrl) {
+        updateProfileDto.avatar_url = avatarUrl;
+      }
+    }
+    
     return this.usersService.updateProfile(req.user.userId, updateProfileDto);
   }
 
@@ -48,23 +73,70 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
-  // Create a new user - accessible only to admins
+  // Create a new user with avatar - accessible only to admins
   @UseGuards(JwtAuthGuard)
   @Post()
-  async createUser(@Request() req, @Body() createUserDto: CreateUserDto) {
+  @UseInterceptors(FileInterceptor('avatar'))
+  async createUser(
+    @Request() req, 
+    @Body() createUserDto: CreateUserDto,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new FileTypeValidator({ fileType: '.(png|jpeg|jpg)' }),
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
+        ],
+        fileIsRequired: false,
+      }),
+    ) avatar: Express.Multer.File,
+  ) {
     this.checkIsAdmin(req.user);
-    return this.usersService.create(createUserDto);
+    
+    let userData: CreateUserDto = { ...createUserDto };
+    
+    if (avatar) {
+      // Upload avatar to S3 using our enhanced method
+      const avatarUrl = await this.fileUploadService.uploadFile(avatar, 'avatars');
+      
+      // Only add avatar URL if it's not null
+      if (avatarUrl) {
+        userData.avatar_url = avatarUrl;
+      }
+    }
+    
+    return this.usersService.create(userData);
   }
 
-  // Update a user - accessible only to admins
+  // Update a user with avatar - accessible only to admins
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
+  @UseInterceptors(FileInterceptor('avatar'))
   async updateUser(
     @Request() req,
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new FileTypeValidator({ fileType: '.(png|jpeg|jpg)' }),
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
+        ],
+        fileIsRequired: false,
+      }),
+    ) avatar: Express.Multer.File,
   ) {
     this.checkIsAdmin(req.user);
+    
+    if (avatar) {
+      // Upload avatar to S3 using our enhanced method
+      const avatarUrl = await this.fileUploadService.uploadFile(avatar, 'avatars');
+      
+      // Only add avatar URL if it's not null
+      if (avatarUrl) {
+        updateUserDto.avatar_url = avatarUrl;
+      }
+    }
+    
     return this.usersService.update(id, updateUserDto);
   }
 

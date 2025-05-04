@@ -1,4 +1,4 @@
-import { IsString, IsEmail, IsNotEmpty, MinLength, MaxLength, IsEnum } from 'class-validator';
+import { IsString, IsEmail, IsNotEmpty, MinLength, MaxLength, IsEnum, IsOptional } from 'class-validator';
 import { UserRole } from '../../enums/user-role.enum';
 
 export class CreateUserDto {
@@ -20,4 +20,8 @@ export class CreateUserDto {
   @IsEnum(UserRole, { message: 'Vai trò không hợp lệ' })
   @IsNotEmpty({ message: 'Vai trò không được để trống' })
   role: UserRole;
+  
+  @IsString()
+  @IsOptional()
+  avatar_url?: string;
 }

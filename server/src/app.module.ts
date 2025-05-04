@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -18,12 +18,19 @@ import { InventoryModule } from './inventory/inventory.module';
 import { FinancialModule } from './financial/financial.module';
 import { ReportsModule } from './reports/reports.module';
 import { ConfigModule } from '@nestjs/config';
+import { FileUploadModule } from './file-upload/file-upload.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+import { StaticFilesMiddleware } from './common/middlewares/static-files.middleware';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(typeOrmConfig),
-
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'uploads'),
+      serveRoot: '/uploads',
+    }),
     UsersModule,
     RestaurantsModule,
     IngredientsModule,
@@ -38,8 +45,16 @@ import { ConfigModule } from '@nestjs/config';
     InventoryModule,
     FinancialModule,
     ReportsModule,
+    FileUploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Apply the StaticFilesMiddleware to all routes
+    consumer
+      .apply(StaticFilesMiddleware)
+      .forRoutes('*');
+  }
+}
