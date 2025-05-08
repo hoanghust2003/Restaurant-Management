@@ -2,7 +2,7 @@ import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { typeOrmConfig } from './config/typeorm.config';
+import { typeOrmAsyncConfig } from './config/typeorm.config';
 import { UsersModule } from './users/users.module';
 import { RestaurantsModule } from './restaurants/restaurants.module';
 import { IngredientsModule } from './ingredients/ingredients.module';
@@ -22,11 +22,17 @@ import { FileUploadModule } from './file-upload/file-upload.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { StaticFilesMiddleware } from './common/middlewares/static-files.middleware';
+import * as path from 'path';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRoot(typeOrmConfig),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [path.resolve(process.cwd(), '.env')],
+      cache: false, // Disable cache to make sure we always read the latest values
+      expandVariables: true, // Allow variable expansion in .env file
+    }),
+    TypeOrmModule.forRootAsync(typeOrmAsyncConfig),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'uploads'),
       serveRoot: '/uploads',

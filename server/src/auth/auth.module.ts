@@ -16,12 +16,19 @@ import { PassportModule } from '@nestjs/passport';
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
-        signOptions: { 
-          expiresIn: configService.get<string>('JWT_EXPIRATION', '1h') 
-        },
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const secret = configService.get<string>('JWT_SECRET');
+        // Nếu không tìm thấy JWT_SECRET trong biến môi trường, sử dụng giá trị mặc định
+        if (!secret) {
+          console.warn('JWT_SECRET not found in environment variables, using default secret (not secure for production)');
+        }
+        return {
+          secret: secret || 'restaurant_management_secure_jwt_secret_key_2025',
+          signOptions: { 
+            expiresIn: configService.get<string>('JWT_EXPIRATION_TIME', '1d') 
+          },
+        };
+      },
       inject: [ConfigService],
     }),
   ],

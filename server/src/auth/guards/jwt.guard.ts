@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { CanActivate, ExecutionContext } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Observable } from 'rxjs';
@@ -6,6 +6,8 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
+  private readonly logger = new Logger(JwtAuthGuard.name);
+  
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
@@ -22,9 +24,12 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      const payload = this.jwtService.verify(token, {
-        secret: this.configService.get<string>('JWT_SECRET'),
-      });
+      // Đảm bảo sử dụng cùng một JWT_SECRET với JwtStrategy
+      const jwtSecret = this.configService.get<string>('JWT_SECRET');
+      const defaultSecret = 'restaurant_management_secure_jwt_secret_key_2025';
+      const secret = jwtSecret || defaultSecret;
+      
+      const payload = this.jwtService.verify(token, { secret });
       
       // Transform the JWT payload to match the expected structure
       request.user = {
@@ -35,6 +40,7 @@ export class JwtAuthGuard implements CanActivate {
       
       return true;
     } catch (error) {
+      this.logger.error(`Token verification failed: ${error.message}`);
       throw new UnauthorizedException('Invalid or expired token');
     }
   }

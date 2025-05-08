@@ -78,4 +78,16 @@ export class AuthService {
     };
   }
 
+  async getProfile(userId: string): Promise<Partial<User>> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+    
+    // Loại bỏ password trước khi trả về thông tin người dùng
+    const { password, ...userWithoutPassword } = user;
+    
+    return userWithoutPassword;
+  }
 }
