@@ -17,7 +17,8 @@ import {
   Square3Stack3DIcon,
   FireIcon,
   QueueListIcon,
-  ArchiveBoxIcon
+  ArchiveBoxIcon,
+  UserCircleIcon
 } from '@heroicons/react/24/outline';
 
 // Dashboard card component
@@ -99,6 +100,15 @@ export default function Home() {
                   {user?.role === 'warehouse' && 'Nhân viên kho'}
                   {user?.role === 'customer' && 'Khách hàng'}
                 </p>
+              </div>
+              <div>
+                <Link 
+                  href="/account"
+                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mr-2"
+                >
+                  <UserCircleIcon className="h-4 w-4 mr-1" />
+                  Tài khoản
+                </Link>
               </div>
               <button 
                 onClick={handleLogout}

@@ -37,6 +37,7 @@ interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   hasRole: (roles: string[]) => boolean;
+  updateUserProfile: () => Promise<void>;
 }
 
 // Kiểu dữ liệu cho form đăng ký
@@ -222,6 +223,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     toast.info('Đã đăng xuất');
     router.push('/auth/login');
   };
+  // Cập nhật thông tin người dùng từ API
+  const updateUserProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        const decoded = jwtDecode<JwtPayload>(token);
+        const response = await axios.get(`${API_BASE_URL}/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        
+        // Log the response data to see what we're getting from the server
+        console.log('Auth ME response data:', response.data);
+        
+        setUser({
+          id: decoded.sub,
+          email: decoded.email,
+          name: response.data.name,
+          role: decoded.role,
+          avatar_url: response.data.avatar_url
+        });
+      }
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+    }
+  };
 
   // Kiểm tra người dùng có role được yêu cầu không
   const hasRole = (roles: string[]) => {
@@ -238,7 +266,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         register,
         logout,
         isAuthenticated: !!user,
-        hasRole
+        hasRole,
+        updateUserProfile
       }}
     >
       {children}
