@@ -79,7 +79,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const interceptor = axios.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (error.response?.status === 401) {
+        // Chỉ xử lý lỗi 401 khi không phải đang đăng nhập/đăng ký
+        if (error.response?.status === 401 && 
+            !error.config.url.includes('/auth/login') && 
+            !error.config.url.includes('/auth/register')) {
           logout();
           router.push('/auth/login');
           toast.error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại');
