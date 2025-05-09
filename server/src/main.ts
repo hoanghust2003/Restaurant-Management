@@ -55,9 +55,8 @@ async function bootstrap() {
     forbidNonWhitelisted: true, // Trả về lỗi khi có thuộc tính không được định nghĩa
     transform: true, // Tự động chuyển đổi dữ liệu đầu vào theo DTO
   }));
-
-  // Sử dụng cứng port 8000
-  const port = 8000;
+  // Get port from environment variables or use default
+  const port = configService.get('PORT') || 8000;
   
   logger.log(`Attempting to start server on port ${port}`);
   try {
