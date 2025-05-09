@@ -22,6 +22,7 @@ import { FileUploadModule } from './file-upload/file-upload.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { StaticFilesMiddleware } from './common/middlewares/static-files.middleware';
+import { StaticAssetsController } from './common/controllers/static-assets.controller';
 import * as path from 'path';
 
 @Module({
@@ -52,8 +53,7 @@ import * as path from 'path';
     FinancialModule,
     ReportsModule,
     FileUploadModule,
-  ],
-  controllers: [AppController],
+  ],  controllers: [AppController, StaticAssetsController],
   providers: [AppService],
 })
 export class AppModule implements NestModule {
