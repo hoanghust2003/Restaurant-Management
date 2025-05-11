@@ -26,6 +26,15 @@ Table ingredients {
   created_at timestamp [default: `now()`]
 }
 
+Table ingredient_imports {
+  id UUID [pk]
+  created_by UUID [ref: > users.id]
+  supplier_id UUID [ref: > suppliers.id]
+  created_at timestamp [default: `now()`]
+  note text
+}
+
+
 Table suppliers {
   id UUID [pk]
   name varchar(255) [note: 'Tên nhà cung cấp']
@@ -110,16 +119,15 @@ Table export_items {
 
 Table batches {
   id UUID [pk]
+  import_id UUID [ref: > ingredient_imports.id]
   ingredient_id UUID [ref: > ingredients.id]
   name varchar(250)
-  supplier_id UUID [ref: > suppliers.id]
   quantity float
   remaining_quantity float
   expiry_date date
   price float
-  created_by UUID [ref: > users.id]
-  created_at timestamp [default: `now()`]
 }
+
 
 
 Table order_items {
@@ -138,7 +146,7 @@ Table financial_records {
   amount float
   description text
   created_by UUID [ref: > users.id]
-  related_batch UUID [ref: > batches.id, null]
+  related_import_id UUID [ref: > ingredient_imports.id, null]
   related_order_id UUID [ref: > orders.id, null]
   created_at timestamp [default: `now()`]
 }
