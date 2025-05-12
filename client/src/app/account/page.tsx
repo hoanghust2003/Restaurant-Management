@@ -413,7 +413,6 @@ export default function AccountPage() {
                   </label>
                   <div className="mt-1 bg-gray-50 border border-gray-300 rounded-md py-2 px-3 text-sm text-gray-700">
                     {user?.role === 'admin' && 'Quản trị viên'}
-                    {user?.role === 'manager' && 'Quản lý'}
                     {user?.role === 'waiter' && 'Nhân viên phục vụ'}
                     {user?.role === 'chef' && 'Đầu bếp'}
                     {user?.role === 'cashier' && 'Thu ngân'}

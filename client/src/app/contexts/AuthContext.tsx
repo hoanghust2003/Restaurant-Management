@@ -7,7 +7,7 @@ import { jwtDecode } from 'jwt-decode';
 import { useRouter } from 'next/navigation';
 
 // Định nghĩa các vai trò người dùng khớp với backend
-export type UserRole = 'admin' | 'manager' | 'waiter' | 'chef' | 'cashier' | 'warehouse' | 'customer';
+export type UserRole = 'admin' | 'waiter' | 'chef' | 'cashier' | 'warehouse' | 'customer';
 
 // Định nghĩa kiểu dữ liệu cho người dùng
 export interface User {
