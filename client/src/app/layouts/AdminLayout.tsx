@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import BaseLayout from './BaseLayout';
 import Sidebar from './Sidebar';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   UserGroupIcon, 
   Squares2X2Icon, 
@@ -19,6 +20,8 @@ interface AdminLayoutProps {
 }
 
 export default function AdminLayout({ children, title }: AdminLayoutProps) {
+  const { user } = useAuth();
+  
   const sections = [
     {
       title: 'Tổng quan',
@@ -37,16 +40,19 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           href: '/users',
           icon: <UserGroupIcon className="w-5 h-5" />,
           title: 'Tài khoản',
+          showIfRoles: ['admin'], // Only admin can manage users
         },
         {
           href: '/tables',
           icon: <BuildingStorefrontIcon className="w-5 h-5" />,
           title: 'Quản lý bàn',
+          showIfRoles: ['admin', 'waiter', 'cashier'], // Admin, waiters and cashiers can manage tables
         },
         {
           href: '/menus',
           icon: <QueueListIcon className="w-5 h-5" />,
           title: 'Thực đơn & Món ăn',
+          showIfRoles: ['admin', 'chef'], // Admin and chefs can manage menus
         },
       ],
     },
@@ -81,11 +87,10 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       ],
     },
   ];
-
   return (
     <BaseLayout 
       title={title} 
-      sidebar={<Sidebar sections={sections} />}
+      sidebar={<Sidebar sections={sections} userRole={user?.role} />}
     >
       {children}
     </BaseLayout>

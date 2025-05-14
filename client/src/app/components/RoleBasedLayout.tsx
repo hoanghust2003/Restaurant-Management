@@ -18,8 +18,17 @@ export default function RoleBasedLayout({ children, title, allowedRoles }: RoleB
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && (!user || !hasRole(allowedRoles))) {
-      router.push('/'); // Redirect to home if not authorized
+    if (!loading) {
+      if (!user) {
+        // If not logged in, redirect to login
+        router.push('/auth/login');
+      } else if (!hasRole(allowedRoles)) {
+        // If logged in but doesn't have required role, redirect to home with message
+        import('antd').then(({ message }) => {
+          message.error(`Bạn không có quyền truy cập với vai trò ${user.role}`);
+        });
+        router.push('/');
+      }
     }
   }, [user, loading, hasRole, allowedRoles, router]);
 
@@ -30,13 +39,12 @@ export default function RoleBasedLayout({ children, title, allowedRoles }: RoleB
   if (!user || !hasRole(allowedRoles)) {
     return null;
   }
-
   // Render appropriate layout based on user role
   if (user.role === 'admin') {
     return <AdminLayout title={title}>{children}</AdminLayout>;
   }
 
-  if (user.role === 'waiter') {
+  if (user.role === 'waiter' || user.role === 'cashier') {
     return <WaiterLayout title={title}>{children}</WaiterLayout>;
   }
 

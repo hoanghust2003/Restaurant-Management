@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import WaiterLayout from '@/app/layouts/WaiterLayout';
+import { useAuth } from '@/app/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 import { 
   Button, 
   Card, 
@@ -40,16 +42,31 @@ const statusColors = {
 };
 
 export default function WaiterTablesPage() {
+  const { user, loading: authLoading, hasRole } = useAuth();
+  const router = useRouter();
   const [tables, setTables] = useState<TableData[]>([]);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<TableData | null>(null);
   const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
   const [form] = Form.useForm();
-  
-  // Fetch tables data
-    useEffect(() => {
+    // Check if user has permission to view this page  
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        // Redirect unauthenticated users to login
+        router.push('/auth/login');
+      } else if (!hasRole(['waiter', 'cashier'])) {
+        // Redirect unauthorized users to home
+        router.push('/');
+        message.error('Bạn không có quyền truy cập trang này');
+      }
+    }
+  }, [user, authLoading, hasRole, router]);  // Fetch tables data
+  useEffect(() => {
     const fetchTablesData = async () => {
+      if (!user) return;
+      
       setLoading(true);
       try {
         const url = statusFilter 
@@ -57,16 +74,25 @@ export default function WaiterTablesPage() {
           : '/tables';
         const response = await axios.get(url);
         setTables(response.data);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching tables:', error);
-        message.error('Không thể tải danh sách bàn');
+        
+        // More detailed error handling
+        if (error.response?.status === 403) {
+          message.error('Bạn không có quyền xem danh sách bàn');
+          router.push('/');
+        } else if (!error.response) {
+          message.error('Mất kết nối tới máy chủ. Vui lòng kiểm tra mạng.');
+        } else {
+          message.error('Không thể tải danh sách bàn');
+        }
       } finally {
         setLoading(false);
       }
     };
-
+    
     fetchTablesData();
-  }, [statusFilter]);
+  }, [statusFilter, user, router]);
   
   // Handle status modal
   const showStatusModal = (table: TableData) => {

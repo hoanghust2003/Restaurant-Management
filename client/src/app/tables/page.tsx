@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import RoleBasedLayout from '@/app/components/RoleBasedLayout';
+import { useAuth } from '@/app/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 import { 
   Button, 
   Table, 
@@ -45,28 +47,47 @@ export default function TablesPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [currentTable, setCurrentTable] = useState<TableData | null>(null);
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
-    // Load tables data on component mount and when filter changes
+  const [loading, setLoading] = useState(false);  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const { user, hasRole, loading: authLoading } = useAuth();
+  const router = useRouter();
+  
+  // Check user permissions
   useEffect(() => {
-    const fetchTables = async () => {
-      setLoading(true);
-      try {
-        const url = statusFilter 
-          ? `/tables?status=${statusFilter}` 
-          : '/tables';
-        const response = await axios.get(url);
-        setTables(response.data);
-      } catch (error) {
-        console.error('Error fetching tables:', error);
-        message.error('Không thể tải danh sách bàn');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTables();
-  }, [statusFilter]);
+    if (!authLoading && user && !hasRole(['admin', 'waiter', 'cashier'])) {
+      message.warning('Bạn không có quyền truy cập trang quản lý bàn');
+      router.push('/');
+    }
+  }, [user, authLoading, hasRole, router]);
+  // Load tables data on component mount and when filter changes
+  useEffect(() => {
+    if (user) {
+      const fetchTables = async () => {
+        setLoading(true);
+        try {
+          const url = statusFilter 
+            ? `/tables?status=${statusFilter}` 
+            : '/tables';
+          const response = await axios.get(url);
+          setTables(response.data);
+        } catch (error: any) {
+          console.error('Error fetching tables:', error);
+          
+          // More detailed error handling
+          if (error.response?.status === 403) {
+            message.error('Bạn không có quyền xem danh sách bàn');
+          } else if (!error.response) {
+            message.error('Mất kết nối tới máy chủ. Vui lòng kiểm tra mạng.');
+          } else {
+            message.error('Không thể tải danh sách bàn');
+          }
+        } finally {
+          setLoading(false);
+        }
+      };
+  
+      fetchTables();
+    }
+  }, [statusFilter, user]);
   
   // Handle modal visibility
   const showModal = (table?: TableData) => {
@@ -175,37 +196,48 @@ export default function TablesPage() {
     },
     {
       title: 'Thao tác',
-      key: 'action',
-      render: (_: unknown, record: TableData) => (
+      key: 'action',      render: (_: unknown, record: TableData) => (
         <div className="flex space-x-2">
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => showModal(record)}
-            size="small"
-          >
-            Sửa
-          </Button>
-          <Popconfirm
-            title="Xóa bàn"
-            description="Bạn có chắc chắn muốn xóa bàn này?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Có"
-            cancelText="Không"
-          >
+          {hasRole(['admin']) ? (
+            <>
+              <Button
+                icon={<EditOutlined />}
+                onClick={() => showModal(record)}
+                size="small"
+              >
+                Sửa
+              </Button>
+              <Popconfirm
+                title="Xóa bàn"
+                description="Bạn có chắc chắn muốn xóa bàn này?"
+                onConfirm={() => handleDelete(record.id)}
+                okText="Có"
+                cancelText="Không"
+              >
+                <Button
+                  icon={<DeleteOutlined />}
+                  danger
+                  size="small"
+                >
+                  Xóa
+                </Button>
+              </Popconfirm>
+            </>
+          ) : (
             <Button
-              icon={<DeleteOutlined />}
-              danger
+              icon={<EditOutlined />}
+              onClick={() => showModal(record)}
               size="small"
             >
-              Xóa
+              Cập nhật trạng thái
             </Button>
-          </Popconfirm>
+          )}
         </div>
       ),
     },
   ];
-    return (
-    <RoleBasedLayout title="Quản lý bàn" allowedRoles={['admin', 'waiter']}>
+  return (
+    <RoleBasedLayout title="Quản lý bàn" allowedRoles={['admin', 'waiter', 'cashier']}>
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <div className="text-2xl font-bold">Danh sách bàn</div>
@@ -220,15 +252,16 @@ export default function TablesPage() {
                   value: option.value,
                   label: option.label,
                 })),
-              ]}
-            />
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => showModal()}
-            >
-              Thêm bàn mới
-            </Button>
+              ]}            />
+            {hasRole(['admin']) && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => showModal()}
+              >
+                Thêm bàn mới
+              </Button>
+            )}
           </div>
         </div>
         
@@ -255,37 +288,38 @@ export default function TablesPage() {
           form={form}
           layout="vertical"
           onFinish={handleSubmit}
-        >
-          <Form.Item
-            name="name"
-            label="Tên bàn"
-            rules={[{ required: true, message: 'Vui lòng nhập tên bàn' }]}
-          >
-            <Input placeholder="Nhập tên bàn" />
-          </Form.Item>
+        >          {hasRole(['admin']) ? (
+            <>
+              <Form.Item
+                name="name"
+                label="Tên bàn"
+                rules={[{ required: true, message: 'Vui lòng nhập tên bàn' }]}
+              >
+                <Input placeholder="Nhập tên bàn" />
+              </Form.Item>
+              
+              <Form.Item
+                name="capacity"
+                label="Sức chứa"
+                rules={[{ required: true, message: 'Vui lòng nhập sức chứa' }]}
+              >
+                <InputNumber
+                  min={1}
+                  max={50}
+                  placeholder="Nhập sức chứa"
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            </>
+          ) : null}
           
           <Form.Item
-            name="capacity"
-            label="Sức chứa"
-            rules={[{ required: true, message: 'Vui lòng nhập sức chứa' }]}
+            name="status"
+            label="Trạng thái"
+            rules={[{ required: true, message: 'Vui lòng chọn trạng thái' }]}
           >
-            <InputNumber
-              min={1}
-              max={50}
-              placeholder="Nhập sức chứa"
-              style={{ width: '100%' }}
-            />
+            <Select options={statusOptions} />
           </Form.Item>
-          
-          {isEditing && (
-            <Form.Item
-              name="status"
-              label="Trạng thái"
-              rules={[{ required: true, message: 'Vui lòng chọn trạng thái' }]}
-            >
-              <Select options={statusOptions} />
-            </Form.Item>
-          )}
           
           <div className="flex justify-end space-x-2">
             <Button onClick={handleCancel}>Hủy</Button>

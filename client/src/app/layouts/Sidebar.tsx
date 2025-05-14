@@ -53,28 +53,42 @@ interface SidebarProps {
       href: string;
       icon: ReactNode;
       title: string;
+      showIfRoles?: string[]; // Optional property to restrict menu items to specific roles
     }[];
   }[];
+  userRole?: string; // Current user's role
 }
 
-export default function Sidebar({ sections }: SidebarProps) {
+export default function Sidebar({ sections, userRole }: SidebarProps) {
   const pathname = usePathname();
 
   return (
     <div className="py-2">
-      {sections.map((section, i) => (
-        <SidebarSection key={i} title={section.title}>
-          {section.items.map((item, j) => (
-            <SidebarItem
-              key={j}
-              href={item.href}
-              icon={item.icon}
-              title={item.title}
-              active={pathname === item.href}
-            />
-          ))}
-        </SidebarSection>
-      ))}
+      {sections.map((section, i) => {
+        // Filter items based on user role and showIfRoles property
+        const visibleItems = section.items.filter(item => 
+          !item.showIfRoles || // Show if no role restriction
+          !userRole || // Show if no user role provided (fallback)
+          item.showIfRoles.includes(userRole) // Show if user role is in allowed roles
+        );
+
+        // Don't render empty sections
+        if (visibleItems.length === 0) return null;
+
+        return (
+          <SidebarSection key={i} title={section.title}>
+            {visibleItems.map((item, j) => (
+              <SidebarItem
+                key={j}
+                href={item.href}
+                icon={item.icon}
+                title={item.title}
+                active={pathname === item.href}
+              />
+            ))}
+          </SidebarSection>
+        );
+      })}
     </div>
   );
 }

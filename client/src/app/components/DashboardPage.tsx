@@ -70,16 +70,17 @@ export default function DashboardPage() {
   return (
     <div className="py-4">
       <h2 className="text-xl font-semibold text-gray-800 mb-6">Dashboard</h2>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Common modules for all users */}
-        <DashboardCard
-          title="Quản lý bàn"
-          description="Xem và quản lý trạng thái bàn"
-          icon={<Square3Stack3DIcon className="w-6 h-6 text-blue-600" />}
-          href="/tables"
-          color="border-blue-500"
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Table management - only for admin, waiter, and cashier */}
+        {hasRole(['admin', 'waiter', 'cashier']) && (
+          <DashboardCard
+            title="Quản lý bàn"
+            description="Xem và quản lý trạng thái bàn"
+            icon={<Square3Stack3DIcon className="w-6 h-6 text-blue-600" />}
+            href="/tables/router"
+            color="border-blue-500"
+          />
+        )}
         
         {/* Waiter can manage orders */}
         {hasRole(['admin', 'manager', 'waiter', 'cashier']) && (
