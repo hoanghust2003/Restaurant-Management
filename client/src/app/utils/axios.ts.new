@@ -8,6 +8,7 @@ const axiosInstance = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 5000, // Giảm timeout xuống 5 giây để nhanh hơn
+  // Tối ưu hiệu năng
   withCredentials: false, // Không gửi cookies trừ khi cần
   responseType: 'json',
   maxRedirects: 2, // Giảm số lần chuyển hướng
@@ -29,7 +30,7 @@ axiosInstance.interceptors.request.use(
       
       if (cachedData) {
         // Return cached data by converting this request to a "canceled" one
-        // and resolving with cached data in a custom adapter
+        // and resolving with cached data
         const source = axios.CancelToken.source();
         config.cancelToken = source.token;
         setTimeout(() => {
@@ -84,7 +85,8 @@ axiosInstance.interceptors.response.use(
     }
     
     return response;
-  },  (error) => {
+  },  
+  (error) => {
     // Check if this is our "fake" cancellation with cached data
     if (axios.isCancel(error) && error.message) {
       try {

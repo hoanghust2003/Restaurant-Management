@@ -1,24 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import WaiterLayout from '@/app/layouts/WaiterLayout';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { usePerformanceMonitor } from '@/app/utils/performanceMonitoring';
 import { 
   Button, 
-  Card, 
-  Row, 
-  Col, 
   Select, 
   Modal, 
   Form, 
   message, 
-  Spin, 
-  Empty,
-  Tag
+  Spin 
 } from 'antd';
 import axios from '../../utils/axios';
 import { TableStatus } from '@/app/utils/enums';
+
+// Dynamically import components for code splitting
+const TablesGrid = dynamic(() => import('@/app/components/TablesGrid'), {
+  loading: () => <div className="flex justify-center items-center h-64"><Spin size="large" /></div>
+});
 
 interface TableData {
   id: string;
@@ -41,8 +43,7 @@ const statusColors = {
   [TableStatus.CLEANING]: 'processing',
 };
 
-export default function WaiterTablesPage() {
-  const { user, loading: authLoading, hasRole } = useAuth();
+export default function WaiterTablesPage() {  const { user, loading: authLoading, hasRole } = useAuth();
   const router = useRouter();
   const [tables, setTables] = useState<TableData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -50,7 +51,8 @@ export default function WaiterTablesPage() {
   const [selectedTable, setSelectedTable] = useState<TableData | null>(null);
   const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
   const [form] = Form.useForm();
-    // Check if user has permission to view this page  
+  
+  // Check if user has permission to view this page  
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
@@ -62,39 +64,66 @@ export default function WaiterTablesPage() {
         message.error('Bạn không có quyền truy cập trang này');
       }
     }
-  }, [user, authLoading, hasRole, router]);  // Fetch tables data
-  useEffect(() => {
-    const fetchTablesData = async () => {
-      if (!user) return;
-      
-      setLoading(true);
-      try {
-        const url = statusFilter 
-          ? `/tables?status=${statusFilter}` 
-          : '/tables';
-        const response = await axios.get(url);
-        setTables(response.data);
-      } catch (error: any) {
-        console.error('Error fetching tables:', error);
-        
-        // More detailed error handling
-        if (error.response?.status === 403) {
-          message.error('Bạn không có quyền xem danh sách bàn');
-          router.push('/');
-        } else if (!error.response) {
-          message.error('Mất kết nối tới máy chủ. Vui lòng kiểm tra mạng.');
-        } else {
-          message.error('Không thể tải danh sách bàn');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
+  }, [user, authLoading, hasRole, router]);
+  
+  // Fetch tables data
+  // Sử dụng useCallback để tránh tạo lại function mỗi lần render
+  const fetchTablesData = useCallback(async () => {
+    if (!user) return;
     
-    fetchTablesData();
+    setLoading(true);
+    try {
+      // Check cache first
+      const url = statusFilter 
+        ? `/tables?status=${statusFilter}` 
+        : '/tables';
+        
+      // First attempt - use cache if available (don't set loading indicator)
+      const response = await axios.get(url);
+      
+      // Check if response came from cache
+      if ((response as any).cached) {
+        setTables(response.data);
+        setLoading(false);
+        
+        // Refresh in background after a short delay
+        setTimeout(() => {
+          axios.get(url, { 
+            headers: { 'x-skip-cache': 'true' } 
+          }).then(freshResponse => {
+            setTables(freshResponse.data);
+          }).catch(err => {
+            // Silently fail for background refresh
+            console.debug('Background refresh error:', err);
+          });
+        }, 100);
+        return;
+      }
+      
+      // Regular response handling
+      setTables(response.data);
+    } catch (error: any) {
+      console.error('Error fetching tables:', error);
+      
+      // More detailed error handling
+      if (error.response?.status === 403) {
+        message.error('Bạn không có quyền xem danh sách bàn');
+        router.push('/');
+      } else if (!error.response) {
+        message.error('Mất kết nối tới máy chủ. Vui lòng kiểm tra mạng.');
+      } else {
+        message.error('Không thể tải danh sách bàn');
+      }
+    } finally {
+      setLoading(false);
+    }
   }, [statusFilter, user, router]);
   
-  // Handle status modal
+  // Tách thành useEffect riêng để giảm re-render không cần thiết
+  useEffect(() => {
+    fetchTablesData();
+  }, [fetchTablesData]);
+    // Handle status modal
   const showStatusModal = (table: TableData) => {
     setSelectedTable(table);
     form.setFieldsValue({
@@ -106,42 +135,69 @@ export default function WaiterTablesPage() {
   const handleStatusCancel = () => {
     setIsStatusModalVisible(false);
   };
-    // Handle status update
+  
+  // Handle status update với optimistic update
   const handleStatusUpdate = async (values: Record<string, unknown>) => {
+    if (!selectedTable) return;
+    
+    // Lưu lại bảng gốc để có thể khôi phục nếu lỗi
+    const originalTable = {...selectedTable};
+    const updatedStatus = values.status as string;
+    
+    // Đóng modal trước khi cập nhật UI để tránh hiện tượng lag
+    setIsStatusModalVisible(false);
+    
+    // Optimistic update - cập nhật UI ngay lập tức
+    setTables(prevTables => prevTables.map(table => 
+      table.id === selectedTable.id 
+        ? { ...table, status: updatedStatus }
+        : table
+    ));
+    
+    // Gửi request cập nhật lên server trong background
+    const updatePromise = axios.patch(`/tables/${selectedTable.id}/status`, {
+      status: updatedStatus,
+    });
+    
+    // Hiển thị thông báo ngay lập tức
+    const hideLoading = message.loading('Đang cập nhật...', 0);
+    
+    // Xử lý kết quả
     try {
-      if (selectedTable) {
-        await axios.patch(`/tables/${selectedTable.id}/status`, {
-          status: values.status,
-        });
-        message.success('Cập nhật trạng thái bàn thành công');
-        setIsStatusModalVisible(false);
-        
-        // Fetch updated table list
-        const url = statusFilter 
-          ? `/tables?status=${statusFilter}` 
-          : '/tables';
-        const response = await axios.get(url);
-        setTables(response.data);
-      }
+      await updatePromise;
+      hideLoading();
+      message.success('Cập nhật trạng thái bàn thành công');
+      
+      // Xóa cache của tables để đảm bảo lần sau fetch sẽ lấy dữ liệu mới nhất
+      import('../../utils/requestCache').then(({ requestCache }) => {
+        requestCache.invalidateByPrefix('/tables');
+      });
     } catch (error) {
+      hideLoading();
       console.error('Error updating table status:', error);
       message.error('Không thể cập nhật trạng thái bàn');
+      
+      // Khôi phục dữ liệu nếu có lỗi
+      setTables(prevTables => prevTables.map(table => 
+        table.id === selectedTable.id 
+          ? { ...originalTable } 
+          : table
+      ));
     }
   };
-  
-  // Handle create order for a table
-  const handleCreateOrder = (table: TableData) => {
-    // Redirect to order creation page with table ID
-    window.location.href = `/orders/create?tableId=${table.id}`;
-  };
-  
-  const getStatusColor = (status: string) => {
+    // Handle create order for a table sử dụng Next.js Router thay vì window.location
+  const handleCreateOrder = useCallback((table: TableData) => {
+    // Sử dụng router.push thay vì window.location để tránh làm mới toàn bộ trang
+    router.push(`/orders/create?tableId=${table.id}`);
+  }, [router]);
+    // Sử dụng useMemo để tránh tính toán lại mỗi khi render
+  const getStatusColor = useMemo(() => (status: string) => {
     return statusColors[status as TableStatus] || 'default';
-  };
+  }, []);
   
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = useMemo(() => (status: string) => {
     return statusOptions.find(option => option.value === status)?.label || status;
-  };
+  }, []);
   
   return (
     <WaiterLayout title="Danh sách bàn">
@@ -160,51 +216,14 @@ export default function WaiterTablesPage() {
               })),
             ]}
           />
-        </div>
-        
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <Spin size="large" />
-          </div>
-        ) : tables.length > 0 ? (
-          <Row gutter={[16, 16]}>
-            {tables.map(table => (
-              <Col xs={24} sm={12} md={8} lg={6} key={table.id}>
-                <Card
-                  title={
-                    <div className="flex items-center justify-between">
-                      <span>{table.name}</span>
-                      <Tag color={getStatusColor(table.status)}>
-                        {getStatusLabel(table.status)}
-                      </Tag>
-                    </div>
-                  }
-                  className="h-full"
-                  actions={[
-                    <Button 
-                      key="status" 
-                      onClick={() => showStatusModal(table)}
-                    >
-                      Đổi trạng thái
-                    </Button>,
-                    <Button 
-                      key="order" 
-                      type="primary"
-                      onClick={() => handleCreateOrder(table)}
-                      disabled={table.status !== TableStatus.OCCUPIED && table.status !== TableStatus.RESERVED}
-                    >
-                      Gọi món
-                    </Button>,
-                  ]}
-                >
-                  <p><strong>Sức chứa:</strong> {table.capacity} người</p>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        ) : (
-          <Empty description="Không có bàn nào" />
-        )}
+        </div>          <Suspense fallback={<div className="flex justify-center items-center h-64"><Spin size="large" /></div>}>
+            <TablesGrid
+              tables={tables}
+              loading={loading}
+              onStatusChange={showStatusModal}
+              onCreateOrder={handleCreateOrder}
+            />
+          </Suspense>
       </div>
       
       <Modal
