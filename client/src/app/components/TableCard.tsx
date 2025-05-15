@@ -1,10 +1,10 @@
 'use client';
 
-import React, { memo } from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import { Card, Tag, Button } from 'antd';
 import { TableStatus } from '@/app/utils/enums';
 
-// Khai báo các màu trạng thái
+// Status color mapping
 const statusColors = {
   [TableStatus.AVAILABLE]: 'success',
   [TableStatus.OCCUPIED]: 'error',
@@ -12,6 +12,7 @@ const statusColors = {
   [TableStatus.CLEANING]: 'processing',
 };
 
+// Status label mapping
 const statusLabels = {
   [TableStatus.AVAILABLE]: 'Trống',
   [TableStatus.OCCUPIED]: 'Đang sử dụng',
@@ -32,32 +33,40 @@ interface TableCardProps {
   onCreateOrder: (table: TableData) => void;
 }
 
-// Sử dụng memo để tránh render lại component khi props không thay đổi
+/**
+ * TableCard component - displays a restaurant table with its status and actions
+ * Optimized with memo to prevent unnecessary re-renders
+ */
 const TableCard = memo(({ table, onStatusChange, onCreateOrder }: TableCardProps) => {
-  // Using React.useMemo for functions that derive data to avoid recreating them on each render
-  const getStatusColor = React.useMemo(() => (status: string) => {
-    return statusColors[status as TableStatus] || 'default';
-  }, []);
+  // Memoize derived values
+  const statusColor = useMemo(() => {
+    return statusColors[table.status as TableStatus] || 'default';
+  }, [table.status]);
   
-  const getStatusLabel = React.useMemo(() => (status: string) => {
-    return statusLabels[status as TableStatus] || status;
-  }, []);
-
-  // Use callback for event handlers to avoid recreating them on each render
-  const handleStatusClick = React.useCallback(() => {
+  const statusLabel = useMemo(() => {
+    return statusLabels[table.status as TableStatus] || table.status;
+  }, [table.status]);
+  
+  // Memoize handlers to prevent recreating functions on each render
+  const handleStatusChange = useCallback(() => {
     onStatusChange(table);
-  }, [table, onStatusChange]);
-
-  const handleCreateOrderClick = React.useCallback(() => {
+  }, [onStatusChange, table]);
+  
+  const handleCreateOrder = useCallback(() => {
     onCreateOrder(table);
-  }, [table, onCreateOrder]);
-  return (
+  }, [onCreateOrder, table]);
+  
+  // Memoize button disabled state
+  const orderButtonDisabled = useMemo(() => {
+    return table.status !== TableStatus.OCCUPIED && table.status !== TableStatus.RESERVED;
+  }, [table.status]);
+    return (
     <Card
       title={
         <div className="flex items-center justify-between">
           <span>{table.name}</span>
-          <Tag color={getStatusColor(table.status)}>
-            {getStatusLabel(table.status)}
+          <Tag color={statusColor}>
+            {statusLabel}
           </Tag>
         </div>
       }
@@ -65,15 +74,15 @@ const TableCard = memo(({ table, onStatusChange, onCreateOrder }: TableCardProps
       actions={[
         <Button 
           key="status" 
-          onClick={handleStatusClick}
+          onClick={handleStatusChange}
         >
           Đổi trạng thái
         </Button>,
         <Button 
           key="order" 
           type="primary"
-          onClick={handleCreateOrderClick}
-          disabled={table.status !== TableStatus.OCCUPIED && table.status !== TableStatus.RESERVED}
+          onClick={handleCreateOrder}
+          disabled={orderButtonDisabled}
         >
           Gọi món
         </Button>,

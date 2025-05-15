@@ -6,6 +6,7 @@ import WaiterLayout from '@/app/layouts/WaiterLayout';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { usePerformanceMonitor } from '@/app/utils/performanceMonitoring';
+import { prefetchWaiterDashboardData } from '@/app/utils/prefetch';
 import { 
   Button, 
   Select, 
@@ -16,10 +17,13 @@ import {
 } from 'antd';
 import axios from '../../utils/axios';
 import { TableStatus } from '@/app/utils/enums';
+import { withRetry } from '@/app/utils/apiRetry';
 
 // Dynamically import components for code splitting
 const TablesGrid = dynamic(() => import('@/app/components/TablesGrid'), {
-  loading: () => <div className="flex justify-center items-center h-64"><Spin size="large" /></div>
+  loading: () => <div className="flex justify-center items-center h-64"><Spin size="large" /></div>,
+  // Add SSR false for better client-side performance (since this is a dashboard component)
+  ssr: false
 });
 
 interface TableData {
@@ -43,7 +47,8 @@ const statusColors = {
   [TableStatus.CLEANING]: 'processing',
 };
 
-export default function WaiterTablesPage() {  const { user, loading: authLoading, hasRole } = useAuth();
+export default function WaiterTablesPage() {
+  const { user, loading: authLoading, hasRole } = useAuth();
   const router = useRouter();
   const [tables, setTables] = useState<TableData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -51,6 +56,17 @@ export default function WaiterTablesPage() {  const { user, loading: authLoading
   const [selectedTable, setSelectedTable] = useState<TableData | null>(null);
   const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
   const [form] = Form.useForm();
+  
+  // Monitor component performance
+  usePerformanceMonitor('WaiterTablesPage', [tables, loading, statusFilter]);
+  
+  // Prefetch critical data for the waiter dashboard
+  useEffect(() => {
+    // Only prefetch when the user is authenticated and on the waiter dashboard
+    if (user && hasRole(['waiter', 'cashier'])) {
+      prefetchWaiterDashboardData();
+    }
+  }, [user, hasRole]);
   
   // Check if user has permission to view this page  
   useEffect(() => {
@@ -65,13 +81,15 @@ export default function WaiterTablesPage() {  const { user, loading: authLoading
       }
     }
   }, [user, authLoading, hasRole, router]);
-  
   // Fetch tables data
   // Sử dụng useCallback để tránh tạo lại function mỗi lần render
   const fetchTablesData = useCallback(async () => {
     if (!user) return;
     
     setLoading(true);
+    // Track fetch start time for metrics
+    const fetchStartTime = performance.now();
+    
     try {
       // Check cache first
       const url = statusFilter 
@@ -79,29 +97,45 @@ export default function WaiterTablesPage() {  const { user, loading: authLoading
         : '/tables';
         
       // First attempt - use cache if available (don't set loading indicator)
-      const response = await axios.get(url);
-      
-      // Check if response came from cache
+      const response = await withRetry(() => axios.get(url));
+        // Check if response came from cache
       if ((response as any).cached) {
         setTables(response.data);
         setLoading(false);
         
-        // Refresh in background after a short delay
-        setTimeout(() => {
-          axios.get(url, { 
-            headers: { 'x-skip-cache': 'true' } 
-          }).then(freshResponse => {
-            setTables(freshResponse.data);
-          }).catch(err => {
-            // Silently fail for background refresh
-            console.debug('Background refresh error:', err);
-          });
-        }, 100);
+        // Refresh in background only if the data is older than 30 seconds
+        // This prevents excessive API calls while maintaining data freshness
+        const refreshDelay = 100; // Short delay before refresh
+        const now = Date.now();
+        const lastRefreshTimeKey = `last_refresh_${url}`;
+        const lastRefreshTime = localStorage.getItem(lastRefreshTimeKey) 
+          ? parseInt(localStorage.getItem(lastRefreshTimeKey) || '0', 10)
+          : 0;
+          
+        const timeSinceLastRefresh = now - lastRefreshTime;
+        
+        if (timeSinceLastRefresh > 30000) { // Only refresh if it's been 30+ seconds
+          setTimeout(() => {
+            axios.get(url, { 
+              headers: { 'x-skip-cache': 'true' } 
+            }).then(freshResponse => {
+              setTables(freshResponse.data);
+              localStorage.setItem(lastRefreshTimeKey, now.toString());
+            }).catch(err => {
+              // Silently fail for background refresh
+              console.debug('Background refresh error:', err);
+            });
+          }, refreshDelay);
+        }
         return;
       }
-      
-      // Regular response handling
+        // Regular response handling
       setTables(response.data);
+      
+      // Mark successful data fetch in performance timeline
+      if (window.performance && window.performance.mark) {
+        window.performance.mark('tables-data-loaded');
+      }
     } catch (error: any) {
       console.error('Error fetching tables:', error);
       
@@ -116,6 +150,12 @@ export default function WaiterTablesPage() {  const { user, loading: authLoading
       }
     } finally {
       setLoading(false);
+      
+      // Track total fetch time for performance monitoring
+      const fetchTotalTime = performance.now() - fetchStartTime;
+      if (fetchTotalTime > 500) { // Log fetches taking more than 500ms
+        console.warn(`[Performance] Tables data fetch took ${fetchTotalTime.toFixed(2)}ms`);
+      }
     }
   }, [statusFilter, user, router]);
   

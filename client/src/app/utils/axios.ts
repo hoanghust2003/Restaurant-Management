@@ -8,6 +8,7 @@ const axiosInstance = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 5000, // Giảm timeout xuống 5 giây để nhanh hơn
+  // Tối ưu hiệu năng
   withCredentials: false, // Không gửi cookies trừ khi cần
   responseType: 'json',
   maxRedirects: 2, // Giảm số lần chuyển hướng
@@ -17,9 +18,9 @@ const axiosInstance = axios.create({
 // Tạo một Map để lưu trữ thời gian request trước đó để tránh hiển thị loading quá nhiều lần
 const requestTimestamps = new Map();
 
-axiosInstance.interceptors.request.use(
-  (config) => {
+axiosInstance.interceptors.request.use(  (config) => {
     const url = config.url || '';
+    const isPrefetch = config.headers?.['X-Prefetch'] === 'true';
     
     // Check cache for GET requests when not forced to skip cache
     if (config.method?.toLowerCase() === 'get' && !config.headers?.['x-skip-cache']) {
@@ -27,9 +28,10 @@ axiosInstance.interceptors.request.use(
       const cacheKey = `${url}${params}`;
       const cachedData = requestCache.get(cacheKey);
       
-      if (cachedData) {
+      // If data is in cache and this is not a prefetch request, return cached data
+      if (cachedData && !isPrefetch) {
         // Return cached data by converting this request to a "canceled" one
-        // and resolving with cached data in a custom adapter
+        // and resolving with cached data
         const source = axios.CancelToken.source();
         config.cancelToken = source.token;
         setTimeout(() => {
@@ -42,6 +44,12 @@ axiosInstance.interceptors.request.use(
         ...config.params,
         _t: Date.now() 
       };
+    }
+    
+    // For prefetch requests, apply lower priority and longer timeout
+    if (isPrefetch) {
+      // Lower priority for prefetch requests to not interfere with user actions
+      config.timeout = 10000; // Longer timeout
     }
     
     // Lưu trữ thời gian request để tính toán thời gian phản hồi sau này
@@ -70,21 +78,36 @@ axiosInstance.interceptors.response.use(
       const url = response.config.url || '';
       const params = response.config.params ? JSON.stringify(response.config.params) : '';
       const cacheKey = `${url}${params}`;
+        // Cache the successful response data
+      // Use longer expiry and higher priority for important routes
+      const isImportantRoute = url.includes('/tables') || url.includes('/orders');
+      const expiry = isImportantRoute ? 60 * 1000 : 30 * 1000; // 60s for important routes, 30s for others
+      const priority = isImportantRoute ? 2 : 1; // Higher priority for important routes
       
-      // Cache the successful response data
-      requestCache.set(cacheKey, response.data);
-      
-      // Measure and log response time for performance monitoring
+      requestCache.set(cacheKey, response.data, expiry, priority);
+          // Measure and log response time for performance monitoring
       const startTime = requestTimestamps.get(url);
       if (startTime) {
         const responseTime = Date.now() - startTime;
-        console.debug(`Response time for ${url}: ${responseTime}ms`);
+        const isPrefetch = response.config.headers?.['X-Prefetch'] === 'true';
+        
+        // Only log non-prefetch requests to reduce console noise
+        if (!isPrefetch) {
+          console.debug(`Response time for ${url}: ${responseTime}ms`);
+        }
+        
+        // Log slow responses regardless of prefetch status
+        if (responseTime > 1000) { // More than 1 second is slow
+          console.warn(`Slow response: ${url} took ${responseTime.toFixed(2)}ms`);
+        }
+        
         requestTimestamps.delete(url);
       }
     }
     
     return response;
-  },  (error) => {
+  },  
+  (error) => {
     // Check if this is our "fake" cancellation with cached data
     if (axios.isCancel(error) && error.message) {
       try {
