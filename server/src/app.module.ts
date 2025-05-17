@@ -19,6 +19,7 @@ import { FinancialModule } from './financial/financial.module';
 import { ReportsModule } from './reports/reports.module';
 import { ConfigModule } from '@nestjs/config';
 import { FileUploadModule } from './file-upload/file-upload.module';
+import { CategoriesModule } from './categories/categories.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { StaticFilesMiddleware } from './common/middlewares/static-files.middleware';
@@ -48,12 +49,12 @@ import * as path from 'path';
     OrdersModule,
     KitchenModule,
     BatchesModule,
-    SuppliersModule,
-    InventoryModule,
+    SuppliersModule,    InventoryModule,
     FinancialModule,
     ReportsModule,
     FileUploadModule,
-  ],  controllers: [AppController, StaticAssetsController],
+    CategoriesModule,
+  ],controllers: [AppController, StaticAssetsController],
   providers: [AppService],
 })
 export class AppModule implements NestModule {
