@@ -13,25 +13,32 @@ export class TablesService {
   constructor(
     @InjectRepository(TableEntity)
     private tableRepository: Repository<TableEntity>,
-  ) {}
-  async findAll(status?: TableStatus): Promise<TableEntity[]> {
+  ) {}  async findAll(status?: TableStatus, includeDeleted: boolean = false): Promise<TableEntity[]> {
     try {
+      const queryOptions: any = {};
+      
       if (status) {
-        this.logger.log(`Fetching tables with status: ${status}`);
-        return this.tableRepository.find({ where: { status } });
+        queryOptions.where = { status };
       }
-      this.logger.log('Fetching all tables');
-      return this.tableRepository.find();
+      
+      if (includeDeleted) {
+        queryOptions.withDeleted = true;
+      }
+      
+      this.logger.log(`Fetching tables with options: ${JSON.stringify(queryOptions)}`);
+      return this.tableRepository.find(queryOptions);
     } catch (error) {
       this.logger.error(`Error fetching tables: ${error.message}`, error.stack);
       throw error;
     }
   }
-
-  async findOne(id: string): Promise<TableEntity> {
+  async findOne(id: string, includeDeleted: boolean = false): Promise<TableEntity> {
     try {
-      this.logger.log(`Finding table by id: ${id}`);
-      const table = await this.tableRepository.findOneBy({ id });
+      this.logger.log(`Finding table by id: ${id}, includeDeleted: ${includeDeleted}`);
+      const table = await this.tableRepository.findOne({
+        where: { id },
+        withDeleted: includeDeleted
+      });
       
       if (!table) {
         this.logger.warn(`Table with ID ${id} not found`);
@@ -90,7 +97,6 @@ export class TablesService {
       throw error;
     }
   }
-
   async remove(id: string, userRole: UserRole): Promise<boolean> {
     try {
       // Validate admin role for table deletion
@@ -99,11 +105,12 @@ export class TablesService {
         throw new ForbiddenException('Only administrators can delete tables');
       }
       
-      this.logger.log(`Deleting table ${id}`);
+      this.logger.log(`Soft-deleting table ${id}`);
       // Verify table exists before deletion
       await this.findOne(id);
       
-      const result = await this.tableRepository.delete(id);
+      // Using soft delete instead of hard delete
+      const result = await this.tableRepository.softDelete(id);
       if (result.affected === 0) {
         throw new NotFoundException(`Table with ID ${id} not found`);
       }
@@ -113,7 +120,7 @@ export class TablesService {
       if (error instanceof NotFoundException || error instanceof ForbiddenException) {
         throw error;
       }
-      this.logger.error(`Error removing table ${id}: ${error.message}`, error.stack);
+      this.logger.error(`Error soft-deleting table ${id}: ${error.message}`, error.stack);
       throw error;
     }
   }  async updateStatus(id: string, status: TableStatus, userRole: UserRole): Promise<TableEntity> {
@@ -135,6 +142,37 @@ export class TablesService {
         throw error;
       }
       this.logger.error(`Error updating table status ${id}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+  
+  async restore(id: string, userRole: UserRole): Promise<TableEntity> {
+    try {
+      // Validate admin role for table restoration
+      if (userRole !== UserRole.ADMIN) {
+        this.logger.warn(`User with role ${userRole} attempted to restore table ${id}`);
+        throw new ForbiddenException('Only administrators can restore tables');
+      }
+      
+      this.logger.log(`Restoring soft-deleted table ${id}`);
+      // Verify table exists (including deleted ones)
+      const table = await this.findOne(id, true);
+      
+      if (!table.deleted_at) {
+        this.logger.warn(`Table ${id} is not deleted, cannot restore`);
+        throw new ForbiddenException(`Table with ID ${id} is not deleted`);
+      }
+      
+      // Restore the soft-deleted table
+      await this.tableRepository.restore(id);
+      
+      // Return the restored table
+      return this.findOne(id);
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+        throw error;
+      }
+      this.logger.error(`Error restoring table ${id}: ${error.message}`, error.stack);
       throw error;
     }
   }

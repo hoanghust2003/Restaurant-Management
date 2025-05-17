@@ -15,9 +15,8 @@ const CategoryList: React.FC = () => {
   const [searchText, setSearchText] = useState<string>('');
   const router = useRouter();
   const { hasRole } = useAuth();
-  
-  // Kiểm tra quyền admin hoặc warehouse
-  const hasPermission = hasRole(['admin', 'warehouse']);
+    // Kiểm tra quyền admin, manager hoặc warehouse
+  const hasPermission = hasRole(['admin', 'manager', 'warehouse']);
 
   // Giám sát hiệu suất
   usePerformanceMonitor('CategoryList', [categories, loading, searchText]);

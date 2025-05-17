@@ -34,17 +34,24 @@ interface RequestWithUser extends Request {
 @UseGuards(RolesGuard)
 export class TablesController {
   constructor(private readonly tablesService: TablesService) {}
-
   @Get()
   @Roles(UserRole.ADMIN, UserRole.WAITER, UserRole.CASHIER)
-  async findAll(@Query('status') status?: TableStatus): Promise<TableEntity[]> {
-    return this.tablesService.findAll(status);
+  async findAll(
+    @Query('status') status?: TableStatus,
+    @Query('includeDeleted') includeDeleted?: string
+  ): Promise<TableEntity[]> {
+    const include = includeDeleted === 'true';
+    return this.tablesService.findAll(status, include);
   }
 
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.WAITER, UserRole.CASHIER)
-  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<TableEntity> {
-    return this.tablesService.findOne(id);
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('includeDeleted') includeDeleted?: string
+  ): Promise<TableEntity> {
+    const include = includeDeleted === 'true';
+    return this.tablesService.findOne(id, include);
   }
 
   @Post()
@@ -65,14 +72,24 @@ export class TablesController {
   ): Promise<TableEntity> {
     return this.tablesService.update(id, updateTableDto, req.user.role);
   }
-
   @Delete(':id')
   @Roles(UserRole.ADMIN)
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @Req() req: RequestWithUser,
-  ): Promise<void> {
+  ): Promise<{ message: string }> {
     await this.tablesService.remove(id, req.user.role);
+    return { message: 'Đã xóa bàn thành công' };
+  }
+
+  @Post(':id/restore')
+  @Roles(UserRole.ADMIN)
+  async restore(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: RequestWithUser,
+  ): Promise<{ message: string }> {
+    await this.tablesService.restore(id, req.user.role);
+    return { message: 'Đã khôi phục bàn thành công' };
   }
 
   @Patch(':id/status')

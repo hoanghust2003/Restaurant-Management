@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, DeleteDateColumn } from 'typeorm';
 import { TableStatus } from '../enums/table-status.enum';
 
 @Entity('tables')
@@ -14,4 +14,7 @@ export class TableEntity {
 
   @Column({ type: 'enum', enum: TableStatus })
   status: TableStatus;
+  
+  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
+  deleted_at: Date;
 }

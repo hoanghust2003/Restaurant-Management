@@ -18,28 +18,33 @@ export class CategoriesController {
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.categoriesService.findOne(id);
-  }
-  @Post()
+  }  @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
   async create(@Body() createCategoryDto: CreateCategoryDto, @Request() req) {
     return this.categoriesService.create(createCategoryDto, req.user.role);
-  }
-  @Patch(':id')
+  }  @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
   async update(
     @Param('id') id: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
     @Request() req,
   ) {
     return this.categoriesService.update(id, updateCategoryDto, req.user.role);
-  }
-  @Delete(':id')
+  }  @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
   async remove(@Param('id') id: string, @Request() req) {
     await this.categoriesService.remove(id, req.user.role);
     return { message: 'Đã xóa danh mục thành công' };
+  }
+
+  @Post(':id/restore')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  async restore(@Param('id') id: string, @Request() req) {
+    await this.categoriesService.restore(id, req.user.role);
+    return { message: 'Đã khôi phục danh mục thành công' };
   }
 }

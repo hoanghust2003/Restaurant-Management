@@ -2,41 +2,40 @@
 
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/app/layouts/AdminLayout';
-import CategoryForm from '@/app/components/CategoryForm';
+import IngredientForm from '@/app/components/ingredient/IngredientForm';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Spin, Result, Button, Card, message } from 'antd';
-import { categoryService } from '@/app/services/category.service';
-import { CategoryModel } from '@/app/models/category.model';
+import { ingredientService } from '@/app/services/ingredient.service';
+import { IngredientModel } from '@/app/models/ingredient.model';
 
-interface EditCategoryPageProps {
-  params: {
-    id: string;
-  };
+interface Params {
+  id: string;
 }
 
-const EditCategoryPage = ({ params }: EditCategoryPageProps) => {
+const EditIngredientPage = ({ params }: { params: Params }) => {
   const { user, loading: authLoading, hasRole } = useAuth();
+  const [ingredient, setIngredient] = useState<IngredientModel | null>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const [category, setCategory] = useState<CategoryModel | undefined>(undefined);
-  const [loading, setLoading] = useState<boolean>(true);
-  
+
+  // Tải thông tin nguyên liệu khi component được tạo
   useEffect(() => {
-    const fetchCategory = async () => {
+    const fetchIngredient = async () => {
       try {
-        const data = await categoryService.getById(params.id);
-        setCategory(data);
+        const data = await ingredientService.getById(params.id);
+        setIngredient(data);
       } catch (error) {
-        console.error('Lỗi khi tải thông tin danh mục:', error);
-        message.error('Không thể tải thông tin danh mục');
-        router.push('/admin/categories');
+        console.error('Error fetching ingredient:', error);
+        message.error('Không thể tải thông tin nguyên liệu');
+        router.push('/admin/ingredients');
       } finally {
         setLoading(false);
       }
     };
 
     if (!authLoading && user) {
-      fetchCategory();
+      fetchIngredient();
     }
   }, [params.id, authLoading, user, router]);
     // Kiểm tra quyền truy cập
@@ -64,29 +63,34 @@ const EditCategoryPage = ({ params }: EditCategoryPageProps) => {
     );
   }
   
-  if (!category) {
+  if (!ingredient) {
     return (
       <Result
         status="404"
         title="404"
-        subTitle="Không tìm thấy danh mục"
+        subTitle="Không tìm thấy nguyên liệu"
         extra={
-          <Button type="primary" onClick={() => router.push('/admin/categories')}>
+          <Button type="primary" onClick={() => router.push('/admin/ingredients')}>
             Quay lại danh sách
           </Button>
         }
       />
     );
   }
-    return (
-    <AdminLayout title={`Chỉnh sửa danh mục: ${category.name}`}>
+  
+  return (
+    <AdminLayout title={`Chỉnh sửa nguyên liệu: ${ingredient.name}`}>
       <div className="p-6">
-        <Card title={`Chỉnh sửa danh mục: ${category.name}`} className="shadow-sm">
-          <CategoryForm category={category} isEdit={true} onSuccess={() => router.push('/admin/categories')} />
+        <Card title={`Chỉnh sửa nguyên liệu: ${ingredient.name}`} className="shadow-sm">
+          <IngredientForm 
+            ingredient={ingredient} 
+            isEdit={true} 
+            onSuccess={() => router.push('/admin/ingredients')} 
+          />
         </Card>
       </div>
     </AdminLayout>
   );
 };
 
-export default EditCategoryPage;
+export default EditIngredientPage;

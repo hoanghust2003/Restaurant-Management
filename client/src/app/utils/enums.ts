@@ -9,6 +9,7 @@ export enum TableStatus {
 // User roles enum matching server-side enum
 export enum UserRole {
   ADMIN = 'admin',
+  MANAGER = 'manager',
   WAITER = 'waiter',
   CHEF = 'chef',
   CASHIER = 'cashier',

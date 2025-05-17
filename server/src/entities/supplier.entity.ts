@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, DeleteDateColumn } from 'typeorm';
 
 @Entity('suppliers')
 export class Supplier {
@@ -22,4 +22,7 @@ export class Supplier {
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
+  
+  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
+  deleted_at: Date;
 }

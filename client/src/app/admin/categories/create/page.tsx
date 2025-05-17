@@ -10,8 +10,7 @@ import { Spin, Result, Button, Card } from 'antd';
 const CreateCategoryPage = () => {
   const { user, loading, hasRole } = useAuth();
   const router = useRouter();
-  
-  // Kiểm tra quyền truy cập
+    // Kiểm tra quyền truy cập
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -21,7 +20,7 @@ const CreateCategoryPage = () => {
   }
   
   // Nếu không có quyền truy cập
-  if (!user || !hasRole(['admin', 'warehouse'])) {
+  if (!user || !hasRole(['admin', 'manager', 'warehouse'])) {
     return (
       <Result
         status="403"

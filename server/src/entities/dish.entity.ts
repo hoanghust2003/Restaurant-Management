@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, DeleteDateColumn } from 'typeorm';
 import { Category } from './category.entity';
 
 @Entity('dishes')
@@ -27,9 +27,16 @@ export class Dish {
   @Column('int')
   preparation_time: number;
 
+  @Column({ name: 'category_id' })
+  categoryId: string;
+
   @ManyToOne(() => Category, category => category.id)
+  @JoinColumn({ name: 'category_id' })
   category: Category;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
+  
+  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
+  deleted_at: Date;
 }

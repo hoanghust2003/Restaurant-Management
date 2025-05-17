@@ -2,12 +2,12 @@
 
 import React from 'react';
 import AdminLayout from '@/app/layouts/AdminLayout';
-import CategoryList from '@/app/components/category/CategoryList';
+import IngredientList from '@/app/components/ingredient/IngredientList';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Spin, Result, Button } from 'antd';
 
-const CategoriesPage = () => {
+const IngredientsPage = () => {
   const { user, loading, hasRole } = useAuth();
   const router = useRouter();
     // Kiểm tra quyền truy cập
@@ -36,10 +36,10 @@ const CategoriesPage = () => {
   }
   
   return (
-    <AdminLayout title="Quản lý danh mục">
-      <CategoryList />
+    <AdminLayout title="Quản lý nguyên liệu">
+      <IngredientList />
     </AdminLayout>
   );
 };
 
-export default CategoriesPage;
+export default IngredientsPage;
