@@ -7,7 +7,8 @@ import {
   Squares2X2Icon, 
   FireIcon,
   ClipboardDocumentListIcon,
-  ClockIcon
+  ClockIcon,
+  QueueListIcon
 } from '@heroicons/react/24/outline';
 
 interface ChefLayoutProps {
@@ -44,6 +45,36 @@ export default function ChefLayout({ children, title }: ChefLayoutProps) {
           href: '/kitchen/history',
           icon: <ClockIcon className="w-5 h-5" />,
           title: 'Lịch sử chế biến',
+        },
+      ],
+    },
+    {
+      title: 'Quản lý',
+      items: [
+        {
+          href: '/admin/dishes',
+          icon: <QueueListIcon className="w-5 h-5" />,
+          title: 'Quản lý món ăn',
+        },
+        {
+          href: '/admin/menus',
+          icon: <QueueListIcon className="w-5 h-5" />,
+          title: 'Thực đơn',
+        },
+      ],
+    },
+    {
+      title: 'Quản lý',
+      items: [
+        {
+          href: '/admin/dishes',
+          icon: <QueueListIcon className="w-5 h-5" />,
+          title: 'Quản lý món ăn',
+        },
+        {
+          href: '/admin/menus',
+          icon: <QueueListIcon className="w-5 h-5" />,
+          title: 'Thực đơn',
         },
       ],
     },

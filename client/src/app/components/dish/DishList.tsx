@@ -145,9 +145,9 @@ const DishList: React.FC = () => {
             <Tag color="red">Hết hàng</Tag>
           )}
           {record.is_preparable ? (
-            <Tag color="blue">Có thể chế biến</Tag>
+            <Tag color="blue">Cần chế biến</Tag>
           ) : (
-            <Tag color="orange">Không thể chế biến</Tag>
+            <Tag color="orange">Không cần chế biến</Tag>
           )}
         </Space>
       ),

@@ -63,9 +63,9 @@ const DishDetail: React.FC<DishDetailProps> = ({ dish }) => {
                     <Tag color="red">Hết hàng</Tag>
                   )}
                   {dish.is_preparable ? (
-                    <Tag color="blue">Có thể chế biến</Tag>
+                    <Tag color="blue">Cần chế biến</Tag>
                   ) : (
-                    <Tag color="orange">Không thể chế biến</Tag>
+                    <Tag color="orange">Không cần chế biến</Tag>
                   )}
                 </div>
               </Descriptions.Item>
