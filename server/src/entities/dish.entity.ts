@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, DeleteDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, DeleteDateColumn, OneToMany } from 'typeorm';
 import { Category } from './category.entity';
+import { DishIngredient } from './dish-ingredient.entity';
 
 @Entity('dishes')
 export class Dish {
@@ -33,6 +34,9 @@ export class Dish {
   @ManyToOne(() => Category, category => category.id)
   @JoinColumn({ name: 'category_id' })
   category: Category;
+  
+  @OneToMany(() => DishIngredient, dishIngredient => dishIngredient.dish)
+  dishIngredients: DishIngredient[];
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;

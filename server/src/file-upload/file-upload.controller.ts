@@ -69,6 +69,12 @@ export class FileUploadController {
     },
   }))
   async uploadToS3(@UploadedFile() file: Express.Multer.File, @Param('folder') folder: string) {
+    // Validate folder to prevent security issues
+    const allowedFolders = ['avatars', 'dishes', 'menus', 'ingredients', 'categories'];
+    if (!allowedFolders.includes(folder)) {
+      throw new Error('Invalid folder specified');
+    }
+    
     // Use the new uploadFile method instead of the old approach
     const imageUrl = await this.fileUploadService.uploadFile(file, folder);
     return { url: imageUrl };
