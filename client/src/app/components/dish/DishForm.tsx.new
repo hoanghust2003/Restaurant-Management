@@ -10,7 +10,8 @@ import { DishModel, CreateDishDto, UpdateDishDto } from '@/app/models/dish.model
 import { CategoryModel } from '@/app/models/category.model';
 import { IngredientModel } from '@/app/models/ingredient.model';
 import { useRouter } from 'next/navigation';
-import ImageWithFallback from '@/app/components/ImageWithFallback';
+import Image from 'next/image';
+import { getImageUrl } from '@/app/utils/image-url';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -228,11 +229,11 @@ const DishForm: React.FC<DishFormProps> = ({
           {/* Right column */}
           <div>
             <Form.Item label="Hình ảnh">
-              <div className="flex flex-col items-center">                {imageUrl ? (
+              <div className="flex flex-col items-center">
+                {imageUrl ? (
                   <div className="mb-4 relative">
-                    <ImageWithFallback
-                      src={imageUrl}
-                      type="dishes"
+                    <Image
+                      src={getImageUrl(imageUrl, 'dishes')}
                       alt={form.getFieldValue('name') || 'Món ăn'}
                       width={200}
                       height={200}

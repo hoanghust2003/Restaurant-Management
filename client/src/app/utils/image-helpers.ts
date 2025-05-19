@@ -8,7 +8,7 @@ interface ImageHelperOptions {
   /**
    * Type of asset (e.g., 'avatars', 'dishes', etc.)
    */
-  type: 'avatars' | 'dishes' | 'other';
+  type: 'avatars' | 'dishes' | 'menus' | 'other';
   /**
    * Default fallback image URL
    */
@@ -42,11 +42,22 @@ export const getImageUrl = (
 
   // If it's a local path starting with /uploads
   if (url.startsWith('/uploads')) {
-    // Extract filename from path
+    // Extract folder and filename from path
     const parts = url.split('/');
+    if (parts.length >= 3) {
+      const folder = parts[2]; // e.g., 'dishes', 'avatars'
+      const filename = parts[parts.length - 1];
+      
+      // Return the URL using the assets controller endpoints
+      const assetType = folder === 'dishes' ? 'dishes' : 
+                       folder === 'avatars' ? 'avatars' : 
+                       options.type;
+      
+      return `${API_BASE_URL.replace('/api', '')}/assets/${assetType}/${filename}`;
+    }
+    
+    // Fallback: return the URL using the specified asset type in options
     const filename = parts[parts.length - 1];
-
-    // Return the URL using the assets controller endpoints
     return `${API_BASE_URL.replace('/api', '')}/assets/${options.type}/${filename}`;
   }
 

@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Table, Button, Space, message, Popconfirm, Input, Typography, Tag, Image } from 'antd';
+import { Table, Button, Space, message, Popconfirm, Input, Typography, Tag } from 'antd';
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import { dishService } from '@/app/services/dish.service';
 import { DishModel } from '@/app/models/dish.model';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { usePerformanceMonitor } from '@/app/utils/performanceMonitoring';
+import ImageWithFallback from '@/app/components/ImageWithFallback';
 
 const { Title } = Typography;
 const { Search } = Input;
@@ -79,38 +80,25 @@ const DishList: React.FC = () => {
       console.error('Error deleting dish:', error);
       message.error('Không thể xóa món ăn');
     }
-  };
-
-  // Format price to VND currency
+  };  // Format price to VND currency
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
   };
 
   // Table columns
   const columns = [
-    {
-      title: 'Ảnh',
+    {      title: 'Ảnh',
       dataIndex: 'image_url',
       key: 'image_url',
-      width: 100,
-      render: (imageUrl: string) => (
-        imageUrl ? (
-          <Image
-            src={imageUrl}
-            alt="Dish"
-            width={80}
-            height={80}
-            style={{ objectFit: 'cover' }}
-            fallback="/images/default-dish.png"
-          />
-        ) : (
-          <Image
-            src="/images/default-dish.png"
-            alt="Default"
-            width={80}
-            height={80}
-          />
-        )
+      width: 100,      render: (imageUrl: string) => (
+        <ImageWithFallback
+          src={imageUrl}
+          type="dishes"
+          alt="Dish"
+          width={80}
+          height={80}
+          style={{ objectFit: 'cover' }}
+        />
       ),
     },
     {

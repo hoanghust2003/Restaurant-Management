@@ -43,6 +43,7 @@ export class FileUploadService {
     this.ensureDirectoryExists(path.join(process.cwd(), 'uploads'));
     this.ensureDirectoryExists(path.join(process.cwd(), 'uploads', 'avatars'));
     this.ensureDirectoryExists(path.join(process.cwd(), 'uploads', 'dishes'));
+    this.ensureDirectoryExists(path.join(process.cwd(), 'uploads', 'menus'));
   }
 
   /**

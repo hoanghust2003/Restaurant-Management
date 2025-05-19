@@ -66,14 +66,39 @@ export const menuService = {
       throw error;
     }
   },
-
   /**
    * Create a new menu
    * @param menu - The menu data to create
    */
   async create(menu: CreateMenuDto): Promise<MenuModel> {
     try {
-      const response = await axios.post(API_URL, menu);
+      // Clone the data to avoid direct mutation
+      const menuData = { ...menu };
+      // Handle dishIds separately if present
+      const dishIds = menuData.dishIds;
+      delete menuData.dishIds;
+      
+      // Create the menu
+      const response = await axios.post(API_URL, menuData);
+      
+      // If dishIds are provided, add them to the menu
+      if (dishIds && dishIds.length > 0 && response.data && response.data.id) {
+        try {
+          await this.addDishes(response.data.id, dishIds);
+          
+          // Refetch the menu with dishes included
+          const updatedMenu = await this.getById(response.data.id, true);
+          
+          // Invalidate cache for menu list
+          requestCache.invalidateByPrefix(API_URL);
+          
+          return updatedMenu;
+        } catch (dishError) {
+          console.error('Error adding dishes to newly created menu:', dishError);
+          // Still return the created menu even if adding dishes fails
+          return response.data;
+        }
+      }
       
       // Invalidate cache for menu list
       requestCache.invalidateByPrefix(API_URL);
@@ -84,7 +109,6 @@ export const menuService = {
       throw error;
     }
   },
-
   /**
    * Update an existing menu
    * @param id - The menu ID to update
@@ -92,7 +116,41 @@ export const menuService = {
    */
   async update(id: string, menu: UpdateMenuDto): Promise<MenuModel> {
     try {
-      const response = await axios.patch(`${API_URL}/${id}`, menu);
+      // Clone the data to avoid direct mutation
+      const menuData = { ...menu };
+      // Handle dishIds separately if present
+      const dishIds = menuData.dishIds;
+      delete menuData.dishIds;
+      
+      // Update the menu
+      const response = await axios.patch(`${API_URL}/${id}`, menuData);
+      
+      // If dishIds are provided, update the menu dishes
+      if (dishIds && dishIds.length > 0) {
+        // First, get the current dishes
+        const currentMenu = await this.getById(id);
+        
+        if (currentMenu.dishes && currentMenu.dishes.length > 0) {
+          const currentDishIds = currentMenu.dishes.map(dish => dish.id);
+          
+          // Determine which dishes to add and which to remove
+          const dishesToRemove = currentDishIds.filter(dishId => !dishIds.includes(dishId));
+          const dishesToAdd = dishIds.filter(dishId => !currentDishIds.includes(dishId));
+          
+          // Remove dishes that are no longer in the menu
+          if (dishesToRemove.length > 0) {
+            await this.removeDishes(id, dishesToRemove);
+          }
+          
+          // Add new dishes to the menu
+          if (dishesToAdd.length > 0) {
+            await this.addDishes(id, dishesToAdd);
+          }
+        } else {
+          // If the menu has no dishes, add all selected dishes
+          await this.addDishes(id, dishIds);
+        }
+      }
       
       // Invalidate cache for specific menu and menu list
       requestCache.invalidate(`${API_URL}/${id}`);
@@ -138,7 +196,6 @@ export const menuService = {
       throw error;
     }
   },
-
   /**
    * Add dishes to a menu
    * @param menuId - The menu ID
@@ -146,18 +203,28 @@ export const menuService = {
    */
   async addDishes(menuId: string, dishIds: string[]): Promise<MenuModel> {
     try {
-      const response = await axios.post(`${API_URL}/${menuId}/dishes`, { dishIds });
+      // First get the current menu to return if the API call fails
+      const currentMenu = await this.getById(menuId);
       
-      // Invalidate cache for specific menu
-      requestCache.invalidate(`${API_URL}/${menuId}`);
-      
-      return response.data;
+      try {
+        const response = await axios.post(`${API_URL}/${menuId}/dishes`, { dishIds });
+        
+        // Invalidate cache for specific menu
+        requestCache.invalidate(`${API_URL}/${menuId}`);
+        requestCache.invalidateByPrefix(API_URL);
+        
+        // Refetch the menu with updated dishes
+        return await this.getById(menuId, true);
+      } catch (error) {
+        console.error(`Error adding dishes to menu ${menuId}:`, error);
+        // Return the current menu even if the API call fails
+        return currentMenu;
+      }
     } catch (error) {
-      console.error(`Error adding dishes to menu ${menuId}:`, error);
+      console.error(`Error fetching menu ${menuId} before adding dishes:`, error);
       throw error;
     }
   },
-
   /**
    * Remove dishes from a menu
    * @param menuId - The menu ID
@@ -165,14 +232,25 @@ export const menuService = {
    */
   async removeDishes(menuId: string, dishIds: string[]): Promise<MenuModel> {
     try {
-      const response = await axios.delete(`${API_URL}/${menuId}/dishes`, { data: { dishIds } });
+      // First get the current menu to return if the API call fails
+      const currentMenu = await this.getById(menuId);
       
-      // Invalidate cache for specific menu
-      requestCache.invalidate(`${API_URL}/${menuId}`);
-      
-      return response.data;
+      try {
+        const response = await axios.delete(`${API_URL}/${menuId}/dishes`, { data: { dishIds } });
+        
+        // Invalidate cache for specific menu
+        requestCache.invalidate(`${API_URL}/${menuId}`);
+        requestCache.invalidateByPrefix(API_URL);
+        
+        // Refetch the menu with updated dishes
+        return await this.getById(menuId, true);
+      } catch (error) {
+        console.error(`Error removing dishes from menu ${menuId}:`, error);
+        // Return the current menu even if the API call fails
+        return currentMenu;
+      }
     } catch (error) {
-      console.error(`Error removing dishes from menu ${menuId}:`, error);
+      console.error(`Error fetching menu ${menuId} before removing dishes:`, error);
       throw error;
     }
   }

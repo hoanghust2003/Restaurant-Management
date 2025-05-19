@@ -22,6 +22,11 @@ export class StaticAssetsController {
     return this.serveFile(res, 'dishes', filename);
   }
 
+  @Get('menus/:filename')
+  async getMenuImage(@Param('filename') filename: string, @Res() res: Response) {
+    return this.serveFile(res, 'menus', filename);
+  }
+
   private async serveFile(res: Response, subdir: string, filename: string) {
     try {
       const filePath = path.join(this.uploadsDir, subdir, filename);

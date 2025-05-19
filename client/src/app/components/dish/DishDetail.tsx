@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Card, Descriptions, Tag, Image, Typography, Divider, Table } from 'antd';
+import { Card, Descriptions, Tag, Typography, Divider, Table } from 'antd';
 import { DishModel } from '@/app/models/dish.model';
+import ImageWithFallback from '@/app/components/ImageWithFallback';
 
 const { Title } = Typography;
 
@@ -36,13 +37,12 @@ const DishDetail: React.FC<DishDetailProps> = ({ dish }) => {
 
   return (
     <Card className="dish-detail-card">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        <div style={{ display: 'flex', flexDirection: 'row', gap: '24px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>        <div style={{ display: 'flex', flexDirection: 'row', gap: '24px', flexWrap: 'wrap' }}>
           <div style={{ flex: '0 0 300px' }}>
-            <Image
-              src={dish.image_url || '/images/default-dish.png'}
+            <ImageWithFallback
+              src={dish.image_url}
               alt={dish.name}
-              fallback="/images/default-dish.png"
+              type="dishes"
               width={300}
               height={300}
               style={{ objectFit: 'cover', borderRadius: '8px' }}

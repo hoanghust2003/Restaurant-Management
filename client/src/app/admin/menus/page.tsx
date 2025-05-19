@@ -10,12 +10,13 @@ import { Spin, Result, Button } from 'antd';
 const MenusPage = () => {
   const { user, loading, hasRole } = useAuth();
   const router = useRouter();
-  
-  // Check access permission
+    // Check access permission
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <Spin size="large" tip="Đang tải..." />
+        <Spin size="large">
+          <div className="p-8 text-center">Đang tải...</div>
+        </Spin>
       </div>
     );
   }

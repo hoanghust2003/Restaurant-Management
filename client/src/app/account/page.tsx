@@ -6,6 +6,7 @@ import { useAuth, User } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import ProfileImage from '../components/ProfileImage';
+import { getImageUrl } from '../utils/image-url';
 import { 
   UserIcon, 
   EnvelopeIcon, 

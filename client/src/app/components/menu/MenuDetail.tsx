@@ -8,7 +8,7 @@ import { MenuModel } from '@/app/models/menu.model';
 import { DishModel } from '@/app/models/dish.model';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
-import Image from 'next/image';
+import ImageWithFallback from '@/app/components/ImageWithFallback';
 
 const { Title, Text } = Typography;
 
@@ -59,21 +59,15 @@ const MenuDetail: React.FC<MenuDetailProps> = ({ menuId }) => {
     {
       title: 'Hình ảnh',
       dataIndex: 'imageUrl',
-      key: 'imageUrl',
-      render: (imageUrl: string) => (
-        imageUrl ? (
-          <Image
-            src={imageUrl}
-            alt="Món ăn"
-            width={50}
-            height={50}
-            className="object-cover rounded-md"
-          />
-        ) : (
-          <div className="w-[50px] h-[50px] bg-gray-200 rounded-md flex items-center justify-center">
-            <Text type="secondary">No image</Text>
-          </div>
-        )
+      key: 'imageUrl',      render: (imageUrl: string) => (
+        <ImageWithFallback
+          src={imageUrl}
+          type="dishes"
+          alt="Món ăn"
+          width={50}
+          height={50}
+          className="object-cover rounded-md"
+        />
       )
     },
     {

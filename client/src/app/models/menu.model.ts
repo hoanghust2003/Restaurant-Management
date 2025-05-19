@@ -8,6 +8,7 @@ export interface MenuModel {
   id: string;
   name: string;
   description: string;
+  image_url?: string;
   createdAt?: Date;
   dishes?: DishModel[]; // Optional list of dishes in the menu
 }
@@ -18,6 +19,7 @@ export interface MenuModel {
 export interface CreateMenuDto {
   name: string;
   description: string;
+  image_url?: string;
   dishIds?: string[]; // Optional list of dish IDs to add to the menu
 }
 
@@ -27,6 +29,7 @@ export interface CreateMenuDto {
 export interface UpdateMenuDto {
   name?: string;
   description?: string;
+  image_url?: string;
   dishIds?: string[]; // Optional list of dish IDs to update in the menu
 }
 

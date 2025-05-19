@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Form, Input, Button, Card, message, InputNumber, Select, Upload, Switch } from 'antd';
+import { Form, Input, Button, Card, message, InputNumber, Select, Upload, Space, Switch, Spin } from 'antd';
 import { SaveOutlined, UploadOutlined, PlusOutlined, MinusCircleOutlined, LoadingOutlined } from '@ant-design/icons';
 import { dishService } from '@/app/services/dish.service';
 import { categoryService } from '@/app/services/category.service';
@@ -10,7 +10,7 @@ import { DishModel, CreateDishDto, UpdateDishDto } from '@/app/models/dish.model
 import { CategoryModel } from '@/app/models/category.model';
 import { IngredientModel } from '@/app/models/ingredient.model';
 import { useRouter } from 'next/navigation';
-import ImageWithFallback from '@/app/components/ImageWithFallback';
+import Image from 'next/image';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -24,6 +24,9 @@ interface DishFormProps {
   onSuccess?: (dish: DishModel) => void;
 }
 
+/**
+ * Form thêm mới và chỉnh sửa món ăn
+ */
 const DishForm: React.FC<DishFormProps> = ({ 
   dish, 
   isEdit = false,
@@ -37,6 +40,19 @@ const DishForm: React.FC<DishFormProps> = ({
   const [imageUrl, setImageUrl] = useState<string | undefined>(dish?.image_url);
   const router = useRouter();
 
+  // Helper function to get complete image URL for displaying
+  const getImageUrl = (imageUrl: string | undefined) => {
+    if (!imageUrl) return '/images/default-dish.png';
+    
+    // If already a full URL, return as is
+    if (imageUrl.startsWith('http')) return imageUrl;
+    
+    // If a relative path, add API base URL
+    const urlPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
+    return `${API_BASE_URL}/${urlPath}`;
+  };
+
+  // Tải danh sách danh mục và nguyên liệu
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -47,7 +63,7 @@ const DishForm: React.FC<DishFormProps> = ({
         setCategories(categoriesData);
         setIngredients(ingredientsData);
       } catch (error) {
-        console.error('Error loading data:', error);
+        console.error('Lỗi khi tải dữ liệu:', error);
         message.error('Không thể tải danh sách danh mục và nguyên liệu');
       }
     };
@@ -55,9 +71,10 @@ const DishForm: React.FC<DishFormProps> = ({
     fetchData();
   }, []);
 
+  // Thiết lập dữ liệu ban đầu nếu là form chỉnh sửa
   useEffect(() => {
     if (isEdit && dish) {
-      const formIngredients = dish.dishIngredients ? dish.dishIngredients.map(item => ({
+      // Chuẩn bị dữ liệu ingredients cho form      const formIngredients = dish.dishIngredients ? dish.dishIngredients.map(item => ({
         ingredientId: item.ingredientId,
         quantity: item.quantity
       })) : [];
@@ -76,6 +93,7 @@ const DishForm: React.FC<DishFormProps> = ({
     }
   }, [dish, form, isEdit]);
 
+  // Xử lý upload hình ảnh
   const beforeUpload = (file: any) => {
     const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
     if (!isJpgOrPng) {
@@ -92,10 +110,12 @@ const DishForm: React.FC<DishFormProps> = ({
     return true;
   };
 
+  // Xử lý submit form
   const handleSubmit = async (values: any) => {
     try {
       setLoading(true);
       
+      // Thêm image_url vào values nếu có
       if (imageUrl) {
         values.image_url = imageUrl;
       }
@@ -103,18 +123,22 @@ const DishForm: React.FC<DishFormProps> = ({
       let result: DishModel;
       
       if (isEdit && dish) {
+        // Cập nhật món ăn
         result = await dishService.update(dish.id, values as UpdateDishDto);
         message.success('Cập nhật món ăn thành công');
       } else {
+        // Tạo món ăn mới
         result = await dishService.create(values as CreateDishDto);
         message.success('Tạo món ăn thành công');
-        form.resetFields();
+        form.resetFields(); // Reset form sau khi tạo thành công
         setImageUrl(undefined);
       }
       
+      // Gọi callback nếu có
       if (onSuccess) {
         onSuccess(result);
       } else {
+        // Quay lại trang danh sách
         router.push('/admin/dishes');
       }
     } catch (error) {
@@ -124,7 +148,7 @@ const DishForm: React.FC<DishFormProps> = ({
       setLoading(false);
     }
   };
-  
+  // Cấu hình upload hình ảnh
   const uploadProps = {
     name: 'file',
     action: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/uploads/s3/dishes`,
@@ -138,9 +162,9 @@ const DishForm: React.FC<DishFormProps> = ({
         setImageLoading(true);
         return;
       }
-      
-      if (info.file.status === 'done') {
+        if (info.file.status === 'done') {
         setImageLoading(false);
+        // Đảm bảo response.url có định dạng đúng
         const uploadedUrl = info.file.response.url;
         setImageUrl(uploadedUrl);
         message.success(`${info.file.name} uploaded successfully`);
@@ -168,8 +192,9 @@ const DishForm: React.FC<DishFormProps> = ({
         }}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Left column */}
+          {/* Cột trái */}
           <div>
+            {/* Tên món ăn */}
             <Form.Item
               name="name"
               label="Tên món ăn"
@@ -178,6 +203,7 @@ const DishForm: React.FC<DishFormProps> = ({
               <Input placeholder="Nhập tên món ăn" />
             </Form.Item>
 
+            {/* Mô tả món ăn */}
             <Form.Item
               name="description"
               label="Mô tả"
@@ -186,6 +212,7 @@ const DishForm: React.FC<DishFormProps> = ({
               <TextArea rows={4} placeholder="Nhập mô tả món ăn" />
             </Form.Item>
 
+            {/* Giá */}
             <Form.Item
               name="price"
               label="Giá (VNĐ)"
@@ -204,14 +231,14 @@ const DishForm: React.FC<DishFormProps> = ({
               />
             </Form.Item>
 
+            {/* Thời gian chuẩn bị */}
             <Form.Item
               name="preparation_time"
               label="Thời gian chuẩn bị (phút)"
               rules={[{ required: true, message: 'Vui lòng nhập thời gian chuẩn bị' }]}
             >
               <InputNumber min={1} style={{ width: '100%' }} placeholder="Nhập thời gian chuẩn bị" />
-            </Form.Item>
-            
+            </Form.Item>            {/* Danh mục */}
             <Form.Item
               name="categoryId"
               label="Danh mục"
@@ -225,18 +252,18 @@ const DishForm: React.FC<DishFormProps> = ({
             </Form.Item>
           </div>
 
-          {/* Right column */}
+          {/* Cột phải */}
           <div>
+            {/* Hình ảnh */}
             <Form.Item label="Hình ảnh">
               <div className="flex flex-col items-center">                {imageUrl ? (
                   <div className="mb-4 relative">
-                    <ImageWithFallback
-                      src={imageUrl}
-                      type="dishes"
+                    <Image
+                      src={getImageUrl(imageUrl)}
                       alt={form.getFieldValue('name') || 'Món ăn'}
                       width={200}
                       height={200}
-                      style={{ objectFit: 'cover', borderRadius: '8px' }}
+                      className="object-cover rounded-lg"
                     />
                   </div>
                 ) : (
@@ -255,6 +282,7 @@ const DishForm: React.FC<DishFormProps> = ({
               </div>
             </Form.Item>
 
+            {/* Có thể chuẩn bị */}
             <Form.Item
               name="is_preparable"
               label="Có thể chuẩn bị"
@@ -263,6 +291,7 @@ const DishForm: React.FC<DishFormProps> = ({
               <Switch />
             </Form.Item>
 
+            {/* Có sẵn */}
             <Form.Item
               name="available"
               label="Có sẵn để phục vụ"
@@ -271,6 +300,7 @@ const DishForm: React.FC<DishFormProps> = ({
               <Switch />
             </Form.Item>
 
+            {/* Nguyên liệu */}
             <div className="border p-4 rounded-md mb-4">
               <h3 className="text-lg font-medium mb-4">Nguyên liệu</h3>
 
@@ -334,6 +364,7 @@ const DishForm: React.FC<DishFormProps> = ({
           </div>
         </div>
 
+        {/* Buttons */}
         <div className="flex justify-end mt-6">
           <Button 
             type="default" 

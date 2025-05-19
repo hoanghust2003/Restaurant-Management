@@ -131,4 +131,45 @@ export class MenusController {
     await this.menusService.removeDishFromMenu(id, dishId, req.user.role);
     return { message: 'Đã xóa món ăn khỏi thực đơn thành công' };
   }
+  @Post(':id/dishes')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.CHEF)
+  async addDishesToMenu(
+    @Param('id') id: string,
+    @Body() body: { dishIds: string[] },
+    @Request() req
+  ) {
+    const results: any[] = [];
+    for (const dishId of body.dishIds) {
+      try {
+        const result = await this.menusService.addDishToMenu(id, dishId, req.user.role);
+        results.push(result);
+      } catch (error) {
+        // Log error but continue with other dishes
+        console.error(`Error adding dish ${dishId} to menu ${id}:`, error);
+      }
+    }
+    return { message: 'Dishes added to menu', count: results.length };
+  }
+
+  @Delete(':id/dishes')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.CHEF)
+  async removeDishesFromMenu(
+    @Param('id') id: string,
+    @Body() body: { dishIds: string[] },
+    @Request() req
+  ) {
+    const results: string[] = [];
+    for (const dishId of body.dishIds) {
+      try {
+        await this.menusService.removeDishFromMenu(id, dishId, req.user.role);
+        results.push(dishId);
+      } catch (error) {
+        // Log error but continue with other dishes
+        console.error(`Error removing dish ${dishId} from menu ${id}:`, error);
+      }
+    }
+    return { message: 'Dishes removed from menu', count: results.length };
+  }
 }

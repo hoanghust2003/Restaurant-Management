@@ -57,19 +57,25 @@ const MenuForm: React.FC<MenuFormProps> = ({ menu, isEdit = false, onSuccess }) 
       }
     }
   }, [form, isEdit, menu]);
-
   // Handle form submission
-  const handleSubmit = async (values: CreateMenuDto | UpdateMenuDto) => {
+  const handleSubmit = async (values: any) => {
     try {
       setSubmitting(true);
       
+      // Ensure dishIds is defined and not empty if dishes are selected
+      const formData: CreateMenuDto | UpdateMenuDto = {
+        name: values.name,
+        description: values.description,
+        dishIds: values.dishIds || []
+      };
+      
       if (isEdit && menu) {
         // Update existing menu
-        await menuService.update(menu.id, values);
+        await menuService.update(menu.id, formData);
         message.success('Cập nhật thực đơn thành công');
       } else {
         // Create new menu
-        await menuService.create(values as CreateMenuDto);
+        await menuService.create(formData as CreateMenuDto);
         message.success('Tạo thực đơn mới thành công');
         form.resetFields();
       }
