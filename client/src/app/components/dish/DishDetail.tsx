@@ -52,7 +52,15 @@ const DishDetail: React.FC<DishDetailProps> = ({ dish }) => {
             <Descriptions bordered column={1}>
               <Descriptions.Item label="Mô tả">{dish.description}</Descriptions.Item>
               <Descriptions.Item label="Giá">{formatPrice(dish.price)}</Descriptions.Item>
-              <Descriptions.Item label="Danh mục">{dish.category?.name || 'Chưa phân loại'}</Descriptions.Item>
+              <Descriptions.Item label="Danh mục">
+                {dish.category ? (
+                  <Tag color="blue" style={{ fontSize: '14px', padding: '4px 8px' }}>
+                    {dish.category.name}
+                  </Tag>
+                ) : (
+                  'Chưa phân loại'
+                )}
+              </Descriptions.Item>
               <Descriptions.Item label="Thời gian chế biến">{dish.preparation_time} phút</Descriptions.Item>
               <Descriptions.Item label="Trạng thái">
                 <div style={{ display: 'flex', gap: '8px' }}>

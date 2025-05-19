@@ -47,12 +47,6 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           title: 'Quản lý bàn',
           showIfRoles: ['admin', 'waiter', 'cashier'], // Admin, waiters and cashiers can manage tables
         },        {
-          href: '/admin/categories',
-          icon: <QueueListIcon className="w-5 h-5" />,
-          title: 'Danh mục món ăn',
-          showIfRoles: ['admin', 'warehouse'], // Admin và warehouse có thể quản lý danh mục
-        },
-        {
           href: '/admin/ingredients',
           icon: <ArchiveBoxIcon className="w-5 h-5" />,
           title: 'Nguyên liệu',
@@ -63,6 +57,13 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           icon: <QueueListIcon className="w-5 h-5" />,
           title: 'Quản lý món ăn',
           showIfRoles: ['admin', 'chef'], // Admin and chefs can manage dishes
+          subItems: [
+            {
+              href: '/admin/categories',
+              title: 'Danh mục món ăn',
+              showIfRoles: ['admin', 'warehouse', 'chef'], // Admin, warehouse và chef có thể quản lý danh mục
+            },
+          ]
         },
         {
           href: '/admin/menus',

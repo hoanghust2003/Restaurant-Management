@@ -208,13 +208,36 @@ const DishForm: React.FC<DishFormProps> = ({
             >
               <InputNumber min={1} style={{ width: '100%' }} placeholder="Nhập thời gian chuẩn bị" />
             </Form.Item>
-            
-            <Form.Item
+              <Form.Item
               name="categoryId"
               label="Danh mục"
               rules={[{ required: true, message: 'Vui lòng chọn danh mục' }]}
             >
-              <Select placeholder="Chọn danh mục">
+              <Select 
+                placeholder="Chọn danh mục"
+                showSearch
+                optionFilterProp="children"
+                filterOption={(input, option) =>
+                  (option?.children as unknown as string)
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+                dropdownRender={menu => (
+                  <>
+                    {menu}
+                    <div style={{ padding: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Button 
+                        type="text" 
+                        icon={<PlusOutlined />} 
+                        onClick={() => router.push('/admin/categories/create')}
+                        size="small"
+                      >
+                        Thêm danh mục mới
+                      </Button>
+                    </div>
+                  </>
+                )}
+              >
                 {categories.map(category => (
                   <Option key={category.id} value={category.id}>{category.name}</Option>
                 ))}

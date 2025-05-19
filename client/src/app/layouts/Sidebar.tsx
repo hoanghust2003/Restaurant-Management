@@ -1,13 +1,13 @@
 'use client';
 
-import { ReactNode } from 'react';
+import React, { ReactNode, Fragment } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { IconType } from 'react-icons';
 
 interface SidebarItemProps {
   href: string;
-  icon: ReactNode;
+  icon?: ReactNode;
   title: string;
   active?: boolean;
 }
@@ -22,7 +22,7 @@ export function SidebarItem({ href, icon, title, active }: SidebarItemProps) {
           : 'text-gray-700 hover:bg-gray-100'
       }`}
     >
-      <span className="mr-3 text-lg">{icon}</span>
+      {icon && <span className="mr-3 text-lg">{icon}</span>}
       <span>{title}</span>
     </Link>
   );
@@ -54,6 +54,11 @@ interface SidebarProps {
       icon: ReactNode;
       title: string;
       showIfRoles?: string[]; // Optional property to restrict menu items to specific roles
+      subItems?: {
+        href: string;
+        title: string;
+        showIfRoles?: string[];
+      }[];
     }[];
   }[];
   userRole?: string; // Current user's role
@@ -78,13 +83,35 @@ export default function Sidebar({ sections, userRole }: SidebarProps) {
         return (
           <SidebarSection key={i} title={section.title}>
             {visibleItems.map((item, j) => (
-              <SidebarItem
-                key={j}
-                href={item.href}
-                icon={item.icon}
-                title={item.title}
-                active={pathname === item.href}
-              />
+              <Fragment key={j}>
+                <SidebarItem
+                  href={item.href}
+                  icon={item.icon}
+                  title={item.title}
+                  active={pathname === item.href || (pathname && pathname.startsWith(item.href + '/'))}
+                />
+                {/* Render subitems if any */}
+                {item.subItems && item.subItems.length > 0 && (
+                  <div className="ml-6 mt-1 space-y-1">
+                    {item.subItems
+                      .filter(subItem => 
+                        !subItem.showIfRoles || 
+                        !userRole || 
+                        subItem.showIfRoles.includes(userRole)
+                      )
+                      .map((subItem, k) => (
+                        <SidebarItem
+                          key={k}
+                          href={subItem.href}
+                          title={subItem.title}
+                          active={pathname === subItem.href}
+                          icon={null}
+                        />
+                      ))
+                    }
+                  </div>
+                )}
+              </Fragment>
             ))}
           </SidebarSection>
         );
