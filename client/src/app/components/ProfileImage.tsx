@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { ImageProps } from 'next/image';
 import { UserIcon } from '@heroicons/react/24/outline';
 import { useImageWithFallback } from '../hooks/useImageWithFallback';
@@ -22,12 +21,11 @@ export default function ProfileImage({
   height: propHeight,
   size,
   showPlaceholder = true,
-  ...rest
 }: ProfileImageProps) {
   const width = size || propWidth || 64;
   const height = size || propHeight || 64;
   
-  const { imageUrl, error, loaded, handleError, handleLoad } = useImageWithFallback(src, {
+  const { imageUrl, loaded, handleError, handleLoad } = useImageWithFallback(src, {
     fallbackSrc,
     type: 'avatars'
   });

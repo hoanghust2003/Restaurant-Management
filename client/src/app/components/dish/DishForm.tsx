@@ -15,9 +15,6 @@ import ImageWithFallback from '@/app/components/ImageWithFallback';
 const { TextArea } = Input;
 const { Option } = Select;
 
-// Base URL for API
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-
 interface DishFormProps {
   dish?: DishModel;
   isEdit?: boolean;

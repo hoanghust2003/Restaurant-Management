@@ -26,12 +26,11 @@ const DishDetail: React.FC<DishDetailProps> = ({ dish }) => {
       title: 'Tên nguyên liệu',
       dataIndex: ['ingredient', 'name'],
       key: 'name',
-    },
-    {
+    },    {
       title: 'Số lượng',
       dataIndex: 'quantity',
       key: 'quantity',
-      render: (quantity: number, record: any) => `${quantity} ${record.ingredient?.unit || ''}`,
+      render: (quantity: number, record: { ingredient?: { unit?: string } }) => `${quantity} ${record.ingredient?.unit || ''}`,
     },
   ];
 

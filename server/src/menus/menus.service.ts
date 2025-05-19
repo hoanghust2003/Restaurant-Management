@@ -16,23 +16,48 @@ export class MenusService {
     @InjectRepository(MenuDish)
     private menuDishRepository: Repository<MenuDish>
   ) {}
-
-  async findAll(includeDeleted: boolean = false): Promise<Menu[]> {
+  async findAll(includeDeleted: boolean = false): Promise<any[]> {
     try {
       this.logger.log(`Fetching all menus, includeDeleted=${includeDeleted}`);
+      let menus;
       if (includeDeleted) {
-        return this.menuRepository.find({
+        menus = await this.menuRepository.find({
           withDeleted: true
         });
+      } else {
+        menus = await this.menuRepository.find();
       }
-      return this.menuRepository.find();
+      
+      // Get all menu-dish relationships
+      const allMenuDishes = await this.menuDishRepository.find({
+        relations: ['dish'],
+        withDeleted: includeDeleted
+      });
+      
+      // Group dishes by menuId
+      const dishesByMenuId = allMenuDishes.reduce((acc, md) => {
+        if (!acc[md.menuId]) {
+          acc[md.menuId] = [];
+        }
+        if (md.dish) {
+          acc[md.menuId].push(md.dish);
+        }
+        return acc;
+      }, {});
+      
+      // Add dishes to each menu
+      const menusWithDishes = menus.map(menu => ({
+        ...menu,
+        dishes: dishesByMenuId[menu.id] || []
+      }));
+      
+      return menusWithDishes;
     } catch (error) {
       this.logger.error(`Error fetching menus: ${error.message}`, error.stack);
       throw error;
     }
   }
-
-  async findOne(id: string, includeDeleted: boolean = false): Promise<Menu> {
+  async findOne(id: string, includeDeleted: boolean = false): Promise<any> {
     try {
       this.logger.log(`Finding menu by id: ${id}, includeDeleted=${includeDeleted}`);
       const menu = await this.menuRepository.findOne({
@@ -45,7 +70,20 @@ export class MenusService {
         throw new NotFoundException(`Menu with ID ${id} not found`);
       }
       
-      return menu;
+      // Get the dishes for this menu
+      const menuDishes = await this.menuDishRepository.find({
+        where: { menuId: id },
+        relations: ['dish'],
+        withDeleted: includeDeleted
+      });
+      
+      // Transform menu with dishes
+      const menuWithDishes = {
+        ...menu,
+        dishes: menuDishes.map(md => md.dish)
+      };
+      
+      return menuWithDishes;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
