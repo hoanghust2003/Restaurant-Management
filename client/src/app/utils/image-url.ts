@@ -9,7 +9,7 @@ import { IMAGE_FALLBACKS } from './image-fallbacks';
  * @param type The type of asset (dishes, avatars, etc.)
  * @returns A proper URL to the image
  */
-export function getImageUrl(imagePath?: string | null, type: 'dishes' | 'avatars' | 'menus' = 'dishes'): string {
+export function getImageUrl(imagePath?: string | null, type: 'dishes' | 'avatars' | 'menus' | 'ingredients' = 'dishes'): string {
   // If no image path, return the default image
   if (!imagePath) {
     return IMAGE_FALLBACKS[type];

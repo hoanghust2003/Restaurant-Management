@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { IngredientModel } from '@/app/models/ingredient.model';
 import { ingredientService } from '@/app/services/ingredient.service';
 import { useAuth } from '@/app/contexts/AuthContext';
+import ImageWithFallback from '@/app/components/ImageWithFallback';
 
 const IngredientList: React.FC = () => {
   const [ingredients, setIngredients] = useState<IngredientModel[]>([]);
@@ -76,6 +77,21 @@ const IngredientList: React.FC = () => {
   };
   // Định nghĩa cột cho bảng
   const columns = [
+    {
+      title: 'Hình ảnh',
+      key: 'image',
+      width: 90,
+      render: (_: any, record: IngredientModel) => (
+        <ImageWithFallback
+          src={record.image_url}
+          type="ingredients"
+          alt={record.name}
+          width={60}
+          height={60}
+          style={{ objectFit: 'cover', borderRadius: '4px' }}
+        />
+      ),
+    },
     {
       title: 'Tên nguyên liệu',
       dataIndex: 'name',

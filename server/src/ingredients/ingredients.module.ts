@@ -6,11 +6,13 @@ import { Ingredient } from '../entities/ingredient.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from '../auth/auth.module';
+import { FileUploadModule } from '../file-upload/file-upload.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Ingredient]),
     AuthModule,
+    FileUploadModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

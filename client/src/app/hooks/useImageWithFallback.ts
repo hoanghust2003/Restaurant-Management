@@ -6,7 +6,7 @@ import { IMAGE_FALLBACKS, SVG_PLACEHOLDER } from '../utils/image-fallbacks';
 
 interface UseImageWithFallbackOptions {
   fallbackSrc?: string;
-  type?: 'dishes' | 'avatars' | 'menus';
+  type?: 'dishes' | 'avatars' | 'menus' | 'ingredients';
 }
 
 export function useImageWithFallback(src: string | null | undefined, options: UseImageWithFallbackOptions = {}) {

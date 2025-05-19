@@ -1,13 +1,17 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Form, Input, Button, InputNumber, Card, message, Typography } from 'antd';
-import { SaveOutlined } from '@ant-design/icons';
+import { Form, Input, Button, InputNumber, Card, message, Typography, Upload } from 'antd';
+import { SaveOutlined, UploadOutlined, LoadingOutlined } from '@ant-design/icons';
 import { ingredientService } from '@/app/services/ingredient.service';
 import { IngredientModel } from '@/app/models/ingredient.model';
 import { useRouter } from 'next/navigation';
+import ImageWithFallback from '@/app/components/ImageWithFallback';
 
 const { Title } = Typography;
+
+// Base URL for API
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 interface IngredientFormProps {
   ingredient?: IngredientModel;
@@ -25,6 +29,8 @@ const IngredientForm: React.FC<IngredientFormProps> = ({
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | undefined>(ingredient?.image_url || undefined);
   const router = useRouter();
 
   // Thiết lập dữ liệu ban đầu nếu là form chỉnh sửa
@@ -33,8 +39,10 @@ const IngredientForm: React.FC<IngredientFormProps> = ({
       form.setFieldsValue({
         name: ingredient.name,
         unit: ingredient.unit,
-        threshold: ingredient.threshold
+        threshold: ingredient.threshold,
+        image_url: ingredient.image_url
       });
+      setImageUrl(ingredient.image_url || undefined);
     }
   }, [ingredient, form, isEdit]);
 
@@ -42,6 +50,11 @@ const IngredientForm: React.FC<IngredientFormProps> = ({
   const handleSubmit = async (values: any) => {
     try {
       setLoading(true);
+      
+      // Ensure image_url is included in the values
+      if (imageUrl && !values.image_url) {
+        values.image_url = imageUrl;
+      }
       
       let result: IngredientModel;
       
@@ -54,6 +67,7 @@ const IngredientForm: React.FC<IngredientFormProps> = ({
         result = await ingredientService.create(values);
         message.success('Tạo nguyên liệu thành công');
         form.resetFields(); // Reset form sau khi tạo thành công
+        setImageUrl(undefined); // Reset image URL state
       }
       
       // Gọi callback nếu có
@@ -69,6 +83,47 @@ const IngredientForm: React.FC<IngredientFormProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  // Xử lý upload ảnh
+  const uploadProps = {
+    name: 'file',
+    action: `${API_BASE_URL}/uploads/s3/ingredients`,
+    headers: {
+      authorization: typeof window !== 'undefined' ? `Bearer ${localStorage.getItem('token')}` : '',
+    },
+    showUploadList: false,
+    beforeUpload: (file: File) => {
+      const isImage = file.type.startsWith('image/');
+      if (!isImage) {
+        message.error('Bạn chỉ có thể tải lên file hình ảnh!');
+      }
+      const isLt5M = file.size / 1024 / 1024 < 5;
+      if (!isLt5M) {
+        message.error('Hình ảnh phải nhỏ hơn 5MB!');
+      }
+      return isImage && isLt5M;
+    },
+    onChange: (info: any) => {
+      if (info.file.status === 'uploading') {
+        setImageLoading(true);
+        return;
+      }
+      if (info.file.status === 'done') {
+        // Lấy URL từ response
+        const imageUrl = info.file.response.url;
+        setImageUrl(imageUrl);
+        
+        // Cập nhật form field
+        form.setFieldsValue({ image_url: imageUrl });
+        
+        setImageLoading(false);
+        message.success('Tải ảnh lên thành công');
+      } else if (info.file.status === 'error') {
+        message.error('Tải ảnh lên thất bại');
+        setImageLoading(false);
+      }
+    },
   };
 
   return (
@@ -117,6 +172,46 @@ const IngredientForm: React.FC<IngredientFormProps> = ({
             style={{ width: '100%' }}
             min={0}
           />
+        </Form.Item>
+
+        <Form.Item
+          name="image_url"
+          label="Hình ảnh"
+          hidden
+        >
+          <Input />
+        </Form.Item>
+
+        <Form.Item 
+          label="Hình ảnh nguyên liệu" 
+          extra="Chọn hình ảnh đại diện cho nguyên liệu (không bắt buộc)"
+        >
+          <div className="flex flex-col items-center">
+            {imageUrl ? (
+              <div className="mb-4 relative">
+                <ImageWithFallback
+                  src={imageUrl}
+                  type="ingredients"
+                  alt={form.getFieldValue('name') || 'Nguyên liệu'}
+                  width={200}
+                  height={200}
+                  style={{ objectFit: 'cover', borderRadius: '8px' }}
+                />
+              </div>
+            ) : (
+              <div className="mb-4 flex justify-center">
+                <div className="w-[200px] h-[200px] bg-gray-100 rounded-lg flex items-center justify-center">
+                  <span className="text-gray-400">Chưa có ảnh</span>
+                </div>
+              </div>
+            )}
+
+            <Upload {...uploadProps}>
+              <Button icon={imageLoading ? <LoadingOutlined /> : <UploadOutlined />}>
+                {imageLoading ? 'Đang tải...' : 'Tải ảnh lên'}
+              </Button>
+            </Upload>
+          </div>
         </Form.Item>
         
         <Form.Item>

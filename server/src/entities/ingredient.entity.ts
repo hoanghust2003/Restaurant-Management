@@ -14,6 +14,9 @@ export class Ingredient {
   @Column('float')
   threshold: number;
 
+  @Column({ nullable: true, length: 255 })
+  image_url: string;
+
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
   

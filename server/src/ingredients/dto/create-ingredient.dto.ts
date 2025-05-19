@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsNumber, Min, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, Min, MaxLength, IsOptional } from 'class-validator';
 
 export class CreateIngredientDto {
   @IsNotEmpty({ message: 'Tên nguyên liệu không được để trống' })
@@ -15,4 +15,9 @@ export class CreateIngredientDto {
   @IsNumber({}, { message: 'Ngưỡng cảnh báo phải là số' })
   @Min(0, { message: 'Ngưỡng cảnh báo không được nhỏ hơn 0' })
   threshold: number;
+  
+  @IsOptional()
+  @IsString({ message: 'Đường dẫn ảnh phải là chuỗi' })
+  @MaxLength(255, { message: 'Đường dẫn ảnh không được vượt quá 255 ký tự' })
+  image_url?: string;
 }

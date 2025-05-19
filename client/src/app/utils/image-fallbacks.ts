@@ -7,6 +7,7 @@ export const IMAGE_FALLBACKS = {
   dishes: '/images/default-dish.png',
   avatars: '/default-avatar.png',
   menus: '/images/default-menu.png',
+  ingredients: '/images/default-ingredient.png',
 };
 
 /**

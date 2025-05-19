@@ -6,6 +6,7 @@ export interface IngredientModel {
   name: string;
   unit: string;
   threshold: number;
+  image_url?: string | null;
   created_at?: Date;
   deleted_at?: Date | null;
 }
@@ -17,6 +18,7 @@ export interface CreateIngredientDto {
   name: string;
   unit: string;
   threshold: number;
+  image_url?: string;
 }
 
 /**
@@ -26,4 +28,5 @@ export interface UpdateIngredientDto {
   name?: string;
   unit?: string;
   threshold?: number;
+  image_url?: string;
 }

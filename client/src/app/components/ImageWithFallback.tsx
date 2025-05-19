@@ -6,18 +6,19 @@ import NextImage, { ImageProps as NextImageProps } from 'next/image';
 
 interface ImageWithFallbackProps extends Omit<NextImageProps, 'src'> {
   src?: string | null;
-  type?: 'dishes' | 'avatars' | 'menus';
+  type?: 'dishes' | 'avatars' | 'menus' | 'ingredients';
   fallbackSrc?: string;
 }
 
 export default function ImageWithFallback({
   src,
-  type = 'dishes',
-  fallbackSrc = type === 'dishes' 
+  type = 'dishes',  fallbackSrc = type === 'dishes' 
     ? '/images/default-dish.png' 
     : type === 'menus' 
-      ? '/images/default-menu.png' 
-      : '/default-avatar.png',
+      ? '/images/default-menu.png'
+      : type === 'ingredients'
+        ? '/images/default-ingredient.png' 
+        : '/default-avatar.png',
   alt = '',
   width,
   height,
