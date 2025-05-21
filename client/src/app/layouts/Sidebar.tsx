@@ -67,7 +67,7 @@ const SidebarItem = ({
   return (
     <div>
       <div 
-        className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-md mb-1 cursor-pointer transition-all duration-200 ${
+        className={`flex items-center px-3 py-2.5 text-sm rounded-md mb-1 cursor-pointer transition-all duration-200 ${
           isActiveParent
             ? 'bg-blue-50 text-blue-700'
             : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
@@ -110,7 +110,7 @@ const SidebarItem = ({
                   <Link
                     key={index}
                     href={item.href}
-                    className={`block px-3 py-2 text-sm rounded-md ${
+                    className={`block px-3 py-2 text-xs rounded-md ${
                       isActive
                         ? 'bg-blue-50 text-blue-700'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-blue-600'

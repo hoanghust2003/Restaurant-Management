@@ -61,7 +61,7 @@ export default function BaseLayout({ children, title, sidebarSections, userRole 
           <div className="flex items-center h-[60px] px-4 border-b">
             <Link href="/" className="flex items-center space-x-2">
               <img src="/logo.png" className="h-8 w-auto" alt="Logo" />
-              <span className="text-lg font-bold text-gray-800">Quản lý nhà hàng</span>
+              <span className="text-base font-bold text-gray-800">Việt Cuisine</span>
             </Link>
           </div>
           <div className="flex-1 overflow-y-auto pt-4">
@@ -90,7 +90,7 @@ export default function BaseLayout({ children, title, sidebarSections, userRole 
                   <span className="sr-only">{sidebarOpen ? 'Đóng menu' : 'Mở menu'}</span>
                 </button>
                 {title && (
-                  <span className="text-base font-semibold text-gray-700">{title}</span>
+                  <span className="text-sm font-semibold text-gray-700">{title}</span>
                 )}
               </div>
 
@@ -130,8 +130,8 @@ export default function BaseLayout({ children, title, sidebarSections, userRole 
             >
               <div className="flex items-center justify-between px-4 py-3 border-b">
                 <Link href="/" className="flex items-center space-x-2">
-                  <img src="/logo.png" className="h-8 w-auto" alt="Logo" />
-                  <span className="text-base font-bold text-gray-800">Nhà hàng</span>
+                  <img src="/logo.png" className="h-7 w-auto" alt="Logo" />
+                  <span className="text-sm font-bold text-gray-800">Việt Cuisine</span>
                 </Link>
                 <button
                   onClick={() => setSidebarOpen(false)}
