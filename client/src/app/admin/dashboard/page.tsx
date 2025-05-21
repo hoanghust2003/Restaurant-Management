@@ -10,7 +10,7 @@ import {
 } from '@ant-design/icons';
 import AdminLayout from '@/app/layouts/AdminLayout';
 import { useAuth } from '@/app/contexts/AuthContext';
-import Link from 'next/link';
+import CustomLink from '@/app/components/CustomLink';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -59,10 +59,9 @@ const AdminDashboard = () => {
           </p>
         </div>
 
-        <Row gutter={[16, 16]}>
-          {statistics.map((stat, index) => (
+        <Row gutter={[16, 16]}>          {statistics.map((stat, index) => (
             <Col xs={24} sm={12} lg={6} key={index}>
-              <Link href={stat.link}>
+              <CustomLink href={stat.link}>
                 <Card 
                   hoverable 
                   className="h-full"
@@ -80,15 +79,14 @@ const AdminDashboard = () => {
                     valueStyle={{ color: stat.color }}
                   />
                 </Card>
-              </Link>
+              </CustomLink>
             </Col>
           ))}
         </Row>
 
         <div className="mt-8">
-          <Row gutter={[16, 16]}>
-            <Col xs={24} lg={16}>
-              <Card title="Đơn hàng gần đây" extra={<Link href="/admin/orders">Xem tất cả</Link>}>
+          <Row gutter={[16, 16]}>            <Col xs={24} lg={16}>
+              <Card title="Đơn hàng gần đây" extra={<CustomLink href="/admin/orders">Xem tất cả</CustomLink>}>
                 {/* RecentOrders component sẽ được thêm sau */}
                 <p className="text-gray-600">Đang tải dữ liệu đơn hàng...</p>
               </Card>

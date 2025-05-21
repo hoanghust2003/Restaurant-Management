@@ -19,6 +19,55 @@
   }
 }
 
+/* Content transition animations */
+.content-fade-out {
+  opacity: 0;
+  transition: opacity 300ms ease-out;
+  pointer-events: none; /* Prevent interactions during transitions */
+}
+
+.content-fade-in {
+  opacity: 1;
+  transition: opacity 300ms ease-in;
+}
+
+/* Page transitions */
+#main-content, #content-wrapper {
+  transition: opacity 300ms ease-in-out;
+  will-change: opacity; /* Optimize for animations */
+}
+
+/* Sidebar item transitions */
+.sidebar-item {
+  transition: background-color 200ms, color 200ms;
+}
+
+/* Custom hover effects for links */
+.custom-link-hover {
+  position: relative;
+  transition: color 200ms;
+}
+
+.custom-link-hover::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: -2px;
+  left: 0;
+  background-color: currentColor;
+  transition: width 200ms ease-in-out;
+}
+
+.custom-link-hover:hover::after {
+  width: 100%;
+}
+
+/* Scroll behavior */
+html {
+  scroll-behavior: smooth; /* Enable smooth scrolling */
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

@@ -1,10 +1,10 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import Link from 'next/link';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ReactNode, useState } from 'react';
+import CustomLink from '../components/CustomLink';
 
 interface SidebarMenuGroup {
   title: string;
@@ -74,14 +74,14 @@ const SidebarItem = ({
         }`}
         onClick={hasSubItems ? onToggle : undefined}
       >
-        <Link 
+        <CustomLink 
           href={hasSubItems ? '#' : href}
           className="flex-1 flex items-center"
           onClick={e => hasSubItems && e.preventDefault()}
         >
           {icon && <span className="mr-3">{icon}</span>}
           <span className="flex-1">{title}</span>
-        </Link>
+        </CustomLink>
         {hasSubItems && (
           <ChevronDownIcon 
             className={`w-5 h-5 transition-transform duration-200 ${
@@ -107,7 +107,7 @@ const SidebarItem = ({
 
                 const isActive = pathname === item.href;
                 return (
-                  <Link
+                  <CustomLink
                     key={index}
                     href={item.href}
                     className={`block px-3 py-2 text-xs rounded-md ${
@@ -117,7 +117,7 @@ const SidebarItem = ({
                     }`}
                   >
                     {item.title}
-                  </Link>
+                  </CustomLink>
                 );
               })}
             </motion.div>

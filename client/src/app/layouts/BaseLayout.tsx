@@ -3,7 +3,7 @@
 import { ReactNode, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import CustomLink from '../components/CustomLink';
 import { toast } from 'react-toastify';
 import {
   UserCircleIcon,
@@ -11,7 +11,23 @@ import {
   Bars3Icon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
-import Sidebar, { SidebarMenuGroup } from './Sidebar';
+import Sidebar from './Sidebar';
+import ContentWrapper from '../components/ContentWrapper';
+
+interface SidebarMenuGroup {
+  title: string;
+  items: {
+    href: string;
+    icon?: ReactNode;
+    title: string;
+    showIfRoles?: string[];
+    subItems?: {
+      href: string;
+      title: string;
+      showIfRoles?: string[];
+    }[];
+  }[];
+}
 
 interface BaseLayoutProps {
   children: ReactNode;
@@ -59,10 +75,10 @@ export default function BaseLayout({ children, title, sidebarSections, userRole 
         {/* Desktop Sidebar */}
         <aside className="hidden lg:flex flex-col w-64 bg-white border-r shadow z-20">
           <div className="flex items-center h-[60px] px-4 border-b">
-            <Link href="/" className="flex items-center space-x-2">
+            <CustomLink href="/" className="flex items-center space-x-2">
               <img src="/logo.png" className="h-8 w-auto" alt="Logo" />
               <span className="text-base font-bold text-gray-800">Việt Cuisine</span>
-            </Link>
+            </CustomLink>
           </div>
           <div className="flex-1 overflow-y-auto pt-4">
             
@@ -99,13 +115,13 @@ export default function BaseLayout({ children, title, sidebarSections, userRole 
                   <p className="text-sm font-medium text-gray-800">{user?.name}</p>
                   <p className="text-xs text-gray-500">{user?.role && roleNames[user.role]}</p>
                 </div>
-                <Link
+                <CustomLink
                   href="/account"
                   title="Tài khoản"
                   className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-full"
                 >
                   <UserCircleIcon className="h-5 w-5" />
-                </Link>
+                </CustomLink>
                 <button
                   onClick={handleLogout}
                   title="Đăng xuất"
@@ -129,10 +145,10 @@ export default function BaseLayout({ children, title, sidebarSections, userRole 
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between px-4 py-3 border-b">
-                <Link href="/" className="flex items-center space-x-2">
+                <CustomLink href="/" className="flex items-center space-x-2">
                   <img src="/logo.png" className="h-7 w-auto" alt="Logo" />
                   <span className="text-sm font-bold text-gray-800">Việt Cuisine</span>
-                </Link>
+                </CustomLink>
                 <button
                   onClick={() => setSidebarOpen(false)}
                   className="p-1 rounded hover:bg-gray-100"
@@ -148,7 +164,11 @@ export default function BaseLayout({ children, title, sidebarSections, userRole 
 
           {/* Content */}
           <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-            <div className="max-w-7xl mx-auto">{children}</div>
+            <div className="max-w-7xl mx-auto">
+              <ContentWrapper>
+                {children}
+              </ContentWrapper>
+            </div>
           </main>
         </div>
       </div>

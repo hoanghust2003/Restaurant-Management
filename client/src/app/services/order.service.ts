@@ -1,17 +1,20 @@
 import axios from '../utils/axios';
-import { OrderModel } from '../models/order.model';
-import { OrderStatus } from '../utils/enums';
+import { OrderModel, CreateOrderDto, UpdateOrderDto } from '../models/order.model';
+import { OrderStatus, OrderItemStatus } from '../utils/enums';
 
 const API_URL = '/orders';
 
 export const orderService = {
   /**
-   * Lấy tất cả đơn hàng
+   * Lấy tất cả đơn hàng với các bộ lọc tùy chọn
    */
-  async getAll(includeDeleted = false): Promise<OrderModel[]> {
-    const response = await axios.get(API_URL, {
-      params: { includeDeleted }
-    });
+  async getAll(filters?: {
+    status?: OrderStatus;
+    tableId?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<OrderModel[]> {
+    const response = await axios.get(API_URL, { params: filters });
     return response.data;
   },
 
@@ -24,10 +27,33 @@ export const orderService = {
   },
 
   /**
+   * Lấy đơn hàng đang hoạt động của một bàn
+   */
+  async getActiveByTable(tableId: string): Promise<OrderModel | null> {
+    try {
+      const response = await axios.get(`${API_URL}/table/${tableId}/active`);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return null;
+      }
+      throw error;
+    }
+  },
+
+  /**
    * Tạo mới đơn hàng
    */
-  async create(order: any): Promise<OrderModel> {
+  async create(order: CreateOrderDto): Promise<OrderModel> {
     const response = await axios.post(API_URL, order);
+    return response.data;
+  },
+
+  /**
+   * Cập nhật đơn hàng
+   */
+  async update(id: string, order: UpdateOrderDto): Promise<OrderModel> {
+    const response = await axios.patch(`${API_URL}/${id}`, order);
     return response.data;
   },
 
@@ -43,6 +69,31 @@ export const orderService = {
    * Hủy đơn hàng
    */
   async cancel(id: string): Promise<void> {
-    await axios.post(`${API_URL}/${id}/cancel`);
+    await axios.patch(`${API_URL}/${id}/status`, { status: OrderStatus.CANCELED });
+  },
+  
+  /**
+   * Cập nhật trạng thái của một món trong đơn hàng
+   */
+  async updateOrderItemStatus(orderId: string, itemId: string, status: OrderItemStatus): Promise<OrderModel> {
+    const response = await axios.patch(`${API_URL}/${orderId}/items/${itemId}/status`, { status });
+    return response.data;
+  },
+  
+  /**
+   * Lấy tất cả đơn hàng đang hoạt động (chưa hoàn thành hoặc hủy)
+   */
+  async getActive(): Promise<OrderModel[]> {
+    const activeStatuses = [
+      OrderStatus.PENDING, 
+      OrderStatus.IN_PROGRESS, 
+      OrderStatus.READY, 
+      OrderStatus.SERVED
+    ].join(',');
+    
+    const response = await axios.get(`${API_URL}/active`, {
+      params: { statuses: activeStatuses }
+    });
+    return response.data;
   },
 };

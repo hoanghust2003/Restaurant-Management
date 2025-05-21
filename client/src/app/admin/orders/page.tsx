@@ -6,6 +6,7 @@ import { SearchOutlined, EyeOutlined, PrinterOutlined } from '@ant-design/icons'
 import AdminLayout from '@/app/layouts/AdminLayout';
 import { OrderModel } from '@/app/models/order.model';
 import { orderService } from '@/app/services/order.service';
+import { OrderStatus, orderStatusText, orderStatusColors } from '@/app/utils/enums';
 import { useRouter } from 'next/navigation';
 
 const { RangePicker } = DatePicker;
@@ -13,6 +14,7 @@ const { Option } = Select;
 
 const OrderManagement = () => {
   const [orders, setOrders] = useState<OrderModel[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<OrderModel[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
   const router = useRouter();
@@ -33,54 +35,37 @@ const OrderManagement = () => {
       setLoading(false);
     }
   };
-
   const getStatusColor = (status: string) => {
-    const colors: { [key: string]: string } = {
-      pending: 'gold',
-      preparing: 'processing',
-      ready: 'cyan',
-      served: 'blue',
-      completed: 'success',
-      cancelled: 'error',
-    };
-    return colors[status] || 'default';
+    return orderStatusColors[status] || 'default';
   };
 
   const getStatusText = (status: string) => {
-    const texts: { [key: string]: string } = {
-      pending: 'Chờ xử lý',
-      preparing: 'Đang chuẩn bị',
-      ready: 'Sẵn sàng',
-      served: 'Đã phục vụ',
-      completed: 'Hoàn thành',
-      cancelled: 'Đã hủy',
-    };
-    return texts[status] || status;
+    return orderStatusText[status] || status;
   };
-
   const columns = [
     {
       title: 'Mã đơn',
-      dataIndex: 'orderNumber',
-      key: 'orderNumber',
+      dataIndex: 'id',
+      key: 'id',
+      render: (id: string) => id.substring(0, 8),
     },
     {
       title: 'Thời gian',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
+      dataIndex: 'created_at',
+      key: 'created_at',
       render: (date: string) => new Date(date).toLocaleString('vi-VN'),
     },
     {
       title: 'Bàn',
-      dataIndex: ['table', 'number'],
+      dataIndex: ['table', 'name'],
       key: 'table',
-      render: (number: string) => `Bàn ${number}`,
+      render: (name: string) => name || 'N/A',
     },
     {
       title: 'Tổng tiền',
-      dataIndex: 'total',
-      key: 'total',
-      render: (amount: number) => `${amount.toLocaleString('vi-VN')}₫`,
+      dataIndex: 'total_price',
+      key: 'total_price',
+      render: (amount: number) => `${amount?.toLocaleString('vi-VN') || 0}₫`,
     },
     {
       title: 'Trạng thái',
@@ -96,11 +81,13 @@ const OrderManagement = () => {
       title: 'Thao tác',
       key: 'actions',
       render: (_: any, record: OrderModel) => (
-        <Space size="small">
-          <Button
+        <Space size="small">          <Button
             type="text"
             icon={<EyeOutlined />}
-            onClick={() => router.push(`/admin/orders/${record.id}`)}
+            onClick={() => {
+              // Use a custom approach to view order details without full page reloads
+              router.push(`/admin/orders/${record.id}`);
+            }}
           />
           <Button
             type="text"
@@ -121,35 +108,72 @@ const OrderManagement = () => {
     <AdminLayout title="Quản lý đơn hàng">
       <div className="p-6">
         <div className="mb-4 space-y-4">
-          <div className="flex flex-wrap gap-4">
-            <Input
+          <div className="flex flex-wrap gap-4">            <Input
               placeholder="Tìm kiếm theo mã đơn..."
               prefix={<SearchOutlined />}
               style={{ width: 200 }}
-              onChange={e => setSearchText(e.target.value)}
-            />
-            <RangePicker
+              onChange={e => {
+                setSearchText(e.target.value);
+                if (e.target.value) {
+                  const searchValue = e.target.value.toLowerCase();
+                  const searchResults = orders.filter(order => 
+                    (order.id && order.id.toLowerCase().includes(searchValue)) ||
+                    (order.code && order.code.toLowerCase().includes(searchValue))
+                  );
+                  setFilteredOrders(searchResults);
+                } else {
+                  setFilteredOrders(null);
+                }
+              }}
+            />            <RangePicker
               placeholder={['Từ ngày', 'Đến ngày']}
               style={{ width: 300 }}
-            />
-            <Select
+              onChange={(dates, dateStrings) => {
+                if (dates) {
+                  const [startDate, endDate] = dates;
+                  const filteredByDate = orders.filter(order => {
+                    const orderDate = new Date(order.created_at);
+                    return orderDate >= startDate!.toDate() && 
+                           orderDate <= endDate!.endOf('day').toDate();
+                  });
+                  setFilteredOrders(filteredByDate);
+                } else {
+                  setFilteredOrders(null);
+                }
+              }}
+            /><Select
               placeholder="Trạng thái"
               style={{ width: 150 }}
               allowClear
+              onChange={(value) => {
+                // When a status is selected, filter orders by that status
+                if (value) {
+                  const filteredOrders = orders.filter(order => order.status === value);
+                  setFilteredOrders(filteredOrders);
+                } else {
+                  setFilteredOrders(null); // Reset filters
+                }
+              }}
             >
-              <Option value="pending">Chờ xử lý</Option>
-              <Option value="preparing">Đang chuẩn bị</Option>
-              <Option value="ready">Sẵn sàng</Option>
-              <Option value="served">Đã phục vụ</Option>
-              <Option value="completed">Hoàn thành</Option>
-              <Option value="cancelled">Đã hủy</Option>
+              <Option value={OrderStatus.PENDING}>{orderStatusText[OrderStatus.PENDING]}</Option>
+              <Option value={OrderStatus.IN_PROGRESS}>{orderStatusText[OrderStatus.IN_PROGRESS]}</Option>
+              <Option value={OrderStatus.READY}>{orderStatusText[OrderStatus.READY]}</Option>
+              <Option value={OrderStatus.SERVED}>{orderStatusText[OrderStatus.SERVED]}</Option>
+              <Option value={OrderStatus.COMPLETED}>{orderStatusText[OrderStatus.COMPLETED]}</Option>              <Option value={OrderStatus.CANCELED}>{orderStatusText[OrderStatus.CANCELED]}</Option>
             </Select>
+            <Button 
+              type="default"
+              onClick={() => {
+                setFilteredOrders(null);
+                setSearchText('');
+              }}
+            >
+              Đặt lại bộ lọc
+            </Button>
           </div>
-        </div>
-
-        <Table
+        </div>        <Table
           columns={columns}
-          dataSource={orders}
+          dataSource={filteredOrders || orders}
           rowKey="id"
           loading={loading}
           pagination={{
