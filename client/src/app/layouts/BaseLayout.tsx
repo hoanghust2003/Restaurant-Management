@@ -5,12 +5,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
-import { 
+import {
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
-  BuildingStorefrontIcon,
   Bars3Icon,
-  XMarkIcon
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import Sidebar, { SidebarMenuGroup } from './Sidebar';
 
@@ -22,7 +21,16 @@ interface BaseLayoutProps {
   userRole?: string;
 }
 
-export default function BaseLayout({ children, title, sidebar, sidebarSections, userRole }: BaseLayoutProps) {
+const roleNames: Record<string, string> = {
+  admin: 'Quản trị viên',
+  waiter: 'Nhân viên phục vụ',
+  chef: 'Đầu bếp',
+  cashier: 'Thu ngân',
+  warehouse: 'Nhân viên kho',
+  customer: 'Khách hàng',
+};
+
+export default function BaseLayout({ children, title, sidebarSections, userRole }: BaseLayoutProps) {
   const { user, logout, loading, isAuthenticated } = useAuth();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -45,130 +53,109 @@ export default function BaseLayout({ children, title, sidebar, sidebarSections, 
     return null;
   }
 
-  // Map role to Vietnamese
-  const roleNames: Record<string, string> = {
-    'admin': 'Quản trị viên',
-    'waiter': 'Nhân viên phục vụ',
-    'chef': 'Đầu bếp',
-    'cashier': 'Thu ngân',
-    'warehouse': 'Nhân viên kho',
-    'customer': 'Khách hàng'
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center">
-              <button
-                type="button"
-                className="text-gray-500 hover:text-gray-600 lg:hidden mr-2"
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-              >
-                {sidebarOpen ? (
-                  <XMarkIcon className="h-6 w-6" />
-                ) : (
-                  <Bars3Icon className="h-6 w-6" />
-                )}
-                <span className="sr-only">
-                  {sidebarOpen ? 'Đóng menu' : 'Mở menu'}
-                </span>
-              </button>
-              <Link href="/" className="flex items-center">
-                <BuildingStorefrontIcon className="h-8 w-8 text-blue-600" />
-                <h1 className="ml-2 text-xl font-bold text-gray-900 hidden sm:block">
-                  Quản lý nhà hàng
-                </h1>
-              </Link>
-              {title && (
-                <span className="ml-4 text-gray-600 hidden md:block">
-                  / {title}
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-medium text-gray-700">
-                  {user?.name}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {user?.role && roleNames[user.role]}
-                </p>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Link 
-                  href="/account"
-                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <UserCircleIcon className="h-4 w-4 mr-1 sm:mr-0" />
-                  <span className="hidden sm:inline-block sm:ml-1">Tài khoản</span>
-                </Link>
-                
-                <button 
-                  onClick={handleLogout}
-                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <ArrowRightOnRectangleIcon className="h-4 w-4 mr-1 sm:mr-0" />
-                  <span className="hidden sm:inline-block sm:ml-1">Đăng xuất</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Mobile sidebar */}
-        <aside
-          className={`${
-            sidebarOpen ? 'block' : 'hidden'
-          } fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden`}
-          onClick={() => setSidebarOpen(false)}
-        >
-          <div 
-            className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg transform transition-transform duration-300 z-50"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="overflow-y-auto h-full py-4">
-              {sidebar}
-            </div>
+        {/* Desktop Sidebar */}
+        <aside className="hidden lg:flex flex-col w-64 bg-white border-r shadow z-20">
+          <div className="flex items-center h-[60px] px-4 border-b">
+            <Link href="/" className="flex items-center space-x-2">
+              <img src="/logo.png" className="h-8 w-auto" alt="Logo" />
+              <span className="text-lg font-bold text-gray-800">Quản lý nhà hàng</span>
+            </Link>
           </div>
-        </aside>
-
-        {/* Desktop sidebar */}
-        <aside className="hidden lg:block w-64 bg-white shadow-lg overflow-y-auto">
-          <div className="p-4">
-            <div className="flex items-center flex-shrink-0 px-4">
-              <img
-                className="h-8 w-auto"
-                src="/logo.png"
-                alt="Restaurant Logo"
-              />
-            </div>
-            <div className="mt-5 flex-grow flex flex-col">
+          <div className="flex-1 overflow-y-auto pt-4">
+            
+            <div className="px-4 pt-2">
               <Sidebar sections={sidebarSections} userRole={userRole} />
             </div>
           </div>
         </aside>
 
-        {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          <div className="max-w-7xl mx-auto">{children}</div>
-        </main>
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header */}
+          <header className="bg-white border-b shadow-sm sticky top-0 z-30">
+            <div className="px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  className="lg:hidden p-1.5 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {sidebarOpen ? (
+                    <XMarkIcon className="h-5 w-5" />
+                  ) : (
+                    <Bars3Icon className="h-5 w-5" />
+                  )}
+                  <span className="sr-only">{sidebarOpen ? 'Đóng menu' : 'Mở menu'}</span>
+                </button>
+                {title && (
+                  <span className="text-base font-semibold text-gray-700">{title}</span>
+                )}
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <div className="text-right hidden sm:block">
+                  <p className="text-sm font-medium text-gray-800">{user?.name}</p>
+                  <p className="text-xs text-gray-500">{user?.role && roleNames[user.role]}</p>
+                </div>
+                <Link
+                  href="/account"
+                  title="Tài khoản"
+                  className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-full"
+                >
+                  <UserCircleIcon className="h-5 w-5" />
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  title="Đăng xuất"
+                  className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-full"
+                >
+                  <ArrowRightOnRectangleIcon className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* Mobile Sidebar Overlay */}
+          <aside
+            className={`${
+              sidebarOpen ? 'block' : 'hidden'
+            } fixed inset-0 bg-black bg-opacity-40 z-40 lg:hidden`}
+            onClick={() => setSidebarOpen(false)}
+          >
+            <div
+              className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg z-50"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b">
+                <Link href="/" className="flex items-center space-x-2">
+                  <img src="/logo.png" className="h-8 w-auto" alt="Logo" />
+                  <span className="text-base font-bold text-gray-800">Nhà hàng</span>
+                </Link>
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="p-1 rounded hover:bg-gray-100"
+                >
+                  <XMarkIcon className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+              <div className="p-4 overflow-y-auto">
+                <Sidebar sections={sidebarSections} userRole={userRole} />
+              </div>
+            </div>
+          </aside>
+
+          {/* Content */}
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+            <div className="max-w-7xl mx-auto">{children}</div>
+          </main>
+        </div>
       </div>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 py-4 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <p className="text-sm text-center text-gray-500">
-            &copy; {new Date().getFullYear()} Restaurant Management System. All rights reserved.
-          </p>
-        </div>
+      <footer className="bg-white border-t text-center text-xs text-gray-400 py-3">
+        &copy; {new Date().getFullYear()} Restaurant Management System
       </footer>
     </div>
   );
