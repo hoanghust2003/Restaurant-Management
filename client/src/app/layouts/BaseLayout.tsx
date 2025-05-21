@@ -12,14 +12,17 @@ import {
   Bars3Icon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
+import Sidebar, { SidebarMenuGroup } from './Sidebar';
 
 interface BaseLayoutProps {
   children: ReactNode;
   title?: string;
   sidebar?: ReactNode;
+  sidebarSections: SidebarMenuGroup[];
+  userRole?: string;
 }
 
-export default function BaseLayout({ children, title, sidebar }: BaseLayoutProps) {
+export default function BaseLayout({ children, title, sidebar, sidebarSections, userRole }: BaseLayoutProps) {
   const { user, logout, loading, isAuthenticated } = useAuth();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -139,7 +142,18 @@ export default function BaseLayout({ children, title, sidebar }: BaseLayoutProps
 
         {/* Desktop sidebar */}
         <aside className="hidden lg:block w-64 bg-white shadow-lg overflow-y-auto">
-          <div className="p-4">{sidebar}</div>
+          <div className="p-4">
+            <div className="flex items-center flex-shrink-0 px-4">
+              <img
+                className="h-8 w-auto"
+                src="/logo.png"
+                alt="Restaurant Logo"
+              />
+            </div>
+            <div className="mt-5 flex-grow flex flex-col">
+              <Sidebar sections={sidebarSections} userRole={userRole} />
+            </div>
+          </div>
         </aside>
 
         {/* Main content */}

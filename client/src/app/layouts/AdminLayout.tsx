@@ -1,18 +1,152 @@
-'use client';
+"use client";
 
-import { ReactNode } from 'react';
-import BaseLayout from './BaseLayout';
-import Sidebar from './Sidebar';
-import { useAuth } from '../contexts/AuthContext';
-import { 
-  UserGroupIcon, 
-  Squares2X2Icon, 
-  ArchiveBoxIcon, 
-  DocumentChartBarIcon,
-  QueueListIcon,
-  CogIcon,
-  BuildingStorefrontIcon
-} from '@heroicons/react/24/outline';
+import { ReactNode } from "react";
+import { UserRole } from "../utils/enums";
+import BaseLayout from "./BaseLayout";
+import {
+  HomeIcon,
+  UsersIcon,
+  TableCellsIcon,
+  ClipboardDocumentListIcon,
+  CakeIcon,
+  BuildingStorefrontIcon,
+  ChartBarIcon,
+  Cog6ToothIcon,
+} from "@heroicons/react/24/outline";
+
+const adminMenuSections = [
+  {
+    title: "Tổng quan",
+    items: [
+      {
+        href: "/admin/dashboard",
+        icon: <HomeIcon className="w-5 h-5" />,
+        title: "Bảng điều khiển",
+        showIfRoles: ["admin", "manager"],
+      },
+      {
+        href: "/admin/users",
+        icon: <UsersIcon className="w-5 h-5" />,
+        title: "Quản lý người dùng",
+        showIfRoles: ["admin"],
+      },
+    ],
+  },
+  {
+    title: "Quản lý nhà hàng",
+    items: [
+      {
+        href: "/admin/tables",
+        icon: <TableCellsIcon className="w-5 h-5" />,
+        title: "Quản lý bàn",
+        showIfRoles: ["admin", "manager"],
+      },
+      {
+        href: "#",
+        icon: <ClipboardDocumentListIcon className="w-5 h-5" />,
+        title: "Quản lý đơn hàng",
+        showIfRoles: ["admin", "manager"],
+        subItems: [
+          {
+            href: "/admin/orders/active",
+            title: "Đơn hiện tại",
+            showIfRoles: ["admin", "manager"],
+          },
+          {
+            href: "/admin/orders/history",
+            title: "Lịch sử đơn hàng",
+            showIfRoles: ["admin", "manager"],
+          },
+        ],
+      },
+      {
+        href: "#",
+        icon: <CakeIcon className="w-5 h-5" />,
+        title: "Quản lý thực đơn",
+        showIfRoles: ["admin", "manager", "chef"],
+        subItems: [
+          {
+            href: "/admin/dishes",
+            title: "Món ăn",
+            showIfRoles: ["admin", "manager", "chef"],
+          },
+          {
+            href: "/admin/menus",
+            title: "Thực đơn",
+            showIfRoles: ["admin", "manager", "chef"],
+          },
+          {
+            href: "/admin/categories",
+            title: "Danh mục",
+            showIfRoles: ["admin", "manager"],
+          },
+        ],
+      },
+      {
+        href: "#",
+        icon: <BuildingStorefrontIcon className="w-5 h-5" />,
+        title: "Quản lý kho",
+        showIfRoles: ["admin", "manager", "warehouse"],
+        subItems: [
+          {
+            href: "/admin/inventory/ingredients",
+            title: "Nguyên liệu",
+            showIfRoles: ["admin", "manager", "warehouse"],
+          },
+          {
+            href: "/admin/inventory/imports",
+            title: "Nhập kho",
+            showIfRoles: ["admin", "manager", "warehouse"],
+          },
+          {
+            href: "/admin/inventory/exports",
+            title: "Xuất kho",
+            showIfRoles: ["admin", "manager", "warehouse"],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Báo cáo",
+    items: [
+      {
+        href: "#",
+        icon: <ChartBarIcon className="w-5 h-5" />,
+        title: "Báo cáo & Thống kê",
+        showIfRoles: ["admin", "manager"],
+        subItems: [
+          {
+            href: "/admin/reports/sales",
+            title: "Báo cáo doanh thu",
+            showIfRoles: ["admin", "manager"],
+          },
+          {
+            href: "/admin/reports/inventory",
+            title: "Báo cáo kho",
+            showIfRoles: ["admin", "manager"],
+          },
+          {
+            href: "/admin/reports/staff",
+            title: "Báo cáo nhân viên",
+            showIfRoles: ["admin"],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Cài đặt",
+    items: [
+      {
+        href: "/admin/settings",
+        icon: <Cog6ToothIcon className="w-5 h-5" />,
+        title: "Cài đặt hệ thống",
+        showIfRoles: ["admin"],
+      },
+    ],
+  },
+];
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -20,94 +154,11 @@ interface AdminLayoutProps {
 }
 
 export default function AdminLayout({ children, title }: AdminLayoutProps) {
-  const { user } = useAuth();
-  
-  const sections = [
-    {
-      title: 'Tổng quan',
-      items: [
-        {
-          href: '/',
-          icon: <Squares2X2Icon className="w-5 h-5" />,
-          title: 'Dashboard',
-        },
-      ],
-    },
-    {
-      title: 'Quản lý',
-      items: [
-        {
-          href: '/users',
-          icon: <UserGroupIcon className="w-5 h-5" />,
-          title: 'Tài khoản',
-          showIfRoles: ['admin'], // Only admin can manage users
-        },        {
-          href: '/tables',
-          icon: <BuildingStorefrontIcon className="w-5 h-5" />,
-          title: 'Quản lý bàn',
-          showIfRoles: ['admin', 'waiter', 'cashier'], // Admin, waiters and cashiers can manage tables
-        },        {
-          href: '/admin/ingredients',
-          icon: <ArchiveBoxIcon className="w-5 h-5" />,
-          title: 'Nguyên liệu',
-          showIfRoles: ['admin', 'warehouse'], // Admin và warehouse có thể quản lý nguyên liệu
-        },
-        {
-          href: '/admin/dishes',
-          icon: <QueueListIcon className="w-5 h-5" />,
-          title: 'Quản lý món ăn',
-          showIfRoles: ['admin', 'chef'], // Admin and chefs can manage dishes
-          subItems: [
-            {
-              href: '/admin/categories',
-              title: 'Danh mục món ăn',
-              showIfRoles: ['admin', 'warehouse', 'chef'], // Admin, warehouse và chef có thể quản lý danh mục
-            },
-          ]
-        },
-        {
-          href: '/admin/menus',
-          icon: <QueueListIcon className="w-5 h-5" />,
-          title: 'Thực đơn',
-          showIfRoles: ['admin', 'chef'], // Admin and chefs can manage menus
-        },
-      ],
-    },
-    {
-      title: 'Kho',
-      items: [
-        {
-          href: '/inventory',
-          icon: <ArchiveBoxIcon className="w-5 h-5" />,
-          title: 'Quản lý kho',
-        },
-      ],
-    },
-    {
-      title: 'Thống kê',
-      items: [
-        {
-          href: '/reports',
-          icon: <DocumentChartBarIcon className="w-5 h-5" />,
-          title: 'Báo cáo & Thống kê',
-        },
-      ],
-    },
-    {
-      title: 'Hệ thống',
-      items: [
-        {
-          href: '/settings',
-          icon: <CogIcon className="w-5 h-5" />,
-          title: 'Cài đặt hệ thống',
-        },
-      ],
-    },
-  ];
   return (
-    <BaseLayout 
-      title={title} 
-      sidebar={<Sidebar sections={sections} userRole={user?.role} />}
+    <BaseLayout
+      title={title}
+      sidebarSections={adminMenuSections}
+      userRole={UserRole.ADMIN}
     >
       {children}
     </BaseLayout>

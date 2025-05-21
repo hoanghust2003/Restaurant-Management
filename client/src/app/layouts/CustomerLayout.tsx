@@ -1,59 +1,76 @@
 'use client';
 
 import { ReactNode } from 'react';
+import { UserRole } from '../utils/enums';
 import BaseLayout from './BaseLayout';
-import Sidebar from './Sidebar';
-import { 
-  Squares2X2Icon, 
-  QueueListIcon,
-  ShoppingCartIcon,
-  ClipboardDocumentListIcon
+import {
+  HomeIcon,
+  ClipboardDocumentListIcon,
+  BookOpenIcon,
+  UserIcon,
 } from '@heroicons/react/24/outline';
+
+const customerMenuSections = [
+  {
+    title: 'General',
+    items: [
+      {
+        href: '/customer/home',
+        icon: <HomeIcon className="w-5 h-5" />,
+        title: 'Home',
+        showIfRoles: ['customer', 'admin'],
+      },
+      {
+        href: '/customer/menu',
+        icon: <BookOpenIcon className="w-5 h-5" />,
+        title: 'Menu',
+        showIfRoles: ['customer', 'admin'],
+      },
+    ],
+  },
+  {
+    title: 'Orders',
+    items: [
+      {
+        href: '#',
+        icon: <ClipboardDocumentListIcon className="w-5 h-5" />,
+        title: 'My Orders',
+        showIfRoles: ['customer', 'admin'],
+        subItems: [
+          {
+            href: '/customer/orders/active',
+            title: 'Active Orders',
+            showIfRoles: ['customer', 'admin'],
+          },
+          {
+            href: '/customer/orders/history',
+            title: 'Order History',
+            showIfRoles: ['customer', 'admin'],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Profile',
+    items: [
+      {
+        href: '/customer/profile',
+        icon: <UserIcon className="w-5 h-5" />,
+        title: 'My Profile',
+        showIfRoles: ['customer', 'admin'],
+      },
+    ],
+  },
+];
 
 interface CustomerLayoutProps {
   children: ReactNode;
-  title?: string;
 }
 
-export default function CustomerLayout({ children, title }: CustomerLayoutProps) {
-  const sections = [
-    {
-      title: 'Tổng quan',
-      items: [
-        {
-          href: '/',
-          icon: <Squares2X2Icon className="w-5 h-5" />,
-          title: 'Dashboard',
-        },
-      ],
-    },
-    {
-      title: 'Đặt món',
-      items: [
-        {
-          href: '/menu',
-          icon: <QueueListIcon className="w-5 h-5" />,
-          title: 'Xem thực đơn',
-        },
-        {
-          href: '/cart',
-          icon: <ShoppingCartIcon className="w-5 h-5" />,
-          title: 'Giỏ hàng',
-        },
-        {
-          href: '/orders',
-          icon: <ClipboardDocumentListIcon className="w-5 h-5" />,
-          title: 'Đơn hàng của tôi',
-        },
-      ],
-    },
-  ];
-
+export default function CustomerLayout({ children }: CustomerLayoutProps) {
   return (
-    <BaseLayout 
-      title={title} 
-      sidebar={<Sidebar sections={sections} />}
-    >
+    <BaseLayout sidebarSections={customerMenuSections} userRole={UserRole.CUSTOMER}>
       {children}
     </BaseLayout>
   );

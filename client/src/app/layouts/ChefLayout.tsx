@@ -1,15 +1,123 @@
 'use client';
 
 import { ReactNode } from 'react';
+import { UserRole } from '../utils/enums';
 import BaseLayout from './BaseLayout';
-import Sidebar from './Sidebar';
-import { 
-  Squares2X2Icon, 
-  FireIcon,
+import {
+  HomeIcon,
   ClipboardDocumentListIcon,
-  ClockIcon,
-  QueueListIcon
+  QueueListIcon,
+  BuildingStorefrontIcon,
+  CakeIcon,
+  ArrowPathIcon,
+  UserIcon,
+  Cog6ToothIcon
 } from '@heroicons/react/24/outline';
+
+const chefMenuSections = [
+  {
+    title: 'Tổng quan',
+    items: [
+      {
+        href: '/chef/dashboard',
+        icon: <HomeIcon className="w-5 h-5" />,
+        title: 'Dashboard',
+        showIfRoles: ['chef', 'admin', 'manager'],
+      },
+    ],
+  },
+  {
+    title: 'Quản lý món ăn',
+    items: [
+      {
+        href: '#',
+        icon: <CakeIcon className="w-5 h-5" />,
+        title: 'Quản lý món ăn',
+        showIfRoles: ['chef', 'admin', 'manager'],
+        subItems: [
+          {
+            href: '/chef/dishes',
+            title: 'Danh sách món ăn',
+            showIfRoles: ['chef', 'admin', 'manager'],
+          },
+          {
+            href: '/chef/menus',
+            title: 'Quản lý thực đơn',
+            showIfRoles: ['chef', 'admin', 'manager'],
+          },
+          {
+            href: '/chef/categories',
+            title: 'Danh mục món ăn',
+            showIfRoles: ['chef', 'admin', 'manager'],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Quản lý bếp',
+    items: [
+      {
+        href: '/chef/orders/active',
+        icon: <ClipboardDocumentListIcon className="w-5 h-5" />,
+        title: 'Đơn hàng hiện tại',
+        showIfRoles: ['chef', 'admin', 'manager'],
+      },
+      {
+        href: '/chef/orders/queue',
+        icon: <QueueListIcon className="w-5 h-5" />,
+        title: 'Hàng đợi chế biến',
+        showIfRoles: ['chef', 'admin', 'manager'],
+      },
+      {
+        href: '/chef/orders/history',
+        icon: <ArrowPathIcon className="w-5 h-5" />,
+        title: 'Lịch sử đơn hàng',
+        showIfRoles: ['chef', 'admin', 'manager'],
+      },
+    ],
+  },
+  {
+    title: 'Kho và nguyên liệu',
+    items: [
+      {
+        href: '#',
+        icon: <BuildingStorefrontIcon className="w-5 h-5" />,
+        title: 'Quản lý nguyên liệu',
+        showIfRoles: ['chef', 'admin', 'manager'],
+        subItems: [
+          {
+            href: '/chef/inventory/ingredients',
+            title: 'Kiểm tra tồn kho',
+            showIfRoles: ['chef', 'admin', 'manager'],
+          },
+          {
+            href: '/chef/inventory/request',
+            title: 'Yêu cầu nguyên liệu',
+            showIfRoles: ['chef', 'admin', 'manager'],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Cài đặt',
+    items: [
+      {
+        href: '/chef/profile',
+        icon: <UserIcon className="w-5 h-5" />,
+        title: 'Thông tin cá nhân',
+        showIfRoles: ['chef', 'admin', 'manager'],
+      },
+      {
+        href: '/chef/settings',
+        icon: <Cog6ToothIcon className="w-5 h-5" />,
+        title: 'Cài đặt bếp',
+        showIfRoles: ['chef', 'admin', 'manager'],
+      },
+    ],
+  },
+];
 
 interface ChefLayoutProps {
   children: ReactNode;
@@ -17,73 +125,11 @@ interface ChefLayoutProps {
 }
 
 export default function ChefLayout({ children, title }: ChefLayoutProps) {
-  const sections = [
-    {
-      title: 'Tổng quan',
-      items: [
-        {
-          href: '/',
-          icon: <Squares2X2Icon className="w-5 h-5" />,
-          title: 'Dashboard',
-        },
-      ],
-    },
-    {
-      title: 'Bếp',
-      items: [
-        {
-          href: '/kitchen',
-          icon: <FireIcon className="w-5 h-5" />,
-          title: 'Món cần chế biến',
-        },
-        {
-          href: '/kitchen/orders',
-          icon: <ClipboardDocumentListIcon className="w-5 h-5" />,
-          title: 'Danh sách đơn',
-        },
-        {
-          href: '/kitchen/history',
-          icon: <ClockIcon className="w-5 h-5" />,
-          title: 'Lịch sử chế biến',
-        },
-      ],
-    },
-    {
-      title: 'Quản lý',
-      items: [
-        {
-          href: '/admin/dishes',
-          icon: <QueueListIcon className="w-5 h-5" />,
-          title: 'Quản lý món ăn',
-        },
-        {
-          href: '/admin/menus',
-          icon: <QueueListIcon className="w-5 h-5" />,
-          title: 'Thực đơn',
-        },
-      ],
-    },
-    {
-      title: 'Quản lý',
-      items: [
-        {
-          href: '/admin/dishes',
-          icon: <QueueListIcon className="w-5 h-5" />,
-          title: 'Quản lý món ăn',
-        },
-        {
-          href: '/admin/menus',
-          icon: <QueueListIcon className="w-5 h-5" />,
-          title: 'Thực đơn',
-        },
-      ],
-    },
-  ];
-
   return (
     <BaseLayout 
-      title={title} 
-      sidebar={<Sidebar sections={sections} />}
+      title={title}
+      sidebarSections={chefMenuSections} 
+      userRole={UserRole.CHEF}
     >
       {children}
     </BaseLayout>

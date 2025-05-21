@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import RoleBasedLayout from '@/app/components/RoleBasedLayout';
+import AuthGuard from '@/app/components/AuthGuard';
+import LayoutProvider from '@/app/layouts/LayoutProvider';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { 
@@ -237,8 +238,9 @@ export default function TablesPage() {
     },
   ];
   return (
-    <RoleBasedLayout title="Quản lý bàn" allowedRoles={['admin', 'waiter', 'cashier']}>
-      <div className="p-6">
+    <AuthGuard allowedRoles={['admin', 'waiter', 'cashier']}>
+      <LayoutProvider title="Quản lý bàn">
+        <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <div className="text-2xl font-bold">Danh sách bàn</div>
           <div className="flex space-x-4">
@@ -328,6 +330,7 @@ export default function TablesPage() {
             </Button>          </div>
         </Form>
       </Modal>
-    </RoleBasedLayout>
+      </LayoutProvider>
+    </AuthGuard>
   );
 }

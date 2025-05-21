@@ -1,121 +1,170 @@
 'use client';
 
-import React, { ReactNode, Fragment } from 'react';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { IconType } from 'react-icons';
+import Link from 'next/link';
+import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ReactNode, useState } from 'react';
+
+interface SidebarMenuGroup {
+  title: string;
+  items: SidebarMenuItem[];
+}
+
+interface SidebarMenuItem {
+  href: string;
+  icon?: ReactNode;
+  title: string;
+  showIfRoles?: string[];
+  subItems?: {
+    href: string;
+    title: string;
+    showIfRoles?: string[];
+  }[];
+}
+
+interface SidebarProps {
+  sections: SidebarMenuGroup[];
+  userRole?: string;
+}
 
 interface SidebarItemProps {
   href: string;
   icon?: ReactNode;
   title: string;
   active?: boolean;
-}
-
-export function SidebarItem({ href, icon, title, active }: SidebarItemProps) {
-  return (
-    <Link 
-      href={href}
-      className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-md mb-1 ${
-        active
-          ? 'bg-blue-50 text-blue-700'
-          : 'text-gray-700 hover:bg-gray-100'
-      }`}
-    >
-      {icon && <span className="mr-3 text-lg">{icon}</span>}
-      <span>{title}</span>
-    </Link>
-  );
-}
-
-interface SidebarSectionProps {
-  title?: string;
-  children: ReactNode;
-}
-
-export function SidebarSection({ title, children }: SidebarSectionProps) {
-  return (
-    <div className="mb-6">
-      {title && (
-        <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-          {title}
-        </h3>
-      )}
-      <div className="space-y-1">{children}</div>
-    </div>
-  );
-}
-
-interface SidebarProps {
-  sections: {
-    title?: string;
-    items: {
-      href: string;
-      icon: ReactNode;
-      title: string;
-      showIfRoles?: string[]; // Optional property to restrict menu items to specific roles
-      subItems?: {
-        href: string;
-        title: string;
-        showIfRoles?: string[];
-      }[];
-    }[];
+  subItems?: {
+    href: string;
+    title: string;
+    showIfRoles?: string[];
   }[];
-  userRole?: string; // Current user's role
+  showIfRoles?: string[];
+  userRole?: string;
+  isExpanded?: boolean;
+  onToggle?: () => void;
 }
 
-export default function Sidebar({ sections, userRole }: SidebarProps) {
+const SidebarItem = ({ 
+  href, 
+  icon, 
+  title, 
+  active, 
+  subItems, 
+  showIfRoles, 
+  userRole,
+  isExpanded,
+  onToggle 
+}: SidebarItemProps) => {
   const pathname = usePathname();
+  const hasSubItems = subItems && subItems.length > 0;
+  const isVisible = !showIfRoles || !userRole || showIfRoles.includes(userRole);
+
+  if (!isVisible) return null;
+
+  const isSubItemActive = subItems?.some(item => pathname === item.href);
+  const isActiveParent = active || isSubItemActive;
 
   return (
-    <div className="py-2">
-      {sections.map((section, i) => {
-        // Filter items based on user role and showIfRoles property
-        const visibleItems = section.items.filter(item => 
-          !item.showIfRoles || // Show if no role restriction
-          !userRole || // Show if no user role provided (fallback)
-          item.showIfRoles.includes(userRole) // Show if user role is in allowed roles
-        );
+    <div>
+      <div 
+        className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-md mb-1 cursor-pointer transition-all duration-200 ${
+          isActiveParent
+            ? 'bg-blue-50 text-blue-700'
+            : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
+        }`}
+        onClick={hasSubItems ? onToggle : undefined}
+      >
+        <Link 
+          href={hasSubItems ? '#' : href}
+          className="flex-1 flex items-center"
+          onClick={e => hasSubItems && e.preventDefault()}
+        >
+          {icon && <span className="mr-3">{icon}</span>}
+          <span className="flex-1">{title}</span>
+        </Link>
+        {hasSubItems && (
+          <ChevronDownIcon 
+            className={`w-5 h-5 transition-transform duration-200 ${
+              isExpanded ? 'transform rotate-180' : ''
+            }`}
+          />
+        )}
+      </div>
+      
+      {hasSubItems && (
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="ml-4 space-y-1"
+            >
+              {subItems.map((item, index) => {
+                const isSubItemVisible = !item.showIfRoles || !userRole || item.showIfRoles.includes(userRole);
+                if (!isSubItemVisible) return null;
 
-        // Don't render empty sections
-        if (visibleItems.length === 0) return null;
-
-        return (
-          <SidebarSection key={i} title={section.title}>
-            {visibleItems.map((item, j) => (
-              <Fragment key={j}>
-                <SidebarItem
-                  href={item.href}
-                  icon={item.icon}
-                  title={item.title}
-                  active={pathname === item.href || (pathname && pathname.startsWith(item.href + '/'))}
-                />
-                {/* Render subitems if any */}
-                {item.subItems && item.subItems.length > 0 && (
-                  <div className="ml-6 mt-1 space-y-1">
-                    {item.subItems
-                      .filter(subItem => 
-                        !subItem.showIfRoles || 
-                        !userRole || 
-                        subItem.showIfRoles.includes(userRole)
-                      )
-                      .map((subItem, k) => (
-                        <SidebarItem
-                          key={k}
-                          href={subItem.href}
-                          title={subItem.title}
-                          active={pathname === subItem.href}
-                          icon={null}
-                        />
-                      ))
-                    }
-                  </div>
-                )}
-              </Fragment>
-            ))}
-          </SidebarSection>
-        );
-      })}
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={index}
+                    href={item.href}
+                    className={`block px-3 py-2 text-sm rounded-md ${
+                      isActive
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-blue-600'
+                    }`}
+                  >
+                    {item.title}
+                  </Link>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
     </div>
   );
-}
+};
+
+const Sidebar = ({ sections, userRole }: SidebarProps) => {
+  const pathname = usePathname();
+  const [expandedSections, setExpandedSections] = useState<number[]>([]);
+
+  const toggleSection = (sectionIndex: number) => {
+    setExpandedSections(current =>
+      current.includes(sectionIndex)
+        ? current.filter(i => i !== sectionIndex)
+        : [...current, sectionIndex]
+    );
+  };
+
+  return (
+    <nav className="flex-1 px-2 py-4 space-y-6">
+      {sections.map((section, sectionIndex) => (
+        <div key={sectionIndex}>
+          <div className="mb-2">
+            <p className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              {section.title}
+            </p>
+          </div>
+          <div className="space-y-1">
+            {section.items.map((item, itemIndex) => (
+              <SidebarItem
+                key={itemIndex}
+                {...item}
+                active={pathname === item.href}
+                userRole={userRole}
+                isExpanded={expandedSections.includes(sectionIndex * 100 + itemIndex)}
+                onToggle={() => toggleSection(sectionIndex * 100 + itemIndex)}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+    </nav>
+  );
+};
+
+export default Sidebar;

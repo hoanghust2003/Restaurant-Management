@@ -6,6 +6,13 @@ export enum TableStatus {
   CLEANING = 'cleaning',
 }
 
+export const tableStatusText: Record<TableStatus, string> = {
+  [TableStatus.AVAILABLE]: 'Trống',
+  [TableStatus.OCCUPIED]: 'Đang sử dụng',
+  [TableStatus.RESERVED]: 'Đã đặt trước',
+  [TableStatus.CLEANING]: 'Đang dọn dẹp',
+};
+
 // User roles enum matching server-side enum
 export enum UserRole {
   ADMIN = 'admin',

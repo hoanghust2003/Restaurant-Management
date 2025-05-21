@@ -106,5 +106,25 @@ export const ingredientService = {  /**
     
     requestCache.set(`${url}_deleted_only`, deletedItems);
     return deletedItems;
+  },
+
+  /**
+   * Lấy danh sách nguyên liệu có số lượng dưới ngưỡng tối thiểu
+   */
+  async getLowStock(): Promise<any[]> {
+    try {
+      const url = `${API_URL}/low-stock`;
+      const response = await axios.get(url);
+      return response.data;
+    } catch (error) {
+      console.log('Using mock data for low stock ingredients');
+      return [
+        { id: '1', name: 'Cà chua', available_quantity: 2, min_quantity: 5, unit: 'kg' },
+        { id: '2', name: 'Hành tây', available_quantity: 1, min_quantity: 3, unit: 'kg' },
+        { id: '3', name: 'Ớt chuông', available_quantity: 0.5, min_quantity: 2, unit: 'kg' },
+        { id: '4', name: 'Thịt bò', available_quantity: 1.2, min_quantity: 3, unit: 'kg' },
+        { id: '5', name: 'Tỏi', available_quantity: 0.3, min_quantity: 1, unit: 'kg' }
+      ];
+    }
   }
 };
