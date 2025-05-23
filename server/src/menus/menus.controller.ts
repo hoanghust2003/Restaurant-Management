@@ -108,10 +108,9 @@ export class MenusController {
   async getDishes(@Param('id') id: string) {
     return this.menusService.getDishes(id);
   }
-
   @Post(':id/dishes/:dishId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.CHEF)
+  @Roles(UserRole.ADMIN, UserRole.CHEF, UserRole.STAFF)
   async addDishToMenu(
     @Param('id') id: string,
     @Param('dishId') dishId: string,
@@ -119,10 +118,9 @@ export class MenusController {
   ) {
     return this.menusService.addDishToMenu(id, dishId, req.user.role);
   }
-
   @Delete(':id/dishes/:dishId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.CHEF)
+  @Roles(UserRole.ADMIN, UserRole.CHEF, UserRole.STAFF)
   async removeDishFromMenu(
     @Param('id') id: string,
     @Param('dishId') dishId: string,
@@ -130,10 +128,9 @@ export class MenusController {
   ) {
     await this.menusService.removeDishFromMenu(id, dishId, req.user.role);
     return { message: 'Đã xóa món ăn khỏi thực đơn thành công' };
-  }
-  @Post(':id/dishes')
+  }  @Post(':id/dishes')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.CHEF)
+  @Roles(UserRole.ADMIN, UserRole.CHEF, UserRole.STAFF)
   async addDishesToMenu(
     @Param('id') id: string,
     @Body() body: { dishIds: string[] },
@@ -151,10 +148,9 @@ export class MenusController {
     }
     return { message: 'Dishes added to menu', count: results.length };
   }
-
   @Delete(':id/dishes')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.CHEF)
+  @Roles(UserRole.ADMIN, UserRole.CHEF, UserRole.STAFF)
   async removeDishesFromMenu(
     @Param('id') id: string,
     @Body() body: { dishIds: string[] },

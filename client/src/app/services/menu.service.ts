@@ -151,7 +151,8 @@ export const menuService = {
       requestCache.invalidate(`${API_URL}/${id}`);
       requestCache.invalidateByPrefix(API_URL);
       
-      return response.data;
+      // Fetch the updated menu with all dish data to ensure we have the latest data
+      return await this.getById(id, true);
     } catch (error) {
       console.error(`Error updating menu ${id}:`, error);
       throw error;
@@ -202,7 +203,10 @@ export const menuService = {
       const currentMenu = await this.getById(menuId);
       
       try {
-        const response = await axios.post(`${API_URL}/${menuId}/dishes`, { dishIds });
+        // Add dishes one by one using the single dish endpoint
+        for (const dishId of dishIds) {
+          await axios.post(`${API_URL}/${menuId}/dishes/${dishId}`);
+        }
         
         // Invalidate cache for specific menu
         requestCache.invalidate(`${API_URL}/${menuId}`);
@@ -231,7 +235,10 @@ export const menuService = {
       const currentMenu = await this.getById(menuId);
       
       try {
-        const response = await axios.delete(`${API_URL}/${menuId}/dishes`, { data: { dishIds } });
+        // Remove dishes one by one using the single dish endpoint
+        for (const dishId of dishIds) {
+          await axios.delete(`${API_URL}/${menuId}/dishes/${dishId}`);
+        }
         
         // Invalidate cache for specific menu
         requestCache.invalidate(`${API_URL}/${menuId}`);

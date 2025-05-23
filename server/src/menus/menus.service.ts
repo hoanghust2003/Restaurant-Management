@@ -222,13 +222,12 @@ export class MenusService {
       throw error;
     }
   }
-
   async addDishToMenu(menuId: string, dishId: string, userRole: UserRole): Promise<MenuDish> {
     try {
-      // Validate admin or chef role
-      if (userRole !== UserRole.ADMIN && userRole !== UserRole.CHEF) {
+      // Validate admin, chef or staff role
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.CHEF && userRole !== UserRole.STAFF) {
         this.logger.warn(`User with role ${userRole} attempted to add dish to menu`);
-        throw new ForbiddenException('Only admin or chef can modify menu dishes');
+        throw new ForbiddenException('Only admin, chef or staff can modify menu dishes');
       }
       
       // Check if the menu exists
@@ -270,13 +269,12 @@ export class MenusService {
       throw error;
     }
   }
-
   async removeDishFromMenu(menuId: string, dishId: string, userRole: UserRole): Promise<boolean> {
     try {
-      // Validate admin or chef role
-      if (userRole !== UserRole.ADMIN && userRole !== UserRole.CHEF) {
+      // Validate admin, chef or staff role
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.CHEF && userRole !== UserRole.STAFF) {
         this.logger.warn(`User with role ${userRole} attempted to remove dish from menu`);
-        throw new ForbiddenException('Only admin or chef can modify menu dishes');
+        throw new ForbiddenException('Only admin, chef or staff can modify menu dishes');
       }
       
       // Find the menu-dish relationship
@@ -301,9 +299,14 @@ export class MenusService {
       throw error;
     }
   }
-
-  async addDishes(menuId: string, dishIds: string[]): Promise<Menu> {
+  async addDishes(menuId: string, dishIds: string[], userRole: UserRole): Promise<Menu> {
     try {
+      // Validate admin or chef role for menu modification
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.CHEF) {
+        this.logger.warn(`User with role ${userRole} attempted to modify menu dishes`);
+        throw new ForbiddenException('Only admin or chef can modify menu dishes');
+      }
+
       const menu = await this.menuRepository.findOne({ 
         where: { id: menuId },
         relations: ['dishes'] 
@@ -328,9 +331,14 @@ export class MenusService {
       throw new Error('Failed to add dishes to menu');
     }
   }
-
-  async removeDishes(menuId: string, dishIds: string[]): Promise<Menu> {
+  async removeDishes(menuId: string, dishIds: string[], userRole: UserRole): Promise<Menu> {
     try {
+      // Validate admin or chef role for menu modification
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.CHEF) {
+        this.logger.warn(`User with role ${userRole} attempted to modify menu dishes`);
+        throw new ForbiddenException('Only admin or chef can modify menu dishes');
+      }
+
       await this.menuDishRepository.delete({
         menuId,
         dishId: In(dishIds)

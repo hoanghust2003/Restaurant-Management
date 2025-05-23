@@ -72,11 +72,18 @@ const MenuForm: React.FC<MenuFormProps> = ({ menu, isEdit = false, onSuccess }) 
       
       if (isEdit && menu) {
         // Update existing menu
-        await menuService.update(menu.id, formData);
+        const updatedMenu = await menuService.update(menu.id, formData);
         message.success('Cập nhật thực đơn thành công');
+        
+        // Update selected dishes based on the response from server to ensure UI is in sync
+        if (updatedMenu.dishes && updatedMenu.dishes.length > 0) {
+          const updatedDishIds = updatedMenu.dishes.map(dish => dish.id);
+          setSelectedDishes(updatedDishIds);
+          form.setFieldsValue({ dishIds: updatedDishIds });
+        }
       } else {
         // Create new menu
-        await menuService.create(formData as CreateMenuDto);
+        const newMenu = await menuService.create(formData as CreateMenuDto);
         message.success('Tạo thực đơn mới thành công');
         form.resetFields();
       }

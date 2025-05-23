@@ -3,7 +3,7 @@ import { IngredientModel, CreateIngredientDto, UpdateIngredientDto } from '../mo
 import { requestCache } from '../utils/requestCache';
 
 // Định nghĩa các endpoint
-const API_URL = '/api/ingredients';
+const API_URL = '/ingredients';
 
 /**
  * Service xử lý các thao tác CRUD với nguyên liệu
