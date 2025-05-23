@@ -11,21 +11,21 @@ export class ExportItem {
   @Column({ name: 'export_id' })
   exportId: string;
 
-  @ManyToOne(() => IngredientExport, exportItem => exportItem.id)
+  @ManyToOne(() => IngredientExport, export_ => export_.items)
   @JoinColumn({ name: 'export_id' })
   export: IngredientExport;
 
   @Column({ name: 'batch_id' })
   batchId: string;
 
-  @ManyToOne(() => Batch, batch => batch.id)
+  @ManyToOne(() => Batch)
   @JoinColumn({ name: 'batch_id' })
   batch: Batch;
 
   @Column({ name: 'ingredient_id' })
   ingredientId: string;
 
-  @ManyToOne(() => Ingredient, ingredient => ingredient.id)
+  @ManyToOne(() => Ingredient)
   @JoinColumn({ name: 'ingredient_id' })
   ingredient: Ingredient;
 

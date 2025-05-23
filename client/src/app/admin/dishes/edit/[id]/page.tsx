@@ -42,7 +42,7 @@ const EditDishPage: React.FC = () => {
 
   if (loading) {
     return (
-      <RoleBasedLayout allowedRoles={['admin', 'manager']}>
+      <RoleBasedLayout allowedRoles={['admin']}>
         <div className="p-6 flex items-center justify-center h-[calc(100vh-64px)]">
           <Spin size="large" tip="Đang tải thông tin món ăn..." />
         </div>
@@ -52,7 +52,7 @@ const EditDishPage: React.FC = () => {
 
   if (error) {
     return (
-      <RoleBasedLayout allowedRoles={['admin', 'manager']}>
+      <RoleBasedLayout allowedRoles={['admin']}>
         <div className="p-6">
           <Alert
             message="Lỗi"
@@ -74,7 +74,7 @@ const EditDishPage: React.FC = () => {
   }
 
   return (
-    <RoleBasedLayout allowedRoles={['admin', 'manager']}>
+    <RoleBasedLayout allowedRoles={['admin']}>
       <div className="p-6">
         {dish && <DishForm dish={dish} isEdit={true} onSuccess={handleSuccess} />}
       </div>

@@ -116,43 +116,38 @@ export const menuService = {
    */
   async update(id: string, menu: UpdateMenuDto): Promise<MenuModel> {
     try {
-      // Clone the data to avoid direct mutation
-      const menuData = { ...menu };
-      // Handle dishIds separately if present
-      const dishIds = menuData.dishIds;
-      delete menuData.dishIds;
+      // If updating main menu status, use dedicated endpoint
+      if (menu.is_main !== undefined) {
+        const response = await axios.patch(`${API_URL}/${id}/set-main`);
+        requestCache.invalidateByPrefix(API_URL);
+        return response.data;
+      }
+
+      // Regular update for other fields
+      const response = await axios.patch(`${API_URL}/${id}`, menu);
       
-      // Update the menu
-      const response = await axios.patch(`${API_URL}/${id}`, menuData);
-      
-      // If dishIds are provided, update the menu dishes
-      if (dishIds && dishIds.length > 0) {
-        // First, get the current dishes
+      // Update dishes if provided
+      const dishIds = menu.dishIds;
+      if (dishIds !== undefined) {
         const currentMenu = await this.getById(id);
+        const currentDishIds = currentMenu.dishes?.map(dish => dish.id) || [];
         
-        if (currentMenu.dishes && currentMenu.dishes.length > 0) {
-          const currentDishIds = currentMenu.dishes.map(dish => dish.id);
-          
-          // Determine which dishes to add and which to remove
-          const dishesToRemove = currentDishIds.filter(dishId => !dishIds.includes(dishId));
-          const dishesToAdd = dishIds.filter(dishId => !currentDishIds.includes(dishId));
-          
-          // Remove dishes that are no longer in the menu
-          if (dishesToRemove.length > 0) {
-            await this.removeDishes(id, dishesToRemove);
-          }
-          
-          // Add new dishes to the menu
-          if (dishesToAdd.length > 0) {
-            await this.addDishes(id, dishesToAdd);
-          }
-        } else {
-          // If the menu has no dishes, add all selected dishes
-          await this.addDishes(id, dishIds);
+        // Calculate differences
+        const dishesToRemove = currentDishIds.filter(dishId => !dishIds.includes(dishId));
+        const dishesToAdd = dishIds.filter(dishId => !currentDishIds.includes(dishId));
+        
+        // Remove dishes that are no longer in the menu
+        if (dishesToRemove.length > 0) {
+          await this.removeDishes(id, dishesToRemove);
+        }
+        
+        // Add new dishes to the menu
+        if (dishesToAdd.length > 0) {
+          await this.addDishes(id, dishesToAdd);
         }
       }
       
-      // Invalidate cache for specific menu and menu list
+      // Invalidate cache
       requestCache.invalidate(`${API_URL}/${id}`);
       requestCache.invalidateByPrefix(API_URL);
       
@@ -252,6 +247,22 @@ export const menuService = {
     } catch (error) {
       console.error(`Error fetching menu ${menuId} before removing dishes:`, error);
       throw error;
+    }
+  },
+
+  /**
+   * Get the main menu (menu đang là menu chính)
+   */
+  async getMain(): Promise<MenuModel | null> {
+    try {
+      const response = await axios.get(API_URL, { params: { is_main: true } });
+      if (Array.isArray(response.data) && response.data.length > 0) {
+        return response.data[0];
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching main menu:', error);
+      return null;
     }
   }
 };

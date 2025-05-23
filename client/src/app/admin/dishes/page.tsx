@@ -6,7 +6,7 @@ import LayoutProvider from '@/app/layouts/LayoutProvider';
 import DishList from '@/app/components/dish/DishList';
 
 const DishesPage: React.FC = () => {
-  return (    <AuthGuard allowedRoles={['admin', 'chef', 'manager']}>
+  return (    <AuthGuard allowedRoles={['admin', 'chef']}>
       <LayoutProvider>
         <div className="p-6">
           <DishList />

@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 import NavigationEnhancer from './NavigationEnhancer';
 import { PageTransitionManager } from '@/app/utils/transitionUtils';
 
@@ -13,98 +13,109 @@ interface AppWrapperProps {
 /**
  * AppWrapper that wraps the entire application to provide SPA-like navigation
  * This component ensures only the content changes when navigating between
- * routes, while keeping the layout (header, sidebar, etc.) intact.
+ * routes, while keeping the layout intact.
  */
 export default function AppWrapper({ children }: AppWrapperProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isNavigating, setIsNavigating] = useState(false);
-    // Listen for navigation events and prevent default behavior
+  const navigationTimeoutRef = useRef<NodeJS.Timeout>();
+  const contentRef = useRef<HTMLDivElement>(null);
+  const isTransitioningRef = useRef(false);
   useEffect(() => {
-    // Save the original pushState and replaceState methods
+    // Save original navigation methods
     const originalPushState = window.history.pushState;
     const originalReplaceState = window.history.replaceState;
     
-    // Override pushState to detect navigation changes
-    window.history.pushState = function(...args) {
-      // Set navigation type to 'forward' in the state
-      if (args[0] && typeof args[0] === 'object') {
-        args[0] = { ...args[0], navigationType: 'forward' };
-      } else {
-        args[0] = { navigationType: 'forward' };
-      }
-      
-      // Call the original method
-      const result = originalPushState.apply(this, args);
-      
-      // Dispatch custom events
-      window.dispatchEvent(new Event('pushstate'));
-      window.dispatchEvent(new Event('locationchange'));
-      
-      return result;
-    };
-    
-    // Override replaceState to maintain navigation type
-    window.history.replaceState = function(...args) {
-      // Preserve the existing navigationType if it exists
-      if (window.history.state?.navigationType && args[0] && typeof args[0] === 'object') {
-        args[0] = { ...args[0], navigationType: window.history.state.navigationType };
-      }
-      
-      // Call the original method
-      const result = originalReplaceState.apply(this, args);
-      
-      return result;
-    };
-    
-    // Listen for popstate events (back/forward)
-    const handlePopState = () => {
-      // Set navigation type to 'back' in history state
-      const currentState = window.history.state || {};
-      window.history.replaceState(
-        { ...currentState, navigationType: 'back' },
-        ''
-      );
-      
-      window.dispatchEvent(new Event('locationchange'));
-    };
-      // Listen for our custom locationchange event
-    const handleLocationChange = () => {
-      setIsNavigating(true);
-      PageTransitionManager.startTransition();
-      
-      // Apply fade-out effect to main content
-      const mainContent = document.getElementById('main-content');
-      if (mainContent) {
-        mainContent.classList.add('content-fade-out');
+    const handleBeforeNavigate = () => {
+      if (!isTransitioningRef.current) {
+        isTransitioningRef.current = true;
         
-        // After a short delay, remove the effect
-        setTimeout(() => {
-          mainContent.classList.remove('content-fade-out');
-          setIsNavigating(false);
-          PageTransitionManager.endTransition();
-        }, 300);
-      } else {
-        setIsNavigating(false);
-        PageTransitionManager.endTransition();
+        // Use requestAnimationFrame to avoid insertion effect scheduling updates
+        requestAnimationFrame(() => {
+          setIsNavigating(true);
+          if (contentRef.current) {
+            contentRef.current.style.pointerEvents = 'none';
+            contentRef.current.style.willChange = 'opacity';
+          }
+        });
       }
     };
     
-    // Add event listeners
-    window.addEventListener('popstate', handlePopState);
-    window.addEventListener('locationchange', handleLocationChange);
+    const handleNavigationEnd = () => {
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
+      }
+      
+      navigationTimeoutRef.current = setTimeout(() => {
+        isTransitioningRef.current = false;
+        setIsNavigating(false);
+        
+        if (contentRef.current) {
+          contentRef.current.style.pointerEvents = 'auto';
+          contentRef.current.style.willChange = 'auto';
+        }
+      }, 300); // Match transition duration
+    };
     
-    // Clean up on unmount
+    // Override navigation methods
+    window.history.pushState = function(...args) {
+      handleBeforeNavigate();
+      const result = originalPushState.apply(this, args);
+      window.dispatchEvent(new Event('locationchange'));
+      return result;
+    };
+    
+    window.history.replaceState = function(...args) {
+      handleBeforeNavigate();
+      const result = originalReplaceState.apply(this, args);
+      window.dispatchEvent(new Event('locationchange'));
+      return result;
+    };
+    
+    // Handle back/forward navigation
+    const handlePopState = () => {
+      handleBeforeNavigate();
+      window.dispatchEvent(new Event('locationchange'));
+    };
+    
+    // Handle all navigation changes
+    const handleLocationChange = () => {
+      handleNavigationEnd();
+    };
+    
+    window.addEventListener('popstate', handlePopState, { passive: true });
+    window.addEventListener('locationchange', handleLocationChange, { passive: true });
+    
     return () => {
+      // Restore original methods and clean up
       window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
       window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('locationchange', handleLocationChange);
+      
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
+      }
     };
   }, []);
-    return (
+  
+  return (
     <div id="app-wrapper">
       <NavigationEnhancer />
-      <div id="main-content" className={`transition-opacity duration-300 ${isNavigating ? 'opacity-0' : 'opacity-100'}`}>
+      <div 
+        ref={contentRef}
+        id="main-content" 
+        className={`
+          transition-opacity duration-300 ease-in-out transform-gpu
+          ${isNavigating ? 'opacity-0' : 'opacity-100'}
+        `}
+        style={{
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden',
+          willChange: isNavigating ? 'opacity' : 'auto'
+        }}
+      >
         {children}
       </div>
     </div>

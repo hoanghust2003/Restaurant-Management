@@ -14,76 +14,107 @@ interface LayoutContentProps {
  */
 export default function ContentWrapper({ children }: LayoutContentProps) {
   const pathname = usePathname();
-  const [content, setContent] = useState(children);
+  const [content, setContent] = useState<ReactNode>(children);
   const prevPathRef = useRef(pathname);
+  const transitionTimeoutRef = useRef<NodeJS.Timeout>();
+  const rafRef = useRef<number>();
+  const contentRef = useRef<HTMLDivElement>(null);
   
-  // Set up scroll position saving
+  // Set up scroll position saving with throttling
   useEffect(() => {
-    // Save scroll position when the user scrolls
     const handleScroll = throttle(() => {
       if (!PageTransitionManager.isTransitioning()) {
         PageTransitionManager.saveScrollPosition(pathname);
       }
     }, 100);
     
-    window.addEventListener('scroll', handleScroll);
-    
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [pathname]);
   
   useEffect(() => {
-    // Only update the content if the path changes
-    if (prevPathRef.current !== pathname) {
-      // Save current scroll position before navigating away
-      PageTransitionManager.saveScrollPosition(prevPathRef.current);
-      
-      // Start transition
-      PageTransitionManager.startTransition();
-      
-      // Add a fade animation
-      const contentContainer = document.getElementById('content-wrapper');
-      if (contentContainer) {
-        contentContainer.classList.add('content-fade-out');
-        
-        // After animation completes, update content and fade back in
-        setTimeout(() => {
-          setContent(children);
-          contentContainer.classList.remove('content-fade-out');
-          contentContainer.classList.add('content-fade-in');
-          
-          // Remove the fade-in class after animation completes
-          setTimeout(() => {
-            contentContainer.classList.remove('content-fade-in');
-            
-            // Restore scroll position if navigating back, or scroll to top otherwise
-            const isBackNavigation = window.history.state?.navigationType === 'back';
-            if (isBackNavigation) {
-              PageTransitionManager.restoreScrollPosition(pathname);
-            } else {
-              window.scrollTo(0, 0);
-            }
-            
-            // End transition
-            PageTransitionManager.endTransition();
-          }, 300);
-        }, 300);
-      } else {
-        setContent(children);
-        // End transition
-        PageTransitionManager.endTransition();
-      }
-      
-      // Update the previous path
-      prevPathRef.current = pathname;
+    if (prevPathRef.current === pathname) return;
+
+    // Clean up any existing transitions
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current);
     }
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+    }
+    
+    // Save current scroll position before navigating away
+    PageTransitionManager.saveScrollPosition(prevPathRef.current);
+    PageTransitionManager.startTransition();
+    
+    const contentContainer = contentRef.current;
+    if (!contentContainer) {
+      setContent(children);
+      PageTransitionManager.endTransition();
+      prevPathRef.current = pathname;
+      return;
+    }
+
+    // Prevent pointer events during transition
+    contentContainer.style.pointerEvents = 'none';
+    contentContainer.style.willChange = 'opacity';
+    
+    // Start transition out
+    contentContainer.style.opacity = '0';
+    contentContainer.style.transform = 'translateZ(0)';
+    
+    transitionTimeoutRef.current = setTimeout(() => {
+      // Update content
+      setContent(children);
+      
+      // Schedule transition in after content update
+      rafRef.current = requestAnimationFrame(() => {
+        contentContainer.style.opacity = '1';
+        
+        // Cleanup after transition
+        transitionTimeoutRef.current = setTimeout(() => {
+          contentContainer.style.pointerEvents = 'auto';
+          contentContainer.style.willChange = 'auto';
+          
+          // Handle scroll position restoration
+          const isBackNavigation = window.history.state?.navigationType === 'back';
+          if (isBackNavigation) {
+            requestAnimationFrame(() => {
+              PageTransitionManager.restoreScrollPosition(pathname);
+            });
+          } else {
+            window.scrollTo({ top: 0, behavior: 'instant' });
+          }
+          
+          PageTransitionManager.endTransition();
+        }, 300); // Match transition duration
+      });
+    }, 50); // Small delay for smoother transitions
+    
+    // Update the previous path
+    prevPathRef.current = pathname;
   }, [pathname, children]);
+  
+  // Clean up all transitions and animations on unmount
+  useEffect(() => {
+    return () => {
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current);
+      }
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div 
+      ref={contentRef}
       id="content-wrapper" 
-      className="transition-opacity duration-300 ease-in-out"
+      className="transition-all duration-300 ease-in-out transform-gpu"
+      style={{ 
+        backfaceVisibility: 'hidden',
+      }}
     >
       {content}
     </div>

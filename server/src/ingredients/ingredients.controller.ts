@@ -28,7 +28,7 @@ export class IngredientsController {
   }
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   @UseInterceptors(FileInterceptor('image'))
   async create(
     @Body() createIngredientDto: CreateIngredientDto, 
@@ -57,7 +57,7 @@ export class IngredientsController {
   }
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   @UseInterceptors(FileInterceptor('image'))
   async update(
     @Param('id') id: string,
@@ -87,7 +87,7 @@ export class IngredientsController {
   }
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async remove(@Param('id') id: string, @Request() req) {
     await this.ingredientsService.remove(id, req.user.role);
     return { message: 'Đã xóa nguyên liệu thành công' };
@@ -95,7 +95,7 @@ export class IngredientsController {
 
   @Post(':id/restore')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async restore(@Param('id') id: string, @Request() req) {
     await this.ingredientsService.restore(id, req.user.role);
     return { message: 'Đã khôi phục nguyên liệu thành công' };

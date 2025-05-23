@@ -6,3 +6,10 @@ export enum OrderStatus {
   COMPLETED = 'completed',
   CANCELED = 'canceled',
 }
+
+export enum OrderItemStatus {
+  WAITING = 'waiting',
+  PREPARING = 'preparing',
+  DONE = 'done',
+  FAILED = 'failed',
+}

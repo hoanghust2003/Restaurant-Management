@@ -1,16 +1,16 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, In } from 'typeorm';
 import { CreateOrderDto } from './dto/create-order.dto';
-// Use absolute path to resolve the import issue
-import { UpdateOrderDto } from '../orders/dto/update-order.dto';
+import { UpdateOrderDto } from './dto/update-order.dto';
 import { Order } from '../entities/order.entity';
 import { OrderItem } from '../entities/order-item.entity';
 import { TableEntity } from '../entities/table.entity';
 import { Dish } from '../entities/dish.entity';
-import { OrderStatus } from '../enums/order-status.enum';
-import { OrderItemStatus } from '../enums/order-item-status.enum';
+import { OrderStatus, OrderItemStatus } from '../enums/order-status.enum';
 import { OrderWithItems } from './interfaces/order-with-items.interface';
+import { EventsGateway } from '../events/events.gateway';
+import { KitchenGateway } from '../kitchen/kitchen.gateway';
 
 @Injectable()
 export class OrdersService {
@@ -21,8 +21,9 @@ export class OrdersService {
     private orderItemRepository: Repository<OrderItem>,
     @InjectRepository(TableEntity)
     private tableRepository: Repository<TableEntity>,
-    @InjectRepository(Dish)
-    private dishRepository: Repository<Dish>,
+    @InjectRepository(Dish)    private dishRepository: Repository<Dish>,
+    @Inject(forwardRef(() => EventsGateway)) private eventsGateway: EventsGateway,
+    @Inject(forwardRef(() => KitchenGateway)) private kitchenGateway: KitchenGateway,
   ) {}
 
   async create(createOrderDto: CreateOrderDto): Promise<OrderWithItems> {
@@ -84,7 +85,13 @@ export class OrdersService {
       orderItems.push(savedOrderItem);
     }
 
-    return { ...savedOrder, items: orderItems } as OrderWithItems;
+    const orderWithItems = { ...savedOrder, items: orderItems } as OrderWithItems;
+      // Notify all subscribers about new order
+    this.eventsGateway.notifyNewOrder(orderWithItems);
+    // Notify kitchen specifically
+    this.kitchenGateway.notifyNewOrder(orderWithItems);
+
+    return orderWithItems;
   }
   async findAll(filters?: { 
     status?: string; 
@@ -92,44 +99,62 @@ export class OrdersService {
     startDate?: string;
     endDate?: string;
   }): Promise<OrderWithItems[]> {
-    const query: any = {};    if (filters?.status) {
-      if (filters.status.includes(',')) {
-        const statuses = filters.status.split(',');
-        query.status = In(statuses);
-      } else {
-        query.status = filters.status;
+    try {
+      const queryBuilder = this.orderRepository.createQueryBuilder('order')
+        .leftJoinAndSelect('order.table', 'table')
+        .leftJoinAndSelect('order.user', 'user');
+
+      if (filters) {
+        if (filters.status) {
+          // Handle multiple statuses
+          const statuses = filters.status.split(',').map(s => s.trim());
+          // Validate that all statuses are valid
+          for (const status of statuses) {
+            if (!Object.values(OrderStatus).includes(status as OrderStatus)) {
+              throw new BadRequestException(`Invalid status: ${status}`);
+            }
+          }
+          queryBuilder.andWhere('order.status IN (:...statuses)', { statuses });
+        }
+
+        if (filters.tableId) {
+          // Validate UUID format for tableId
+          if (!this.isValidUUID(filters.tableId)) {
+            throw new BadRequestException(`Invalid table ID format: ${filters.tableId}`);
+          }
+          queryBuilder.andWhere('order.tableId = :tableId', { tableId: filters.tableId });
+        }
+
+        if (filters.startDate && filters.endDate) {
+          queryBuilder.andWhere('order.created_at BETWEEN :startDate AND :endDate', {
+            startDate: new Date(filters.startDate),
+            endDate: new Date(filters.endDate),
+          });
+        }
       }
-    }
 
-    if (filters?.tableId) {
-      query.tableId = filters.tableId;
-    }
+      queryBuilder.orderBy('order.created_at', 'DESC');
 
-    if (filters?.startDate && filters?.endDate) {
-      query.created_at = Between(
-        new Date(filters.startDate),
-        new Date(filters.endDate)
+      const orders = await queryBuilder.getMany();
+
+      // Fetch order items for each order
+      const ordersWithItems = await Promise.all(
+        orders.map(async (order) => {
+          const items = await this.orderItemRepository.find({
+            where: { orderId: order.id },
+            relations: ['dish'],
+          });
+          return { ...order, items } as OrderWithItems;
+        })
       );
+
+      return ordersWithItems;
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(`Error fetching orders: ${error.message}`);
     }
-
-    const orders = await this.orderRepository.find({
-      where: query,
-      relations: ['table', 'user'],
-      order: { created_at: 'DESC' },
-    });
-
-    // Get items for each order
-    const ordersWithItems: OrderWithItems[] = [];
-    for (const order of orders) {
-      const orderItems = await this.orderItemRepository.find({
-        where: { orderId: order.id },
-        relations: ['dish'],
-      });
-      
-      ordersWithItems.push({ ...order, items: orderItems } as OrderWithItems);
-    }
-
-    return ordersWithItems;
   }  async findOne(id: string): Promise<OrderWithItems> {
     // Validate UUID format before querying to prevent database errors
     if (!this.isValidUUID(id)) {
@@ -254,9 +279,33 @@ export class OrdersService {
       throw new BadRequestException(`Invalid status: ${status}`);
     }
 
-    await this.orderRepository.update(id, { status: status as OrderStatus });
+    await this.orderRepository.update(id, { status: status as OrderStatus });    const updatedOrder = await this.findOne(id);
+    
+    // Notify customer about order status change
+    this.eventsGateway.notifyOrderStatusChange(updatedOrder);
+    // Notify kitchen about order status change
+    this.kitchenGateway.notifyOrderUpdate(id, status as OrderStatus);
 
-    return this.findOne(id);
+    return updatedOrder;
+  }
+
+  async updateItemStatus(orderId: string, itemId: string, status: OrderItemStatus): Promise<OrderWithItems> {
+    const order = await this.findOne(orderId);
+    const item = order.items.find(i => i.id === itemId);
+
+    if (!item) {
+      throw new NotFoundException(`Item ${itemId} not found in order ${orderId}`);
+    }    await this.orderItemRepository.update(itemId, { status });
+    
+    // Notify customer about item status change
+    this.eventsGateway.notifyOrderItemStatusChange(orderId, {
+      itemId: Number(itemId),
+      status
+    });
+    // Notify kitchen about item status change
+    this.kitchenGateway.notifyOrderItemUpdate(orderId, itemId, status);
+
+    return this.findOne(orderId);
   }
 
   async remove(id: string): Promise<void> {

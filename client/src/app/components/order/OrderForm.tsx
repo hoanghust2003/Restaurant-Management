@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Form, 
   Select, 
@@ -12,7 +12,8 @@ import {
   Typography,
   Input,
   message,
-  Divider
+  Divider,
+  Radio
 } from 'antd';
 import { PlusOutlined, MinusCircleOutlined, SaveOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
@@ -25,6 +26,7 @@ import { DishModel } from '@/app/models/dish.model';
 import { CreateOrderDto } from '@/app/models/order.model';
 import { TableStatus, OrderStatus } from '@/app/utils/enums';
 import { formatPrice } from '@/app/utils/format';
+import { withShoppingCart } from './withShoppingCart';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -44,7 +46,7 @@ interface OrderItem {
   price: number;
 }
 
-const OrderForm: React.FC<OrderFormProps> = ({ tableId, onSuccess }) => {
+const BaseOrderForm: React.FC<OrderFormProps> = ({ tableId, onSuccess }) => {
   const [form] = Form.useForm();
   const { user } = useAuth();
   const router = useRouter();
@@ -55,6 +57,19 @@ const OrderForm: React.FC<OrderFormProps> = ({ tableId, onSuccess }) => {
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  // Get unique categories from dishes
+  const categories = useMemo(() => {
+    const cats = dishes.map(dish => dish.category).filter(Boolean) as string[];
+    return ['all', ...new Set(cats)];
+  }, [dishes]);
+
+  // Filter dishes by category
+  const filteredDishes = useMemo(() => {
+    if (selectedCategory === 'all') return dishes;
+    return dishes.filter(dish => dish.category === selectedCategory);
+  }, [dishes, selectedCategory]);
 
   // Fetch tables and dishes on component mount
   useEffect(() => {
@@ -255,7 +270,24 @@ const OrderForm: React.FC<OrderFormProps> = ({ tableId, onSuccess }) => {
           </Form.Item>
 
           <Divider>Thêm món ăn</Divider>
+
+          {/* Category filter */}
+          <div className="mb-4">
+            <Title level={5}>Danh mục</Title>
+            <Radio.Group 
+              value={selectedCategory}
+              onChange={e => setSelectedCategory(e.target.value)}
+              buttonStyle="solid"
+            >
+              {categories.map(cat => (
+                <Radio.Button key={cat} value={cat}>
+                  {cat === 'all' ? 'Tất cả' : cat}
+                </Radio.Button>
+              ))}
+            </Radio.Group>
+          </div>
           
+          {/* Dish selection with image and details */}
           <div className="flex flex-wrap gap-4">
             <Form.Item
               name="dishId"
@@ -265,12 +297,27 @@ const OrderForm: React.FC<OrderFormProps> = ({ tableId, onSuccess }) => {
               <Select
                 placeholder="Chọn món ăn"
                 showSearch
+                dropdownRender={(menu) => (
+                  <div>
+                    {menu}
+                    <div className="dish-preview">
+                      {form.getFieldValue('dishId') && (
+                        <DishPreview dish={dishes.find(d => d.id === form.getFieldValue('dishId'))} />
+                      )}
+                    </div>
+                  </div>
+                )}
                 filterOption={(input, option) =>
                   (option?.children as unknown as string).toLowerCase().indexOf(input.toLowerCase()) >= 0
                 }
               >
-                {dishes.map(dish => (
-                  <Option key={dish.id} value={dish.id}>{dish.name}</Option>
+                {filteredDishes.map(dish => (
+                  <Option key={dish.id} value={dish.id}>
+                    <div className="flex justify-between items-center">
+                      <span>{dish.name}</span>
+                      <span className="text-primary">{formatPrice(dish.price)}</span>
+                    </div>
+                  </Option>
                 ))}
               </Select>
             </Form.Item>
@@ -338,4 +385,30 @@ const OrderForm: React.FC<OrderFormProps> = ({ tableId, onSuccess }) => {
   );
 };
 
-export default OrderForm;
+// Component to show dish preview 
+const DishPreview: React.FC<{dish?: DishModel}> = ({dish}) => {
+  if (!dish) return null;
+  
+  return (
+    <div className="p-4 border-t">
+      <div className="flex gap-4">
+        {dish.image_url && (
+          <img 
+            src={dish.image_url} 
+            alt={dish.name}
+            className="w-24 h-24 object-cover rounded"
+          />
+        )}
+        <div>
+          <Title level={5}>{dish.name}</Title>
+          <Text type="secondary">{dish.description}</Text>
+          <div className="mt-2">
+            <Text type="success" strong>{formatPrice(dish.price)}</Text>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default withShoppingCart(BaseOrderForm);

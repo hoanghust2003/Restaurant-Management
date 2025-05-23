@@ -51,10 +51,10 @@ export class CategoriesService {
     }
   }  async create(createCategoryDto: CreateCategoryDto, userRole: UserRole): Promise<Category> {
     try {
-      // Validate admin, manager or warehouse role for category creation
-      if (userRole !== UserRole.ADMIN && userRole !== UserRole.MANAGER && userRole !== UserRole.WAREHOUSE) {
+      // Validate admin or warehouse role for category creation
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.WAREHOUSE) {
         this.logger.warn(`User with role ${userRole} attempted to create a category`);
-        throw new ForbiddenException('Only admin, manager or warehouse managers can create categories');
+        throw new ForbiddenException('Only admin or warehouse can create categories');
       }
       
       this.logger.log(`Creating new category: ${createCategoryDto.name}`);
@@ -67,10 +67,10 @@ export class CategoriesService {
     }
   }  async update(id: string, updateCategoryDto: UpdateCategoryDto, userRole: UserRole): Promise<Category> {
     try {
-      // Validate admin, manager or warehouse role for category updates
-      if (userRole !== UserRole.ADMIN && userRole !== UserRole.MANAGER && userRole !== UserRole.WAREHOUSE) {
+      // Validate admin or warehouse role for category updates
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.WAREHOUSE) {
         this.logger.warn(`User with role ${userRole} attempted to update category ${id}`);
-        throw new ForbiddenException('Only admin, manager or warehouse managers can update category information');
+        throw new ForbiddenException('Only admin or warehouse can update category information');
       }
       
       this.logger.log(`Updating category ${id}`);
@@ -87,10 +87,10 @@ export class CategoriesService {
     }
   }  async remove(id: string, userRole: UserRole): Promise<boolean> {
     try {
-      // Validate admin, manager or warehouse role for category deletion
-      if (userRole !== UserRole.ADMIN && userRole !== UserRole.MANAGER && userRole !== UserRole.WAREHOUSE) {
+      // Validate admin or warehouse role for category deletion
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.WAREHOUSE) {
         this.logger.warn(`User with role ${userRole} attempted to delete category ${id}`);
-        throw new ForbiddenException('Only admin, manager or warehouse managers can delete categories');
+        throw new ForbiddenException('Only admin or warehouse can delete categories');
       }
         this.logger.log(`Soft-deleting category ${id}`);
       // Verify category exists before deletion
@@ -113,10 +113,10 @@ export class CategoriesService {
 
   async restore(id: string, userRole: UserRole): Promise<Category> {
     try {
-      // Validate admin, manager or warehouse role for category restoration
-      if (userRole !== UserRole.ADMIN && userRole !== UserRole.MANAGER && userRole !== UserRole.WAREHOUSE) {
+      // Validate admin or warehouse role for category restoration
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.WAREHOUSE) {
         this.logger.warn(`User with role ${userRole} attempted to restore category ${id}`);
-        throw new ForbiddenException('Only admin, manager or warehouse managers can restore categories');
+        throw new ForbiddenException('Only admin or warehouse can restore categories');
       }
         this.logger.log(`Restoring soft-deleted category ${id}`);
       // Verify category exists (including deleted ones)

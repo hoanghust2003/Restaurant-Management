@@ -7,7 +7,7 @@ import { jwtDecode } from 'jwt-decode';
 import { useRouter } from 'next/navigation';
 
 // Định nghĩa các vai trò người dùng khớp với backend
-export type UserRole = 'admin' | 'manager' | 'waiter' | 'chef' | 'cashier' | 'warehouse' | 'customer';
+export type UserRole = 'admin' | 'staff' | 'chef' | 'warehouse' | 'customer';
 
 // Định nghĩa kiểu dữ liệu cho người dùng
 export interface User {
@@ -108,11 +108,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           // Kiểm tra xem token còn hạn không
           const currentTime = Date.now() / 1000;
+          
+          // Check if token will expire soon (within 5 minutes)
+          const tokenExpiringTime = 300; // 5 minutes
+          
           if (decoded.exp < currentTime) {
             // Token đã hết hạn
+            console.log('Token hết hạn, đăng xuất.');
             localStorage.removeItem('token');
             setUser(null);
             axios.defaults.headers.common['Authorization'] = '';
+          } else if ((decoded.exp - currentTime) < tokenExpiringTime) {
+            console.log('Token sắp hết hạn, thử làm mới token');
+            // Token sắp hết hạn, thử làm mới token nếu server hỗ trợ
+            try {
+              const refreshResponse = await axios.post(`${API_BASE_URL}/auth/refresh`, {}, {
+                headers: {
+                  Authorization: `Bearer ${token}`
+                }
+              });
+              
+              if (refreshResponse.data?.accessToken) {
+                // Cập nhật token mới
+                localStorage.setItem('token', refreshResponse.data.accessToken);
+                axios.defaults.headers.common['Authorization'] = `Bearer ${refreshResponse.data.accessToken}`;
+                console.log('Đã làm mới token thành công');
+              }
+            } catch (refreshError) {
+              console.log('Không thể làm mới token:', refreshError);
+              // Vẫn sử dụng token hiện tại nếu không làm mới được
+            }
           } else {
             // Token còn hiệu lực - cần lấy thêm thông tin người dùng từ API
             try {

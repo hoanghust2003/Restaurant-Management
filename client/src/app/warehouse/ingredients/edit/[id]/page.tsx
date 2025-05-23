@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, Typography, Spin, Alert } from 'antd';
+import { Card, Typography, Spin, Alert, Button } from 'antd';
 import IngredientForm from '@/app/components/ingredient/IngredientForm';
 import { ingredientService } from '@/app/services/ingredient.service';
 import { IngredientModel } from '@/app/models/ingredient.model';
@@ -37,6 +37,7 @@ const EditIngredientPage: React.FC = () => {
   }, [params.id]);
 
   const handleSuccess = () => {
+    router.refresh();
     router.push('/warehouse/ingredients');
   };
 

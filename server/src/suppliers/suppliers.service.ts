@@ -66,10 +66,10 @@ export class SuppliersService {
    */
   async create(createSupplierDto: CreateSupplierDto, userRole: UserRole): Promise<Supplier> {
     try {
-      // Validate admin, manager or warehouse role for supplier creation
-      if (userRole !== UserRole.ADMIN && userRole !== UserRole.MANAGER && userRole !== UserRole.WAREHOUSE) {
+      // Validate admin or warehouse role for supplier creation
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.WAREHOUSE) {
         this.logger.warn(`User with role ${userRole} attempted to create a supplier`);
-        throw new ForbiddenException('Chỉ admin, quản lý hoặc nhân viên kho mới có thể tạo nhà cung cấp');
+        throw new ForbiddenException('Only admin or warehouse can create suppliers');
       }
       
       this.logger.log(`Creating new supplier: ${createSupplierDto.name}`);
@@ -87,10 +87,10 @@ export class SuppliersService {
    */
   async update(id: string, updateSupplierDto: UpdateSupplierDto, userRole: UserRole): Promise<Supplier> {
     try {
-      // Validate admin, manager or warehouse role for supplier updates
-      if (userRole !== UserRole.ADMIN && userRole !== UserRole.MANAGER && userRole !== UserRole.WAREHOUSE) {
+      // Validate admin or warehouse role for supplier updates
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.WAREHOUSE) {
         this.logger.warn(`User with role ${userRole} attempted to update supplier ${id}`);
-        throw new ForbiddenException('Chỉ admin, quản lý hoặc nhân viên kho mới có thể cập nhật thông tin nhà cung cấp');
+        throw new ForbiddenException('Only admin or warehouse can update suppliers');
       }
       
       this.logger.log(`Updating supplier ${id}`);
@@ -112,10 +112,10 @@ export class SuppliersService {
    */
   async remove(id: string, userRole: UserRole): Promise<boolean> {
     try {
-      // Validate admin, manager or warehouse role for supplier deletion
-      if (userRole !== UserRole.ADMIN && userRole !== UserRole.MANAGER && userRole !== UserRole.WAREHOUSE) {
+      // Validate admin or warehouse role for supplier deletion
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.WAREHOUSE) {
         this.logger.warn(`User with role ${userRole} attempted to delete supplier ${id}`);
-        throw new ForbiddenException('Chỉ admin, quản lý hoặc nhân viên kho mới có thể xóa nhà cung cấp');
+        throw new ForbiddenException('Only admin or warehouse can delete suppliers');
       }
       
       this.logger.log(`Soft-deleting supplier ${id}`);
@@ -143,10 +143,10 @@ export class SuppliersService {
    */
   async restore(id: string, userRole: UserRole): Promise<Supplier> {
     try {
-      // Validate admin, manager or warehouse role for supplier restoration
-      if (userRole !== UserRole.ADMIN && userRole !== UserRole.MANAGER && userRole !== UserRole.WAREHOUSE) {
+      // Validate admin or warehouse role for supplier restoration
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.WAREHOUSE) {
         this.logger.warn(`User with role ${userRole} attempted to restore supplier ${id}`);
-        throw new ForbiddenException('Chỉ admin, quản lý hoặc nhân viên kho mới có thể khôi phục nhà cung cấp');
+        throw new ForbiddenException('Only admin or warehouse can restore suppliers');
       }
       
       this.logger.log(`Restoring soft-deleted supplier ${id}`);

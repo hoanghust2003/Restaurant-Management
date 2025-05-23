@@ -16,4 +16,7 @@ export class Menu {
   
   @DeleteDateColumn({ name: 'deleted_at', nullable: true })
   deleted_at: Date;
+
+  @Column({ type: 'boolean', default: false })
+  is_main: boolean;
 }

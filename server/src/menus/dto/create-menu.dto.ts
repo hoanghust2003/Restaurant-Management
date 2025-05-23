@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsArray, IsUUID } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsArray, IsUUID, IsBoolean } from 'class-validator';
 
 export class CreateMenuDto {
   @IsString()
@@ -17,4 +17,8 @@ export class CreateMenuDto {
   @IsUUID("4", { each: true })
   @IsOptional()
   dishIds?: string[];
+
+  @IsBoolean()
+  @IsOptional()
+  is_main?: boolean;
 }

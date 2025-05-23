@@ -25,7 +25,7 @@ const ViewMenuPage = ({ params }: { params: Params }) => {
   }
   
   // If no access permission
-  if (!user || !hasRole(['admin', 'manager', 'chef', 'waiter'])) {
+  if (!user || !hasRole(['admin', 'chef', 'staff'])) {
     return (
       <Result
         status="403"

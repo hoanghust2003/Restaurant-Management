@@ -68,7 +68,7 @@ const ViewDishPage: React.FC = () => {
   };
 
   return (
-    <RoleBasedLayout allowedRoles={['admin', 'manager']}>
+    <RoleBasedLayout allowedRoles={['admin']}>
       <div className="p-6">
         {loading ? (
           <div className="flex justify-center items-center h-64">

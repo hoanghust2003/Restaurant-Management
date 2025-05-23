@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In, FindOptionsOrder } from 'typeorm';
 import { Menu } from '../entities/menu.entity';
 import { CreateMenuDto, UpdateMenuDto } from './dto';
 import { UserRole } from '../enums/user-role.enum';
@@ -19,14 +19,15 @@ export class MenusService {
   async findAll(includeDeleted: boolean = false): Promise<any[]> {
     try {
       this.logger.log(`Fetching all menus, includeDeleted=${includeDeleted}`);
-      let menus;
-      if (includeDeleted) {
-        menus = await this.menuRepository.find({
-          withDeleted: true
-        });
-      } else {
-        menus = await this.menuRepository.find();
-      }
+      
+      // Always order by is_main DESC (main menu first), then created_at ASC
+      const menus = await this.menuRepository.find({
+        withDeleted: includeDeleted,
+        order: {
+          is_main: 'DESC',
+          created_at: 'ASC'
+        } as FindOptionsOrder<Menu>
+      });
       
       // Get all menu-dish relationships
       const allMenuDishes = await this.menuDishRepository.find({
@@ -43,7 +44,7 @@ export class MenusService {
           acc[md.menuId].push(md.dish);
         }
         return acc;
-      }, {});
+      }, {} as Record<string, any[]>);
       
       // Add dishes to each menu
       const menusWithDishes = menus.map(menu => ({
@@ -57,7 +58,8 @@ export class MenusService {
       throw error;
     }
   }
-  async findOne(id: string, includeDeleted: boolean = false): Promise<any> {
+
+  async findOne(id: string, includeDeleted: boolean = false): Promise<Menu> {
     try {
       this.logger.log(`Finding menu by id: ${id}, includeDeleted=${includeDeleted}`);
       const menu = await this.menuRepository.findOne({
@@ -80,10 +82,10 @@ export class MenusService {
       // Transform menu with dishes
       const menuWithDishes = {
         ...menu,
-        dishes: menuDishes.map(md => md.dish)
+        dishes: menuDishes.map(md => md.dish).filter(dish => dish !== null)
       };
       
-      return menuWithDishes;
+      return menuWithDishes as Menu;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -100,10 +102,14 @@ export class MenusService {
         this.logger.warn(`User with role ${userRole} attempted to create a menu`);
         throw new ForbiddenException('Only admin or chef can create menus');
       }
-      
+
+      // Nếu tạo menu mới với is_main=true thì unset tất cả menu khác
+      if (createMenuDto.is_main) {
+        await this.menuRepository.update({ is_main: true }, { is_main: false });
+      }
+
       this.logger.log(`Creating new menu: ${createMenuDto.name}`);
       const menu = this.menuRepository.create(createMenuDto);
-      
       return await this.menuRepository.save(menu);
     } catch (error) {
       this.logger.error(`Error creating menu: ${error.message}`, error.stack);
@@ -113,16 +119,27 @@ export class MenusService {
 
   async update(id: string, updateMenuDto: UpdateMenuDto, userRole: UserRole): Promise<Menu> {
     try {
-      // Validate admin or chef role for menu updates
+      // Validate admin or chef role for menu update
       if (userRole !== UserRole.ADMIN && userRole !== UserRole.CHEF) {
         this.logger.warn(`User with role ${userRole} attempted to update menu ${id}`);
-        throw new ForbiddenException('Only admin or chef can update menu information');
+        throw new ForbiddenException('Only admin or chef can update menus');
       }
-      
-      this.logger.log(`Updating menu ${id}`);
-      const menu = await this.findOne(id);
-      
-      this.menuRepository.merge(menu, updateMenuDto);
+
+      const menu = await this.menuRepository.findOne({ where: { id } });
+      if (!menu) {
+        throw new NotFoundException(`Menu with ID ${id} not found`);
+      }
+
+      // If setting this menu as main, do it through setMainMenu for transaction safety
+      if (updateMenuDto.is_main) {
+        delete updateMenuDto.is_main;
+        Object.assign(menu, updateMenuDto);
+        const updatedMenu = await this.menuRepository.save(menu);
+        return await this.setMainMenu(id);
+      }
+
+      // Update menu
+      Object.assign(menu, updateMenuDto);
       return await this.menuRepository.save(menu);
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof ForbiddenException) {
@@ -282,6 +299,117 @@ export class MenusService {
       }
       this.logger.error(`Error removing dish ${dishId} from menu ${menuId}: ${error.message}`, error.stack);
       throw error;
+    }
+  }
+
+  async addDishes(menuId: string, dishIds: string[]): Promise<Menu> {
+    try {
+      const menu = await this.menuRepository.findOne({ 
+        where: { id: menuId },
+        relations: ['dishes'] 
+      });
+
+      if (!menu) {
+        throw new NotFoundException(`Menu with ID ${menuId} not found`);
+      }
+
+      // Create menu-dish relationships
+      const menuDishes = dishIds.map(dishId => {
+        const menuDish = new MenuDish();
+        menuDish.menuId = menuId;
+        menuDish.dishId = dishId;
+        return menuDish;
+      });
+
+      await this.menuDishRepository.save(menuDishes);
+      return await this.findOne(menuId);
+    } catch (error) {
+      this.logger.error(`Error adding dishes to menu: ${error.message}`);
+      throw new Error('Failed to add dishes to menu');
+    }
+  }
+
+  async removeDishes(menuId: string, dishIds: string[]): Promise<Menu> {
+    try {
+      await this.menuDishRepository.delete({
+        menuId,
+        dishId: In(dishIds)
+      });
+
+      return await this.findOne(menuId);
+    } catch (error) {
+      this.logger.error(`Error removing dishes from menu: ${error.message}`);
+      throw new Error('Failed to remove dishes from menu');
+    }
+  }
+
+  async getMainMenu(): Promise<Menu> {
+    try {
+      const mainMenu = await this.menuRepository.findOne({
+        where: { is_main: true },
+        relations: ['menuItems', 'menuItems.product', 'dishes'],
+      });
+
+      if (!mainMenu) {
+        throw new NotFoundException('No main menu found');
+      }
+
+      return mainMenu;
+    } catch (error) {
+      this.logger.error(`Error getting main menu: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Set a menu as the main menu. This will unset any existing main menu first.
+   * @param id The ID of the menu to set as main
+   * @returns The updated menu
+   */
+  async setMainMenu(id: string): Promise<Menu> {
+    const queryRunner = this.menuRepository.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Find the menu first to verify it exists
+      const menu = await queryRunner.manager.findOne(Menu, { 
+        where: { id } 
+      });
+      
+      if (!menu) {
+        throw new NotFoundException(`Menu with ID ${id} not found`);
+      }
+
+      // Unset any existing main menu
+      await queryRunner.manager.update(Menu, 
+        { is_main: true }, 
+        { is_main: false }
+      );
+
+      // Set this menu as main
+      if (!menu.is_main) {
+        menu.is_main = true;
+        await queryRunner.manager.save(menu);
+      }
+
+      // Commit the transaction
+      await queryRunner.commitTransaction();
+
+      // Return with menu data including dishes
+      this.logger.log(`Menu ${id} set as main menu`);
+      const updatedMenu = await this.findOne(id);
+
+      // Clear cache by querying all menus with new order
+      await this.findAll(false);
+      
+      return updatedMenu;
+    } catch (error) {
+      this.logger.error(`Error setting main menu: ${error.message}`);
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
   }
 }

@@ -44,7 +44,7 @@ export default function RoleBasedLayout({ children, title, allowedRoles }: RoleB
     return <AdminLayout title={title}>{children}</AdminLayout>;
   }
 
-  if (user.role === 'waiter' || user.role === 'cashier') {
+  if (user.role === 'staff') {
     return <WaiterLayout title={title}>{children}</WaiterLayout>;
   }
 

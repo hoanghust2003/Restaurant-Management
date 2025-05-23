@@ -62,8 +62,8 @@ export default function WaiterTablesPage() {
   
   // Prefetch critical data for the waiter dashboard
   useEffect(() => {
-    // Only prefetch when the user is authenticated and on the waiter dashboard
-    if (user && hasRole(['waiter', 'cashier'])) {
+    // Only prefetch when the user is authenticated and on the staff dashboard
+    if (user && hasRole(['staff'])) {
       prefetchWaiterDashboardData();
     }
   }, [user, hasRole]);
@@ -74,7 +74,7 @@ export default function WaiterTablesPage() {
       if (!user) {
         // Redirect unauthenticated users to login
         router.push('/auth/login');
-      } else if (!hasRole(['waiter', 'cashier'])) {
+      } else if (!hasRole(['staff'])) {
         // Redirect unauthorized users to home
         router.push('/');
         message.error('Bạn không có quyền truy cập trang này');
@@ -177,52 +177,47 @@ export default function WaiterTablesPage() {
   };
   
   // Handle status update với optimistic update
-  const handleStatusUpdate = async (values: Record<string, unknown>) => {
-    if (!selectedTable) return;
-    
-    // Lưu lại bảng gốc để có thể khôi phục nếu lỗi
-    const originalTable = {...selectedTable};
-    const updatedStatus = values.status as string;
-    
-    // Đóng modal trước khi cập nhật UI để tránh hiện tượng lag
-    setIsStatusModalVisible(false);
-    
-    // Optimistic update - cập nhật UI ngay lập tức
-    setTables(prevTables => prevTables.map(table => 
-      table.id === selectedTable.id 
-        ? { ...table, status: updatedStatus }
-        : table
-    ));
-    
-    // Gửi request cập nhật lên server trong background
-    const updatePromise = axios.patch(`/tables/${selectedTable.id}/status`, {
-      status: updatedStatus,
-    });
-    
-    // Hiển thị thông báo ngay lập tức
-    const hideLoading = message.loading('Đang cập nhật...', 0);
-    
-    // Xử lý kết quả
+  const handleStatusUpdate = async (values: { status: TableStatus }) => {
+    if (!selectedTable) {
+      message.error('Không có bàn nào được chọn để cập nhật.');
+      return;
+    }
+
+    const newStatus = values.status;
+    const originalStatus = selectedTable.status;
+
+    // Optimistic UI update: Cập nhật trạng thái bàn trong state `tables`
+    setTables(prevTables =>
+      prevTables.map(t =>
+        t.id === selectedTable.id ? { ...t, status: newStatus } : t
+      )
+    );
+    setIsStatusModalVisible(false); // Đóng modal ngay
+
     try {
-      await updatePromise;
-      hideLoading();
-      message.success('Cập nhật trạng thái bàn thành công');
-      
-      // Xóa cache của tables để đảm bảo lần sau fetch sẽ lấy dữ liệu mới nhất
-      import('../../utils/requestCache').then(({ requestCache }) => {
-        requestCache.invalidateByPrefix('/tables');
+      // Gọi API để cập nhật trạng thái bàn
+      await axios.patch(`/tables/${selectedTable.id}/status`, {
+        status: newStatus,
       });
-    } catch (error) {
-      hideLoading();
-      console.error('Error updating table status:', error);
-      message.error('Không thể cập nhật trạng thái bàn');
+      message.success('Cập nhật trạng thái bàn thành công!');
       
-      // Khôi phục dữ liệu nếu có lỗi
-      setTables(prevTables => prevTables.map(table => 
-        table.id === selectedTable.id 
-          ? { ...originalTable } 
-          : table
-      ));
+      // Clear cache in local storage to ensure fresh data
+      localStorage.removeItem(`last_refresh_/tables?status=${statusFilter || ''}`);
+      
+      // Tải lại danh sách bàn để đảm bảo dữ liệu luôn mới nhất từ server
+      // Điều này cũng giúp đồng bộ nếu có thay đổi khác từ server
+      fetchTablesData();
+    } catch (error) {
+      message.error('Lỗi cập nhật trạng thái bàn. Đang hoàn tác...');
+      // Hoàn tác lại thay đổi trên UI nếu API call thất bại
+      setTables(prevTables =>
+        prevTables.map(t =>
+          t.id === selectedTable.id ? { ...t, status: originalStatus } : t
+        )
+      );
+      // Có thể cân nhắc mở lại modal hoặc xử lý lỗi cụ thể hơn
+      // setIsStatusModalVisible(true); 
+      console.error("Lỗi khi cập nhật trạng thái bàn:", error);
     }
   };
     // Handle create order for a table sử dụng Next.js Router thay vì window.location

@@ -35,7 +35,7 @@ interface RequestWithUser extends Request {
 export class TablesController {
   constructor(private readonly tablesService: TablesService) {}
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.WAITER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
   async findAll(
     @Query('status') status?: TableStatus,
     @Query('includeDeleted') includeDeleted?: string
@@ -45,7 +45,7 @@ export class TablesController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.WAITER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
     @Query('includeDeleted') includeDeleted?: string
@@ -93,7 +93,7 @@ export class TablesController {
   }
 
   @Patch(':id/status')
-  @Roles(UserRole.ADMIN, UserRole.WAITER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
   async updateStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateTableStatusDto: UpdateTableStatusDto,

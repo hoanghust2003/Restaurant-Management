@@ -3,8 +3,8 @@ import { requestCache } from '../utils/requestCache';
 
 export abstract class BaseService<T> {
   constructor(protected apiUrl: string) {}
-
-  async getAll(includeDeleted = false): Promise<T[]> {
+  async getAll(config: { includeDeleted?: boolean } = {}): Promise<T[]> {
+    const includeDeleted = config.includeDeleted || false;
     const cacheKey = `${this.apiUrl}?includeDeleted=${includeDeleted}`;
     
     try {
@@ -24,8 +24,8 @@ export abstract class BaseService<T> {
       throw error;
     }
   }
-
-  async getById(id: string, includeDeleted = false): Promise<T> {
+  async getById(id: string, config: { includeDeleted?: boolean } = {}): Promise<T> {
+    const includeDeleted = config.includeDeleted || false;
     const cacheKey = `${this.apiUrl}/${id}?includeDeleted=${includeDeleted}`;
     
     try {
@@ -55,15 +55,15 @@ export abstract class BaseService<T> {
       throw error;
     }
   }
-
   async update(id: string, data: any): Promise<T> {
     try {
       const response = await axios.patch(`${this.apiUrl}/${id}`, data);
       requestCache.invalidateByPrefix(this.apiUrl);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error updating ${this.apiUrl}/${id}:`, error);
-      throw error;
+      const errorMsg = error.response?.data?.message || 'Không thể cập nhật. Vui lòng kiểm tra quyền truy cập.';
+      throw new Error(errorMsg);
     }
   }
 
@@ -71,9 +71,22 @@ export abstract class BaseService<T> {
     try {
       await axios.delete(`${this.apiUrl}/${id}`);
       requestCache.invalidateByPrefix(this.apiUrl);
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error deleting ${this.apiUrl}/${id}:`, error);
-      throw error;
+      const statusCode = error.response?.status;
+      let errorMsg = 'Không thể xóa dữ liệu.';
+      
+      if (statusCode === 403) {
+        errorMsg = 'Bạn không có quyền xóa mục này.';
+      } else if (statusCode === 401) {
+        errorMsg = 'Phiên làm việc hết hạn. Vui lòng đăng nhập lại.';
+      } else if (statusCode === 409) {
+        errorMsg = 'Không thể xóa vì dữ liệu đang được sử dụng ở nơi khác.';
+      } else if (error.response?.data?.message) {
+        errorMsg = error.response.data.message;
+      }
+      
+      throw new Error(errorMsg);
     }
   }
 

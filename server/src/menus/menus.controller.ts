@@ -172,4 +172,16 @@ export class MenusController {
     }
     return { message: 'Dishes removed from menu', count: results.length };
   }
+
+  @Get('main')
+  async getMainMenu() {
+    return this.menusService.getMainMenu();
+  }
+
+  @Patch(':id/set-main')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.CHEF)
+  async setMainMenu(@Param('id') id: string) {
+    return this.menusService.setMainMenu(id);
+  }
 }

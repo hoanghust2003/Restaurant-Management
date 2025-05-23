@@ -12,18 +12,19 @@ import {
 } from '../models/warehouse.model';
 import { requestCache } from '../utils/requestCache';
 
-const SUPPLIER_API_URL = '/suppliers';
+const INVENTORY_API_URL = '/inventory';
+const INGREDIENTS_API_URL = '/ingredients';
+const SUPPLIERS_API_URL = '/suppliers';
 const BATCH_API_URL = '/batches';
-const IMPORT_API_URL = '/imports';
-const EXPORT_API_URL = '/exports';
-const WAREHOUSE_API_URL = '/warehouse';
+const IMPORT_API_URL = '/inventory/imports';
+const EXPORT_API_URL = '/inventory/exports';
 
 /**
  * Service for supplier management
  */
 export const supplierService = {
   async getAll(includeInactive = false): Promise<SupplierModel[]> {
-    const url = includeInactive ? `${SUPPLIER_API_URL}?includeInactive=true` : SUPPLIER_API_URL;
+    const url = includeInactive ? `${SUPPLIERS_API_URL}?includeInactive=true` : SUPPLIERS_API_URL;
     
     const cachedResult = requestCache.get(url);
     if (cachedResult) {
@@ -40,7 +41,7 @@ export const supplierService = {
   },
 
   async getById(id: string): Promise<SupplierModel> {
-    const url = `${SUPPLIER_API_URL}/${id}`;
+    const url = `${SUPPLIERS_API_URL}/${id}`;
     const cachedResult = requestCache.get(url);
     if (cachedResult) {
       return cachedResult;
@@ -52,36 +53,36 @@ export const supplierService = {
   },
 
   async create(supplier: CreateSupplierDto): Promise<SupplierModel> {
-    const response = await axios.post(SUPPLIER_API_URL, supplier);
-    requestCache.invalidateByPrefix(SUPPLIER_API_URL);
+    const response = await axios.post(SUPPLIERS_API_URL, supplier);
+    requestCache.invalidateByPrefix(SUPPLIERS_API_URL);
     return response.data;
   },
 
   async update(id: string, supplier: UpdateSupplierDto): Promise<SupplierModel> {
-    const response = await axios.patch(`${SUPPLIER_API_URL}/${id}`, supplier);
-    requestCache.invalidateByPrefix(SUPPLIER_API_URL);
-    requestCache.invalidate(`${SUPPLIER_API_URL}/${id}`);
+    const response = await axios.patch(`${SUPPLIERS_API_URL}/${id}`, supplier);
+    requestCache.invalidateByPrefix(SUPPLIERS_API_URL);
+    requestCache.invalidate(`${SUPPLIERS_API_URL}/${id}`);
     return response.data;
   },
 
   async delete(id: string): Promise<boolean> {
-    await axios.delete(`${SUPPLIER_API_URL}/${id}`);
-    requestCache.invalidateByPrefix(SUPPLIER_API_URL);
-    requestCache.invalidate(`${SUPPLIER_API_URL}/${id}`);
+    await axios.delete(`${SUPPLIERS_API_URL}/${id}`);
+    requestCache.invalidateByPrefix(SUPPLIERS_API_URL);
+    requestCache.invalidate(`${SUPPLIERS_API_URL}/${id}`);
     return true;
   },
 
   async activate(id: string): Promise<SupplierModel> {
-    const response = await axios.post(`${SUPPLIER_API_URL}/${id}/activate`);
-    requestCache.invalidateByPrefix(SUPPLIER_API_URL);
-    requestCache.invalidate(`${SUPPLIER_API_URL}/${id}`);
+    const response = await axios.post(`${SUPPLIERS_API_URL}/${id}/activate`);
+    requestCache.invalidateByPrefix(SUPPLIERS_API_URL);
+    requestCache.invalidate(`${SUPPLIERS_API_URL}/${id}`);
     return response.data;
   },
 
   async deactivate(id: string): Promise<SupplierModel> {
-    const response = await axios.post(`${SUPPLIER_API_URL}/${id}/deactivate`);
-    requestCache.invalidateByPrefix(SUPPLIER_API_URL);
-    requestCache.invalidate(`${SUPPLIER_API_URL}/${id}`);
+    const response = await axios.post(`${SUPPLIERS_API_URL}/${id}/deactivate`);
+    requestCache.invalidateByPrefix(SUPPLIERS_API_URL);
+    requestCache.invalidate(`${SUPPLIERS_API_URL}/${id}`);
     return response.data;
   }
 };
@@ -252,74 +253,20 @@ export const exportService = {
  */
 export const warehouseService = {
   async getStats(): Promise<WarehouseStats> {
-    try {
-      // First try to call the API
-      const url = `${WAREHOUSE_API_URL}/stats`;
-      const response = await axios.get(url);
-      return response.data;
-    } catch (error) {
-      // If API fails, return mock data
-      console.log('Using mock data for warehouse stats');
-      return {
-        total_ingredients: 42,
-        low_stock_count: 8,
-        expiring_soon_count: 5,
-        expired_count: 2,
-        total_value: 15000000,
-        recent_imports: 12,
-        recent_exports: 7
-      };
-    }
+    const response = await axios.get(`${INVENTORY_API_URL}/stats`);
+    return response.data;
   },
 
   async getLowStockItems(): Promise<any[]> {
-    try {
-      // First try to call the API
-      const url = `${WAREHOUSE_API_URL}/low-stock`;
-      const response = await axios.get(url);
-      return response.data;
-    } catch (error) {
-      // If API fails, return mock data
-      console.log('Using mock data for low stock items');
-      return [
-        { id: '1', name: 'Cà chua', available_quantity: 2, min_quantity: 5, unit: 'kg' },
-        { id: '2', name: 'Hành tây', available_quantity: 1, min_quantity: 3, unit: 'kg' },
-        { id: '3', name: 'Ớt chuông', available_quantity: 0.5, min_quantity: 2, unit: 'kg' },
-      ];
-    }
+    const response = await axios.get(`${INVENTORY_API_URL}/low-stock`);
+    return response.data;
   },
 
   async getExpiringItems(): Promise<any[]> {
-    try {
-      // First try to call the API
-      const url = `${WAREHOUSE_API_URL}/expiring`;
-      const response = await axios.get(url);
-      return response.data;
-    } catch (error) {
-      // If API fails, return mock data
-      console.log('Using mock data for expiring items');
-      return [
-        { 
-          id: '1', 
-          ingredient_id: '1',
-          ingredient_name: 'Thịt bò',
-          lot_number: 'LT001',
-          batch_id: '1',
-          expiry_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
-          days_until_expiry: 2
-        },
-        { 
-          id: '2', 
-          ingredient_id: '2',
-          ingredient_name: 'Cá hồi',
-          lot_number: 'LT002',
-          batch_id: '2',
-          expiry_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
-          days_until_expiry: 3
-        }
-      ];
-    }
+    const response = await axios.get(`${INVENTORY_API_URL}/expiring`);
+    return response.data;
   },
+
   async generateInventoryReport(params?: {
     startDate?: Date,
     endDate?: Date,
@@ -337,7 +284,7 @@ export const warehouseService = {
         queryParams = `?${urlParams.toString()}`;
       }
       
-      const response = await axios.get(`${WAREHOUSE_API_URL}/reports/inventory${queryParams}`);
+      const response = await axios.get(`${INVENTORY_API_URL}/reports/inventory${queryParams}`);
       return response.data;
     } catch (error) {
       console.error('Error generating inventory report:', error);
@@ -407,7 +354,7 @@ export const warehouseService = {
         queryParams = `?${urlParams.toString()}`;
       }
       
-      const response = await axios.get(`${WAREHOUSE_API_URL}/reports/expiry${queryParams}`);
+      const response = await axios.get(`${INVENTORY_API_URL}/reports/expiry${queryParams}`);
       return response.data;
     } catch (error) {
       console.error('Error generating expiry report:', error);
@@ -474,7 +421,7 @@ export const warehouseService = {
         queryParams = `?${urlParams.toString()}`;
       }
       
-      const response = await axios.get(`${WAREHOUSE_API_URL}/reports/activity${queryParams}`);
+      const response = await axios.get(`${INVENTORY_API_URL}/reports/activity${queryParams}`);
       return response.data;
     } catch (error) {
       console.error('Error generating activity report:', error);

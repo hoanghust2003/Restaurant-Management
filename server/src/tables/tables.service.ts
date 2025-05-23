@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ForbiddenException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TableEntity } from '../entities/table.entity';
@@ -101,8 +101,7 @@ export class TablesService {
     try {
       // Validate admin role for table deletion
       if (userRole !== UserRole.ADMIN) {
-        this.logger.warn(`User with role ${userRole} attempted to delete table ${id}`);
-        throw new ForbiddenException('Only administrators can delete tables');
+        throw new ForbiddenException('You do not have permission to delete tables.');
       }
       
       this.logger.log(`Soft-deleting table ${id}`);
@@ -112,7 +111,7 @@ export class TablesService {
       // Using soft delete instead of hard delete
       const result = await this.tableRepository.softDelete(id);
       if (result.affected === 0) {
-        throw new NotFoundException(`Table with ID ${id} not found`);
+        throw new NotFoundException(`Table with ID ${id} not found for deletion.`);
       }
       
       return true;
@@ -121,20 +120,20 @@ export class TablesService {
         throw error;
       }
       this.logger.error(`Error soft-deleting table ${id}: ${error.message}`, error.stack);
-      throw error;
+      throw new InternalServerErrorException('Could not delete table.');
     }
-  }  async updateStatus(id: string, status: TableStatus, userRole: UserRole): Promise<TableEntity> {
+  }
+
+  async updateStatus(id: string, status: TableStatus, userRole: UserRole): Promise<TableEntity> {
     try {
-      // Validate role for status updates
-      if (![UserRole.ADMIN, UserRole.WAITER, UserRole.CASHIER].includes(userRole)) {
-        this.logger.warn(`User with role ${userRole} attempted to update table status`);
-        throw new ForbiddenException('Only admins, waiters, and cashiers can update table status');
+      // Validate user role for updating table status
+      if (![UserRole.ADMIN, UserRole.STAFF].includes(userRole)) {
+        throw new ForbiddenException('You do not have permission to update table status.');
       }
-      
-      this.logger.log(`Updating status of table ${id} to ${status}`);
+
+      this.logger.log(`Updating status for table ${id} to ${status} by user with role ${userRole}`);
       const table = await this.findOne(id);
-      
-      // Table existence is already checked in findOne method
+
       table.status = status;
       return await this.tableRepository.save(table);
     } catch (error) {

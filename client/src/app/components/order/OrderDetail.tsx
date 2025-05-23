@@ -53,9 +53,9 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
 }) => {
   const { hasRole, user } = useAuth();
   const router = useRouter();
-  const canEditOrder = hasRole(['admin', 'waiter']);
+  const canEditOrder = hasRole(['admin', 'staff']);
   const canCompleteOrder = hasRole(['admin', 'cashier']);
-  const canCancelOrder = hasRole(['admin', 'waiter', 'cashier']);
+  const canCancelOrder = hasRole(['admin', 'staff']);
   const isKitchenUser = hasRole(['kitchen']);
   const [localLoading, setLocalLoading] = useState<boolean>(false);
 

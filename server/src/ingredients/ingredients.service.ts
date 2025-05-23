@@ -51,10 +51,10 @@ export class IngredientsService {
   }
   async create(createIngredientDto: CreateIngredientDto, userRole: UserRole): Promise<Ingredient> {
     try {
-      // Validate admin, manager or warehouse role for ingredient creation
-      if (userRole !== UserRole.ADMIN && userRole !== UserRole.MANAGER && userRole !== UserRole.WAREHOUSE) {
+      // Validate admin or warehouse role for ingredient creation
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.WAREHOUSE) {
         this.logger.warn(`User with role ${userRole} attempted to create an ingredient`);
-        throw new ForbiddenException('Only admin, manager or warehouse managers can create ingredients');
+        throw new ForbiddenException('Only admin or warehouse can create ingredients');
       }
       
       this.logger.log(`Creating new ingredient: ${createIngredientDto.name}`);
@@ -68,10 +68,10 @@ export class IngredientsService {
   }
   async update(id: string, updateIngredientDto: UpdateIngredientDto, userRole: UserRole): Promise<Ingredient> {
     try {
-      // Validate admin, manager or warehouse role for ingredient updates
-      if (userRole !== UserRole.ADMIN && userRole !== UserRole.MANAGER && userRole !== UserRole.WAREHOUSE) {
+      // Validate admin or warehouse role for ingredient updates
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.WAREHOUSE) {
         this.logger.warn(`User with role ${userRole} attempted to update ingredient ${id}`);
-        throw new ForbiddenException('Only admin, manager or warehouse managers can update ingredient information');
+        throw new ForbiddenException('Only admin or warehouse can update ingredient information');
       }
       
       this.logger.log(`Updating ingredient ${id}`);
@@ -88,10 +88,10 @@ export class IngredientsService {
     }
   }  async remove(id: string, userRole: UserRole): Promise<boolean> {
     try {
-      // Validate admin, manager or warehouse role for ingredient deletion
-      if (userRole !== UserRole.ADMIN && userRole !== UserRole.MANAGER && userRole !== UserRole.WAREHOUSE) {
+      // Validate admin or warehouse role for ingredient deletion
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.WAREHOUSE) {
         this.logger.warn(`User with role ${userRole} attempted to delete ingredient ${id}`);
-        throw new ForbiddenException('Only admin, manager or warehouse managers can delete ingredients');
+        throw new ForbiddenException('Only admin or warehouse can delete ingredients');
       }
       
       this.logger.log(`Soft-deleting ingredient ${id}`);
@@ -115,10 +115,10 @@ export class IngredientsService {
   }
   async restore(id: string, userRole: UserRole): Promise<Ingredient> {
     try {
-      // Validate admin, manager or warehouse role for ingredient restoration
-      if (userRole !== UserRole.ADMIN && userRole !== UserRole.MANAGER && userRole !== UserRole.WAREHOUSE) {
+      // Validate admin or warehouse role for ingredient restoration
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.WAREHOUSE) {
         this.logger.warn(`User with role ${userRole} attempted to restore ingredient ${id}`);
-        throw new ForbiddenException('Only admin, manager or warehouse managers can restore ingredients');
+        throw new ForbiddenException('Only admin or warehouse can restore ingredients');
       }
       
       this.logger.log(`Restoring soft-deleted ingredient ${id}`);

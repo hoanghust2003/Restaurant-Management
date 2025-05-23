@@ -1,9 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, ManyToOne, Column, JoinColumn, DeleteDateColumn } from 'typeorm';
 import { Ingredient } from './ingredient.entity';
-import { User } from './user.entity';
-
-// We'll need to create this entity
 import { IngredientImport } from './ingredient-import.entity';
+import { BatchStatus } from '../enums/batch-status.enum';
 
 @Entity('batches')
 export class Batch {
@@ -13,14 +11,14 @@ export class Batch {
   @Column({ name: 'import_id' })
   importId: string;
 
-  @ManyToOne(() => IngredientImport, import_ => import_.id)
+  @ManyToOne(() => IngredientImport, import_ => import_.batches)
   @JoinColumn({ name: 'import_id' })
   import: IngredientImport;
 
   @Column({ name: 'ingredient_id' })
   ingredientId: string;
 
-  @ManyToOne(() => Ingredient, ingredient => ingredient.id)
+  @ManyToOne(() => Ingredient, ingredient => ingredient.batches)
   @JoinColumn({ name: 'ingredient_id' })
   ingredient: Ingredient;
 
@@ -34,14 +32,21 @@ export class Batch {
   remaining_quantity: number;
 
   @Column('date')
-  expiry_date: string;
+  expiry_date: Date;
 
   @Column('float')
   price: number;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
-  
+
   @DeleteDateColumn({ name: 'deleted_at', nullable: true })
   deleted_at: Date;
+
+  @Column({
+    type: 'enum',
+    enum: BatchStatus,
+    default: BatchStatus.AVAILABLE
+  })
+  status: BatchStatus;
 }

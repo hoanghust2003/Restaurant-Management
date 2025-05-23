@@ -19,6 +19,38 @@ export const orderService = {
   },
 
   /**
+   * Lấy tất cả đơn hàng cho bếp (chỉ lấy những đơn đang chờ và đang chuẩn bị)
+   */
+  async getKitchenOrders(): Promise<OrderModel[]> {
+    const kitchenStatuses = [
+      OrderStatus.PENDING,
+      OrderStatus.IN_PROGRESS,
+      OrderStatus.READY
+    ].join(',');
+    
+    const response = await axios.get(`${API_URL}/kitchen`, {
+      params: { statuses: kitchenStatuses }
+    });
+    return response.data;
+  },
+
+  /**
+   * Lấy tất cả đơn hàng cho bếp (chỉ lấy những đơn đang chờ và đang chuẩn bị)
+   */
+  async getKitchenOrders(): Promise<OrderModel[]> {
+    const kitchenStatuses = [
+      OrderStatus.PENDING,
+      OrderStatus.PREPARING,
+      OrderStatus.READY
+    ].join(',');
+    
+    const response = await axios.get(`${API_URL}/kitchen`, {
+      params: { statuses: kitchenStatuses }
+    });
+    return response.data;
+  },
+
+  /**
    * Lấy chi tiết một đơn hàng
    */
   async getById(id: string): Promise<OrderModel> {
@@ -59,9 +91,24 @@ export const orderService = {
 
   /**
    * Cập nhật trạng thái đơn hàng
-   */
-  async updateStatus(id: string, status: OrderStatus): Promise<OrderModel> {
+   */  async updateStatus(id: string, status: OrderStatus): Promise<OrderModel> {
     const response = await axios.patch(`${API_URL}/${id}/status`, { status });
+    return response.data;
+  },
+
+  /**
+   * Cập nhật trạng thái một món trong đơn hàng
+   */
+  async updateOrderItem(orderId: string, itemId: string, update: { status: OrderItemStatus }): Promise<OrderModel> {
+    const response = await axios.patch(`${API_URL}/${orderId}/items/${itemId}`, update);
+    return response.data;
+  },
+
+  /**
+   * Cập nhật thông tin đơn hàng (bao gồm trạng thái)
+   */
+  async updateOrder(orderId: string, update: { status: OrderStatus }): Promise<OrderModel> {
+    const response = await axios.patch(`${API_URL}/${orderId}`, update);
     return response.data;
   },
 

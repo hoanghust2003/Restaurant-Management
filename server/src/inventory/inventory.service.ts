@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan, MoreThanOrEqual, Between } from 'typeorm';
+import { Repository, LessThan, MoreThanOrEqual, Between, DataSource } from 'typeorm';
 import { Ingredient } from '../entities/ingredient.entity';
 import { Batch } from '../entities/batch.entity';
 import { Supplier } from '../entities/supplier.entity';
@@ -27,6 +27,7 @@ export class InventoryService {
     private exportRepository: Repository<IngredientExport>,
     @InjectRepository(ExportItem)
     private exportItemRepository: Repository<ExportItem>,
+    private dataSource: DataSource
   ) {}
 
   /**
@@ -61,7 +62,7 @@ export class InventoryService {
       
       const expiringBatches = await this.batchRepository.count({
         where: {
-          expiry_date: LessThan(thirtyDaysFromNow.toISOString().split('T')[0]),
+          expiry_date: LessThan(thirtyDaysFromNow),
           remaining_quantity: MoreThanOrEqual(0.001)
         }
       });
@@ -149,7 +150,7 @@ export class InventoryService {
       futureDate.setDate(futureDate.getDate() + days);
       const batches = await this.batchRepository.find({
         where: {
-          expiry_date: LessThan(futureDate.toISOString().split('T')[0]),
+          expiry_date: LessThan(futureDate),
           remaining_quantity: MoreThanOrEqual(0.001)
         },
         relations: ['ingredient']
@@ -351,9 +352,9 @@ export class InventoryService {
    */
   async removeImport(id: string, userRole: UserRole) {
     try {
-      // Validate admin or manager role
-      if (userRole !== UserRole.ADMIN && userRole !== UserRole.MANAGER) {
-        throw new ForbiddenException('Only admin or manager can delete import records');
+      // Validate admin or warehouse role
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.WAREHOUSE) {
+        throw new ForbiddenException('Only admin or warehouse can perform this action');
       }
       
       // Check if import exists
@@ -401,38 +402,31 @@ export class InventoryService {
    */
   async restoreImport(id: string, userRole: UserRole) {
     try {
-      // Validate admin or manager role
-      if (userRole !== UserRole.ADMIN && userRole !== UserRole.MANAGER) {
-        throw new ForbiddenException('Only admin or manager can restore import records');
+      // Validate admin or warehouse role
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.WAREHOUSE) {
+        throw new ForbiddenException('Only admin or warehouse can perform this action');
       }
       
       // Check if import exists and is deleted
-      const importItem = await this.importRepository.findOne({
+      const importRecord = await this.importRepository.findOne({
         where: { id },
         withDeleted: true
       });
       
-      if (!importItem) {
+      if (!importRecord) {
         throw new NotFoundException(`Import with ID ${id} not found`);
       }
       
-      if (!importItem.deleted_at) {
-        throw new ForbiddenException(`Import with ID ${id} is not deleted`);
+      if (!importRecord.deleted_at) {
+        throw new BadRequestException(`Import with ID ${id} is not deleted`);
       }
       
-      // Restore the import
+      // Restore import and its batches
       await this.importRepository.restore(id);
+      await this.batchRepository.restore({ importId: id });
       
-      // Restore the batches
-      await this.batchRepository.restore({
-        importId: id
-      });
-      
-      return await this.getImportById(id);
+      return importRecord;
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
-        throw error;
-      }
       this.logger.error(`Error restoring import ${id}: ${error.message}`, error.stack);
       throw error;
     }
@@ -445,31 +439,14 @@ export class InventoryService {
   async getAllExports(includeDeleted: boolean = false) {
     try {
       const exports = await this.exportRepository.find({
-        relations: ['created_by'],
+        relations: ['items', 'items.ingredient', 'items.batch'],
         withDeleted: includeDeleted,
         order: {
           created_at: 'DESC'
         }
       });
-      
-      // For each export, get its items
-      const exportsWithItems: any[] = [];
-      
-      for (const exportItem of exports) {
-        const items = await this.exportItemRepository.find({
-          where: {
-            exportId: exportItem.id
-          },
-          relations: ['ingredient', 'batch']
-        });
-        
-        exportsWithItems.push({
-          ...exportItem,
-          items
-        });
-      }
-      
-      return exportsWithItems;
+
+      return exports;
     } catch (error) {
       this.logger.error(`Error getting all exports: ${error.message}`, error.stack);
       throw error;
@@ -483,31 +460,18 @@ export class InventoryService {
    */
   async getExportById(id: string, includeDeleted: boolean = false) {
     try {
-      const exportItem = await this.exportRepository.findOne({
+      const exportRecord = await this.exportRepository.findOne({
         where: { id },
-        relations: ['created_by'],
+        relations: ['items', 'items.ingredient', 'items.batch'],
         withDeleted: includeDeleted
       });
-      
-      if (!exportItem) {
+
+      if (!exportRecord) {
         throw new NotFoundException(`Export with ID ${id} not found`);
       }
-      
-      const items = await this.exportItemRepository.find({
-        where: {
-          exportId: id
-        },
-        relations: ['ingredient', 'batch']
-      });
-      
-      return {
-        ...exportItem,
-        items
-      };
+
+      return exportRecord;
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
       this.logger.error(`Error getting export ${id}: ${error.message}`, error.stack);
       throw error;
     }
@@ -519,74 +483,74 @@ export class InventoryService {
    * @param userId User ID of the creator
    */
   async createExport(createExportDto: CreateExportDto, userId: string) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
     try {
-      // Create the export
-      const exportData = this.exportRepository.create({
+      const exportRecord = this.exportRepository.create({
         createdById: userId,
-        reason: createExportDto.reason
+        created_at: createExportDto.export_date,
+        reason: createExportDto.reason,
+        // description: createExportDto.description, // Not in IngredientExport entity
+        // reference_number: createExportDto.reference_number, // Not in entity by default
       });
-      
-      const savedExport = await this.exportRepository.save(exportData);
-      
-      // Create export items and update batches
-      const items: any[] = [];
-      
+
+      const savedExport = await queryRunner.manager.save(exportRecord);
+      let totalAmount = 0;
+
+      // Process each export item
       for (const itemDto of createExportDto.items) {
-        // Check if batch exists
-        const batch = await this.batchRepository.findOne({
+        const batch = await queryRunner.manager.findOne(Batch, {
           where: { id: itemDto.batchId }
         });
-        
+
         if (!batch) {
           throw new NotFoundException(`Batch with ID ${itemDto.batchId} not found`);
         }
-        
-        // Check if ingredient exists and matches the batch
-        const ingredient = await this.ingredientRepository.findOne({
-          where: { id: itemDto.ingredientId }
-        });
-        
-        if (!ingredient) {
-          throw new NotFoundException(`Ingredient with ID ${itemDto.ingredientId} not found`);
-        }
-        
-        if (batch.ingredientId !== itemDto.ingredientId) {
-          throw new BadRequestException(`Batch ${itemDto.batchId} does not match ingredient ${itemDto.ingredientId}`);
-        }
-        
-        // Check if there's enough quantity
+
         if (batch.remaining_quantity < itemDto.quantity) {
-          throw new BadRequestException(`Not enough quantity in batch ${batch.name}. Available: ${batch.remaining_quantity}, Requested: ${itemDto.quantity}`);
+          throw new BadRequestException(
+            `Insufficient quantity in batch ${batch.name}. Available: ${batch.remaining_quantity}, Requested: ${itemDto.quantity}`
+          );
         }
-        
-        // Create export item
+
         const exportItem = this.exportItemRepository.create({
           exportId: savedExport.id,
           batchId: itemDto.batchId,
           ingredientId: itemDto.ingredientId,
-          quantity: itemDto.quantity
+          quantity: itemDto.quantity,
+          // price: batch.price, // Not in ExportItem entity
         });
+
+        await queryRunner.manager.save(exportItem);
         
-        const savedItem = await this.exportItemRepository.save(exportItem);
-        
-        // Update batch remaining quantity
+        // Update batch quantities
         batch.remaining_quantity -= itemDto.quantity;
-        await this.batchRepository.save(batch);
-        
-        items.push({
-          ...savedItem,
-          batch,
-          ingredient
-        });
+        await queryRunner.manager.save(batch);
+
+        totalAmount += itemDto.quantity * batch.price;
       }
-      
-      return {
-        ...savedExport,
-        items
-      };
+
+      // total_amount is not a field on IngredientExport entity.
+      // If it needs to be returned, it can be part of the response object:
+      // return { ...savedExport, total_amount: totalAmount };
+      // For now, just committing the transaction and returning the saved export.
+      await queryRunner.commitTransaction();
+
+      // Fetch the saved export with its items to return a complete object
+      const result = await this.exportRepository.findOne({
+        where: { id: savedExport.id },
+        relations: ['items', 'items.ingredient', 'items.batch', 'created_by'],
+      });
+      return result;
+
     } catch (error) {
+      await queryRunner.rollbackTransaction();
       this.logger.error(`Error creating export: ${error.message}`, error.stack);
       throw error;
+    } finally {
+      await queryRunner.release();
     }
   }
 
@@ -597,45 +561,36 @@ export class InventoryService {
    */
   async removeExport(id: string, userRole: UserRole) {
     try {
-      // Validate admin or manager role
-      if (userRole !== UserRole.ADMIN && userRole !== UserRole.MANAGER) {
-        throw new ForbiddenException('Only admin or manager can delete export records');
+      // Validate admin or warehouse role
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.WAREHOUSE) {
+        throw new ForbiddenException('Only admin or warehouse can delete export records');
       }
       
       // Check if export exists
-      const exportItem = await this.exportRepository.findOne({
-        where: { id }
+      const exportRecord = await this.exportRepository.findOne({
+        where: { id },
+        relations: ['items', 'items.batch']
       });
       
-      if (!exportItem) {
+      if (!exportRecord) {
         throw new NotFoundException(`Export with ID ${id} not found`);
       }
       
-      // Get export items
-      const items = await this.exportItemRepository.find({
-        where: { exportId: id }
-      });
-      
-      // Restore quantities to batches
-      for (const item of items) {
-        const batch = await this.batchRepository.findOne({
-          where: { id: item.batchId }
-        });
-        
+      // Return quantities to batches
+      for (const item of exportRecord.items) {
+        const batch = item.batch;
         if (batch) {
           batch.remaining_quantity += item.quantity;
           await this.batchRepository.save(batch);
         }
       }
       
-      // Soft delete the export
+      // Soft delete export and items
       await this.exportRepository.softDelete(id);
-      
+      await this.exportItemRepository.softDelete({ exportId: id });
+
       return true;
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
-        throw error;
-      }
       this.logger.error(`Error removing export ${id}: ${error.message}`, error.stack);
       throw error;
     }
@@ -648,66 +603,54 @@ export class InventoryService {
    */
   async restoreExport(id: string, userRole: UserRole) {
     try {
-      // Validate admin or manager role
-      if (userRole !== UserRole.ADMIN && userRole !== UserRole.MANAGER) {
-        throw new ForbiddenException('Only admin or manager can restore export records');
+      // Validate admin or warehouse role
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.WAREHOUSE) {
+        throw new ForbiddenException('Only admin or warehouse can restore export records');
       }
       
       // Check if export exists and is deleted
-      const exportItem = await this.exportRepository.findOne({
+      const exportRecord = await this.exportRepository.findOne({
         where: { id },
         withDeleted: true
       });
       
-      if (!exportItem) {
+      if (!exportRecord) {
         throw new NotFoundException(`Export with ID ${id} not found`);
       }
       
-      if (!exportItem.deleted_at) {
-        throw new ForbiddenException(`Export with ID ${id} is not deleted`);
+      if (!exportRecord.deleted_at) {
+        throw new BadRequestException(`Export with ID ${id} is not deleted`);
       }
       
-      // Get export items
       const items = await this.exportItemRepository.find({
-        where: { exportId: id }
+        where: { exportId: id },
+        withDeleted: true,
+        relations: ['batch']
       });
-      
-      // Check if restoring is possible (all batches still exist)
+
+      // Check if we can restore quantities
       for (const item of items) {
-        const batch = await this.batchRepository.findOne({
-          where: { id: item.batchId }
-        });
-        
-        if (!batch) {
-          throw new ForbiddenException(`Cannot restore export with ID ${id} because batch with ID ${item.batchId} no longer exists`);
+        if (!item.batch || item.batch.remaining_quantity < item.quantity) {
+          throw new BadRequestException(
+            `Cannot restore export: insufficient quantity in batch ${item.batch?.name || 'unknown'}`
+          );
         }
       }
-      
-      // Update batches (reduce remaining quantity again)
-      for (const item of items) {
-        const batch = await this.batchRepository.findOne({
-          where: { id: item.batchId }
-        });
-        
-        // Before using batch, check for null
-        if (!batch) {
-          throw new NotFoundException('Batch not found');
-        }
-        if (batch.remaining_quantity < item.quantity) {
-          throw new ForbiddenException(`Cannot restore export with ID ${id} because batch ${batch.name} does not have enough quantity`);
-        }
-        batch.remaining_quantity -= item.quantity;
-        await this.batchRepository.save(batch);
-      }
-      
-      // Restore the export
+
+      // Restore export and items, update batch quantities
       await this.exportRepository.restore(id);
-      
-      return await this.getExportById(id);
-    } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
-        throw error;
+      await this.exportItemRepository.restore({ exportId: id });
+
+      for (const item of items) {
+        const batch = item.batch;
+        if (batch) {
+          batch.remaining_quantity -= item.quantity;
+          await this.batchRepository.save(batch);
+        }
       }
+
+      return exportRecord;
+    } catch (error) {
       this.logger.error(`Error restoring export ${id}: ${error.message}`, error.stack);
       throw error;
     }
@@ -795,156 +738,97 @@ export class InventoryService {
           }))
         });
       }
-      
-      return result;
+        return result;
     } catch (error) {
       this.logger.error(`Error getting ingredient stock: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  /**
-   * Get import history for a date range
-   * @param startDate Start date (ISO string)
-   * @param endDate End date (ISO string)
-   */
-  async getImportHistory(startDate: string, endDate: string) {
+  async getImportHistory(startDate: Date, endDate: Date) {
     try {
-      const start = startDate ? new Date(startDate) : new Date(0); // If no start date, use epoch
-      const end = endDate ? new Date(endDate) : new Date(); // If no end date, use current date
-      end.setHours(23, 59, 59, 999); // Set to end of day
-      
-      const imports = await this.importRepository.find({
+      return this.importRepository.find({
         where: {
-          created_at: Between(start, end)
+          created_at: Between(startDate, endDate)
         },
-        relations: ['supplier', 'created_by'],
-        order: {
-          created_at: 'DESC'
-        }
+        relations: ['supplier', 'batches', 'batches.ingredient'],
+        order: { created_at: 'DESC' }
       });
-      
-      // For each import, get its batches
-      const importsWithBatches: any[] = [];
-      
-      for (const importItem of imports) {
-        const batches = await this.batchRepository.find({
-          where: {
-            importId: importItem.id
-          },
-          relations: ['ingredient']
-        });
-        
-        importsWithBatches.push({
-          ...importItem,
-          batches,
-          total_value: batches.reduce((sum, batch) => sum + (batch.price * batch.quantity), 0)
-        });
-      }
-      
-      return importsWithBatches;
     } catch (error) {
       this.logger.error(`Error getting import history: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  /**
-   * Get export history for a date range
-   * @param startDate Start date (ISO string)
-   * @param endDate End date (ISO string)
-   */
-  async getExportHistory(startDate: string, endDate: string) {
+  async getExportHistory(startDate: Date, endDate: Date) {
     try {
-      const start = startDate ? new Date(startDate) : new Date(0); // If no start date, use epoch
-      const end = endDate ? new Date(endDate) : new Date(); // If no end date, use current date
-      end.setHours(23, 59, 59, 999); // Set to end of day
-      
-      const exports = await this.exportRepository.find({
+      return this.exportRepository.find({
         where: {
-          created_at: Between(start, end)
+          created_at: Between(startDate, endDate)
         },
-        relations: ['created_by'],
-        order: {
-          created_at: 'DESC'
-        }
+        relations: ['items', 'items.ingredient', 'items.batch'],
+        order: { created_at: 'DESC' }
       });
-      
-      // For each export, get its items
-      const exportsWithItems: any[] = [];
-      
-      for (const exportItem of exports) {
-        const items = await this.exportItemRepository.find({
-          where: {
-            exportId: exportItem.id
-          },
-          relations: ['ingredient', 'batch']
-        });
-        
-        exportsWithItems.push({
-          ...exportItem,
-          items
-        });
-      }
-      
-      return exportsWithItems;
     } catch (error) {
       this.logger.error(`Error getting export history: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  /**
-   * Get stock value report
-   */
-  async getStockValueReport() {
+  async getStockValue() {
     try {
-      // Get all active batches
       const batches = await this.batchRepository.find({
         where: {
           remaining_quantity: MoreThanOrEqual(0.001)
         },
         relations: ['ingredient']
       });
-      
-      // Group by ingredient
-      const ingredientMap = {};
-      let totalValue = 0;
-      
+
+      const ingredientValues = new Map<string, {
+        ingredientId: string;
+        name: string;
+        unit: string;
+        totalQuantity: number;
+        totalValue: number;
+        batches: any[];
+      }>();
+
       batches.forEach(batch => {
-        if (!ingredientMap[batch.ingredientId]) {
-          ingredientMap[batch.ingredientId] = {
-            id: batch.ingredientId,
-            name: batch.ingredient.name,
-            unit: batch.ingredient.unit,
-            total_quantity: 0,
-            total_value: 0,
-            batches: []
-          };
-        }
-        
-        const batchValue = batch.price * batch.remaining_quantity;
-        
-        ingredientMap[batch.ingredientId].total_quantity += batch.remaining_quantity;
-        ingredientMap[batch.ingredientId].total_value += batchValue;
-        ingredientMap[batch.ingredientId].batches.push({
+        const value = batch.remaining_quantity * batch.price;
+        const existing = ingredientValues.get(batch.ingredientId) || {
+          ingredientId: batch.ingredientId,
+          name: batch.ingredient.name,
+          unit: batch.ingredient.unit,
+          totalQuantity: 0,
+          totalValue: 0,
+          batches: []
+        };
+
+        existing.totalQuantity += batch.remaining_quantity;
+        existing.totalValue += value;
+        existing.batches.push({
           id: batch.id,
           name: batch.name,
           remaining_quantity: batch.remaining_quantity,
           price: batch.price,
-          value: batchValue,
+          value: value,
           expiry_date: batch.expiry_date
         });
-        
-        totalValue += batchValue;
+
+        ingredientValues.set(batch.ingredientId, existing);
       });
-      
+
+      const totalValue = Array.from(ingredientValues.values()).reduce(
+        (sum, item) => sum + item.totalValue,
+        0
+      );
+
       return {
-        ingredients: Object.values(ingredientMap),
-        totalValue
+        total_value: totalValue,
+        ingredients: Array.from(ingredientValues.values())
       };
     } catch (error) {
-      this.logger.error(`Error getting stock value report: ${error.message}`, error.stack);
+      this.logger.error(`Error calculating stock value: ${error.message}`, error.stack);
       throw error;
     }
   }

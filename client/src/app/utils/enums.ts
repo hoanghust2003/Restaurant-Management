@@ -16,10 +16,8 @@ export const tableStatusText: Record<TableStatus, string> = {
 // User roles enum matching server-side enum
 export enum UserRole {
   ADMIN = 'admin',
-  MANAGER = 'manager',
-  WAITER = 'waiter',
+  STAFF = 'staff',
   CHEF = 'chef',
-  CASHIER = 'cashier',
   WAREHOUSE = 'warehouse',
   CUSTOMER = 'customer',
 }

@@ -1,5 +1,6 @@
 import axiosInstance from '../utils/axios';
 import { DishModel, CreateDishDto, UpdateDishDto } from '../models/dish.model';
+import { requestCache } from '../utils/requestCache';
 
 // Định nghĩa các endpoint
 const API_URL = '/dishes';
@@ -28,43 +29,52 @@ export const dishService = {
     const response = await axiosInstance.get(url);
     return response.data;
   },
-
   /**
    * Tạo mới món ăn
    */
   async create(dish: CreateDishDto): Promise<DishModel> {
     const response = await axiosInstance.post(API_URL, dish);
+    // Cập nhật cache sau khi tạo mới
+    requestCache.invalidateByPrefix(API_URL);
     return response.data;
   },
-
   /**
    * Cập nhật món ăn
    */
   async update(id: string, dish: UpdateDishDto): Promise<DishModel> {
     const response = await axiosInstance.patch(`${API_URL}/${id}`, dish);
+    // Cập nhật cache sau khi cập nhật
+    requestCache.invalidateByPrefix(API_URL);
+    requestCache.invalidate(`${API_URL}/${id}`);
     return response.data;
   },
-
   /**
    * Xóa tạm thời món ăn (soft delete)
    */
   async delete(id: string): Promise<void> {
     await axiosInstance.delete(`${API_URL}/${id}`);
+    // Cập nhật cache sau khi xóa
+    requestCache.invalidateByPrefix(API_URL);
+    requestCache.invalidate(`${API_URL}/${id}`);
   },
-
   /**
    * Khôi phục món ăn đã xóa tạm thời
    */
   async restore(id: string): Promise<DishModel> {
     const response = await axiosInstance.post(`${API_URL}/${id}/restore`);
+    // Cập nhật cache sau khi khôi phục
+    requestCache.invalidateByPrefix(API_URL);
+    requestCache.invalidate(`${API_URL}/${id}`);
     return response.data;
   },
-
   /**
    * Xóa vĩnh viễn món ăn
    */
   async hardDelete(id: string): Promise<void> {
     await axiosInstance.delete(`${API_URL}/${id}/hard`);
+    // Cập nhật cache sau khi xóa vĩnh viễn
+    requestCache.invalidateByPrefix(API_URL);
+    requestCache.invalidate(`${API_URL}/${id}`);
   },
 
   /**

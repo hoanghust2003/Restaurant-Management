@@ -6,7 +6,7 @@ import RoleBasedLayout from '@/app/components/RoleBasedLayout';
 
 const AddDishPage: React.FC = () => {
   return (
-    <RoleBasedLayout allowedRoles={['admin', 'manager']}>
+    <RoleBasedLayout allowedRoles={['admin']}>
       <div className="p-6">
         <DishForm />
       </div>

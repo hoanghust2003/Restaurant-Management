@@ -33,7 +33,6 @@ import { useRouter } from 'next/navigation';
 import { IngredientModel } from '@/app/models/ingredient.model';
 import { ingredientService } from '@/app/services/ingredient.service';
 import ImageWithFallback from '@/app/components/ImageWithFallback';
-import WarehouseLayout from '@/app/layouts/WarehouseLayout';
 
 const { Title, Text } = Typography;
 
@@ -301,8 +300,8 @@ const IngredientList: React.FC = () => {
 
 export default function IngredientsPage() {
   return (
-    <WarehouseLayout title="Nguyên liệu">
+    <>
       <IngredientList />
-    </WarehouseLayout>
+    </>
   );
 }

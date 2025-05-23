@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Space, Modal, message, Card } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
 import { BaseService } from '@/app/services/base.service';
+import { useRefresh } from '@/app/contexts/RefreshContext';
 
 interface BaseCrudTableProps<T> {
   service: BaseService<T>;
@@ -15,6 +16,8 @@ interface BaseCrudTableProps<T> {
   showActions?: boolean;
   additionalButtons?: React.ReactNode;
   tableProps?: any;
+  dataType?: string; // For specific data type refreshing (tables, ingredients, etc.)
+  fetchDataConfig?: Record<string, any>; // Additional configuration for fetching data
 }
 
 export function BaseCrudTable<T>({
@@ -28,19 +31,26 @@ export function BaseCrudTable<T>({
   onEdit,
   showActions = true,
   additionalButtons,
-  tableProps = {}
+  tableProps = {},
+  dataType,
+  fetchDataConfig = {}
 }: BaseCrudTableProps<T>) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(false);
-
+  const { refreshKey, dataRefreshKeys } = useRefresh();
+  // Listen for both global refresh and specific data type refresh
+  useEffect(() => {
+    fetchData();
+  }, [refreshKey, dataType && dataRefreshKeys[dataType]]);
+  
+  // Ensure we fetch data on initial render
   useEffect(() => {
     fetchData();
   }, []);
-
   const fetchData = async () => {
     try {
       setLoading(true);
-      const result = await service.getAll();
+      const result = await service.getAll(fetchDataConfig);
       setData(result);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -49,15 +59,23 @@ export function BaseCrudTable<T>({
       setLoading(false);
     }
   };
-
   const handleDelete = async (id: string) => {
     try {
       await service.delete(id);
       message.success('Xóa thành công');
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting:', error);
-      message.error('Không thể xóa');
+      // Display the specific error message from the server if available
+      message.error(error.message || 'Không thể xóa');
+      
+      // Check if we need to refresh the token or redirect to login
+      if (error.message?.includes('hết hạn')) {
+        // Redirect to login after delay so user can see the message
+        setTimeout(() => {
+          window.location.href = '/auth/login';
+        }, 2000);
+      }
     }
   };
 
@@ -74,8 +92,7 @@ export function BaseCrudTable<T>({
           >
             Sửa
           </Button>
-        )}
-        <Button
+        )}        <Button
           type="primary"
           danger
           icon={<DeleteOutlined />}
@@ -85,7 +102,13 @@ export function BaseCrudTable<T>({
               content: deleteConfirmDescription,
               okText: 'Xóa',
               cancelText: 'Hủy',
-              onOk: () => handleDelete(record.id)
+              onOk: async () => {
+                try {
+                  await handleDelete(record.id);
+                } catch (error: any) {
+                  // Error already displayed in handleDelete
+                }
+              }
             });
           }}
         >
@@ -100,8 +123,7 @@ export function BaseCrudTable<T>({
     : columns;
 
   return (
-    <Card>
-      <div className="mb-4 flex justify-between items-center">
+    <Card>      <div className="mb-4 flex justify-between items-center">
         <Space>
           {onCreate && (
             <Button
@@ -112,6 +134,13 @@ export function BaseCrudTable<T>({
               {addButtonText}
             </Button>
           )}
+          <Button 
+            icon={<ReloadOutlined />} 
+            onClick={fetchData}
+            loading={loading}
+          >
+            Làm mới
+          </Button>
           {additionalButtons}
         </Space>
       </div>

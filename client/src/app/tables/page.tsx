@@ -54,9 +54,9 @@ export default function TablesPage() {
   
   // Check user permissions
   useEffect(() => {
-    if (!authLoading && user && !hasRole(['admin', 'waiter', 'cashier'])) {
-      message.warning('Bạn không có quyền truy cập trang quản lý bàn');
+    if (!authLoading && user && !hasRole(['admin', 'staff'])) {
       router.push('/');
+      message.error('Bạn không có quyền truy cập trang này');
     }
   }, [user, authLoading, hasRole, router]);
   // Load tables data on component mount and when filter changes
@@ -238,7 +238,7 @@ export default function TablesPage() {
     },
   ];
   return (
-    <AuthGuard allowedRoles={['admin', 'waiter', 'cashier']}>
+    <AuthGuard allowedRoles={['admin', 'staff']}>
       <LayoutProvider title="Quản lý bàn">
         <div className="p-6">
         <div className="flex justify-between items-center mb-6">

@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import { UserRole } from '../utils/enums';
 import BaseLayout from './BaseLayout';
+import { ShoppingCartProvider } from '../contexts/ShoppingCartContext';
 import {
   HomeIcon,
   ClipboardDocumentListIcon,
@@ -70,8 +71,10 @@ interface CustomerLayoutProps {
 
 export default function CustomerLayout({ children }: CustomerLayoutProps) {
   return (
-    <BaseLayout sidebarSections={customerMenuSections} userRole={UserRole.CUSTOMER}>
-      {children}
-    </BaseLayout>
+    <ShoppingCartProvider>
+      <BaseLayout sidebarSections={customerMenuSections} userRole={UserRole.CUSTOMER}>
+        {children}
+      </BaseLayout>
+    </ShoppingCartProvider>
   );
 }

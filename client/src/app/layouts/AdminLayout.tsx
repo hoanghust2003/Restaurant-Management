@@ -22,7 +22,7 @@ const adminMenuSections = [
         href: "/admin/dashboard",
         icon: <HomeIcon className="w-5 h-5" />,
         title: "Bảng điều khiển",
-        showIfRoles: ["admin", "manager"],
+        showIfRoles: ["admin"],
       },
       {
         href: "/admin/users",
@@ -39,23 +39,23 @@ const adminMenuSections = [
         href: "/admin/tables",
         icon: <TableCellsIcon className="w-5 h-5" />,
         title: "Quản lý bàn",
-        showIfRoles: ["admin", "manager"],
+        showIfRoles: ["admin"],
       },
       {
         href: "#",
         icon: <ClipboardDocumentListIcon className="w-5 h-5" />,
         title: "Quản lý đơn hàng",
-        showIfRoles: ["admin", "manager"],
+        showIfRoles: ["admin"],
         subItems: [
           {
             href: "/admin/orders/active",
             title: "Đơn hiện tại",
-            showIfRoles: ["admin", "manager"],
+            showIfRoles: ["admin"],
           },
           {
             href: "/admin/orders/history",
             title: "Lịch sử đơn hàng",
-            showIfRoles: ["admin", "manager"],
+            showIfRoles: ["admin"],
           },
         ],
       },
@@ -63,22 +63,22 @@ const adminMenuSections = [
         href: "#",
         icon: <CakeIcon className="w-5 h-5" />,
         title: "Quản lý thực đơn",
-        showIfRoles: ["admin", "manager", "chef"],
+        showIfRoles: ["admin", "chef"],
         subItems: [
           {
             href: "/admin/dishes",
             title: "Món ăn",
-            showIfRoles: ["admin", "manager", "chef"],
+            showIfRoles: ["admin", "chef"],
           },
           {
             href: "/admin/menus",
             title: "Thực đơn",
-            showIfRoles: ["admin", "manager", "chef"],
+            showIfRoles: ["admin", "chef"],
           },
           {
             href: "/admin/categories",
             title: "Danh mục",
-            showIfRoles: ["admin", "manager"],
+            showIfRoles: ["admin"],
           },
         ],
       },
@@ -86,22 +86,22 @@ const adminMenuSections = [
         href: "#",
         icon: <BuildingStorefrontIcon className="w-5 h-5" />,
         title: "Quản lý kho",
-        showIfRoles: ["admin", "manager", "warehouse"],
+        showIfRoles: ["admin", "warehouse"],
         subItems: [
           {
             href: "/admin/inventory/ingredients",
             title: "Nguyên liệu",
-            showIfRoles: ["admin", "manager", "warehouse"],
+            showIfRoles: ["admin", "warehouse"],
           },
           {
             href: "/admin/inventory/imports",
             title: "Nhập kho",
-            showIfRoles: ["admin", "manager", "warehouse"],
+            showIfRoles: ["admin", "warehouse"],
           },
           {
             href: "/admin/inventory/exports",
             title: "Xuất kho",
-            showIfRoles: ["admin", "manager", "warehouse"],
+            showIfRoles: ["admin", "warehouse"],
           },
         ],
       },
@@ -114,17 +114,17 @@ const adminMenuSections = [
         href: "#",
         icon: <ChartBarIcon className="w-5 h-5" />,
         title: "Báo cáo & Thống kê",
-        showIfRoles: ["admin", "manager"],
+        showIfRoles: ["admin"],
         subItems: [
           {
             href: "/admin/reports/sales",
             title: "Báo cáo doanh thu",
-            showIfRoles: ["admin", "manager"],
+            showIfRoles: ["admin"],
           },
           {
             href: "/admin/reports/inventory",
             title: "Báo cáo kho",
-            showIfRoles: ["admin", "manager"],
+            showIfRoles: ["admin"],
           },
           {
             href: "/admin/reports/staff",

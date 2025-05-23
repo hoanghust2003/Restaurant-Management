@@ -73,46 +73,53 @@ export class UsersService {
   }
 
   async update(id: string, userData: UpdateUserDto): Promise<Partial<User>> {
-    const user = await this.findById(id);
-    
-    // Check if trying to change email to an already used one
-    if (userData.email && userData.email !== user.email) {
-      const existingUser = await this.userRepository.findOne({ 
-        where: { email: userData.email } 
+    try {
+      const user = await this.findById(id);
+      
+      // Check if trying to change email to an already used one
+      if (userData.email && userData.email !== user.email) {
+        const existingUser = await this.userRepository.findOne({ 
+          where: { email: userData.email } 
+        });
+        
+        if (existingUser) {
+          throw new BadRequestException('Email đã được sử dụng');
+        }
+      }
+
+      // Handle avatar changes
+      if (userData.avatar_url && 
+          this.fileUploadService && 
+          user.avatar_url && 
+          !userData.avatar_url.includes(user.avatar_url)) {
+        try {
+          // Delete old avatar if exists
+          const oldAvatarKey = this.fileUploadService.extractKeyFromUrl(user.avatar_url);
+          if (oldAvatarKey) {
+            await this.fileUploadService.deleteFile(oldAvatarKey);
+          }
+        } catch (error) {
+          // Log error but continue with update
+          console.error('Error deleting old avatar:', error);
+        }
+      }
+      
+      // Apply updates
+      const updatedUser = await this.userRepository.save({
+        id,
+        ...user,
+        ...userData
       });
       
-      if (existingUser) {
-        throw new BadRequestException('Email đã được sử dụng');
+      // Remove password from returned object
+      const { password, ...result } = updatedUser;
+      return result;
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
       }
+      throw new BadRequestException(`Lỗi cập nhật người dùng: ${error.message}`);
     }
-
-    // If changing avatar and we have the fileUploadService
-    if (userData.avatar_url && 
-        this.fileUploadService && 
-        user.avatar_url && 
-        !userData.avatar_url.includes(user.avatar_url)) {
-      // Try to delete the old avatar from S3
-      try {
-        const oldAvatarKey = this.fileUploadService.extractKeyFromUrl(user.avatar_url);
-        if (oldAvatarKey) {
-          await this.fileUploadService.deleteFile(oldAvatarKey);
-        }
-      } catch (error) {
-        // Log error but continue with update
-        console.error('Error deleting old avatar:', error);
-      }
-    }
-    
-    // Apply updates
-    const updatedUser = await this.userRepository.save({
-      id,
-      ...user,
-      ...userData
-    });
-    
-    // Remove password from returned object
-    const { password, ...result } = updatedUser;
-    return result;
   }
 
   async updateProfile(id: string, profileData: UpdateUserProfileDto): Promise<Partial<User>> {
@@ -183,25 +190,33 @@ export class UsersService {
   }
 
   async remove(id: string): Promise<void> {
-    const user = await this.userRepository.findOne({ where: { id } });
-    
-    if (!user) {
-      throw new NotFoundException(`Không tìm thấy người dùng với ID: ${id}`);
-    }
-
-    // If user has an avatar and we have the fileUploadService
-    if (user.avatar_url && this.fileUploadService) {
-      try {
-        const avatarKey = this.fileUploadService.extractKeyFromUrl(user.avatar_url);
-        if (avatarKey) {
-          await this.fileUploadService.deleteFile(avatarKey);
-        }
-      } catch (error) {
-        // Log error but continue with deletion
-        console.error('Error deleting avatar during user removal:', error);
+    try {
+      const user = await this.userRepository.findOne({ where: { id } });
+      
+      if (!user) {
+        throw new NotFoundException(`Không tìm thấy người dùng với ID: ${id}`);
       }
+
+      // If user has an avatar and we have the fileUploadService
+      if (user.avatar_url && this.fileUploadService) {
+        try {
+          const avatarKey = this.fileUploadService.extractKeyFromUrl(user.avatar_url);
+          if (avatarKey) {
+            await this.fileUploadService.deleteFile(avatarKey);
+          }
+        } catch (error) {
+          // Log error but continue with deletion
+          console.error('Error deleting avatar during user removal:', error);
+        }
+      }
+      
+      // Use soft delete instead of hard delete
+      await this.userRepository.softDelete(id);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(`Lỗi xóa người dùng: ${error.message}`);
     }
-    
-    await this.userRepository.remove(user);
   }
 }

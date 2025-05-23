@@ -45,9 +45,9 @@ const OrderList: React.FC<OrderListProps> = ({
 }) => {
   const { hasRole } = useAuth();
   const router = useRouter();
-  const canManageOrders = hasRole(['admin', 'waiter', 'cashier']);
+  const canManageOrders = hasRole(['admin', 'staff']);
   const canCompleteOrders = hasRole(['admin', 'cashier']);
-  const canCancelOrders = hasRole(['admin', 'waiter', 'cashier']);
+  const canCancelOrders = hasRole(['admin', 'staff']);
   
   const [filteredOrders, setFilteredOrders] = useState<OrderModel[]>(orders);
   const [searchText, setSearchText] = useState<string>('');

@@ -13,8 +13,8 @@ export default function TablesRouterPage() {
       if (hasRole(['admin'])) {
         // Only admin has full access to admin tables page
         router.push('/tables');
-      } else if (hasRole(['waiter', 'cashier'])) {
-        // Waiters and cashiers only have limited access
+      } else if (hasRole(['staff'])) {
+        // Staff only have limited access
         router.push('/waiter/tables');
       } else {
         // Redirect users with other roles to home page

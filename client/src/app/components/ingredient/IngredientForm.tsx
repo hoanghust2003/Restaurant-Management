@@ -7,6 +7,7 @@ import { ingredientService } from '@/app/services/ingredient.service';
 import { IngredientModel } from '@/app/models/ingredient.model';
 import { useRouter } from 'next/navigation';
 import ImageWithFallback from '@/app/components/ImageWithFallback';
+import { useRefresh } from '@/app/contexts/RefreshContext';
 
 const { Title } = Typography;
 
@@ -32,6 +33,7 @@ const IngredientForm: React.FC<IngredientFormProps> = ({
   const [imageLoading, setImageLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | undefined>(ingredient?.image_url || undefined);
   const router = useRouter();
+  const { refreshSpecificData } = useRefresh();
 
   // Thiết lập dữ liệu ban đầu nếu là form chỉnh sửa
   useEffect(() => {
@@ -62,12 +64,16 @@ const IngredientForm: React.FC<IngredientFormProps> = ({
         // Cập nhật nguyên liệu
         result = await ingredientService.update(ingredient.id, values);
         message.success('Cập nhật nguyên liệu thành công');
+        // Refresh ingredient data throughout the app
+        refreshSpecificData('ingredients');
       } else {
         // Tạo nguyên liệu mới
         result = await ingredientService.create(values);
         message.success('Tạo nguyên liệu thành công');
         form.resetFields(); // Reset form sau khi tạo thành công
         setImageUrl(undefined); // Reset image URL state
+        // Refresh ingredient data throughout the app
+        refreshSpecificData('ingredients');
       }
       
       // Gọi callback nếu có

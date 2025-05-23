@@ -15,17 +15,12 @@ export interface DishIngredientModel {
 export interface DishModel {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   price: number;
-  image_url?: string;
-  is_preparable: boolean;
-  available: boolean;
-  preparation_time: number;
-  categoryId: string;
-  category?: CategoryModel;
-  dishIngredients?: DishIngredientModel[];
+  image_url?: string; // URL to dish image
+  category?: string;  // Category name
   created_at: Date;
-  deleted_at?: Date | null;
+  updated_at: Date;
 }
 
 /**

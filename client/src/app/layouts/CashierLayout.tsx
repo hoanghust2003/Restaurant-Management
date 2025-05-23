@@ -22,7 +22,7 @@ const cashierMenuSections = [
         href: '/cashier/dashboard',
         icon: <HomeIcon className="w-5 h-5" />,
         title: 'Dashboard',
-        showIfRoles: ['cashier', 'admin', 'manager'],
+        showIfRoles: ['staff', 'admin'],
       },
     ],
   },
@@ -33,17 +33,17 @@ const cashierMenuSections = [
         href: '#',
         icon: <ClipboardDocumentListIcon className="w-5 h-5" />,
         title: 'Đơn hàng',
-        showIfRoles: ['cashier', 'admin', 'manager'],
+        showIfRoles: ['staff', 'admin'],
         subItems: [
           {
             href: '/cashier/orders/active',
             title: 'Đơn hiện tại',
-            showIfRoles: ['cashier', 'admin', 'manager'],
+            showIfRoles: ['staff', 'admin'],
           },
           {
             href: '/cashier/orders/history',
             title: 'Lịch sử đơn hàng',
-            showIfRoles: ['cashier', 'admin', 'manager'],
+            showIfRoles: ['staff', 'admin'],
           },
         ],
       },
@@ -56,17 +56,17 @@ const cashierMenuSections = [
         href: '#',
         icon: <CurrencyDollarIcon className="w-5 h-5" />,
         title: 'Thanh toán',
-        showIfRoles: ['cashier', 'admin', 'manager'],
+        showIfRoles: ['staff', 'admin'],
         subItems: [
           {
             href: '/cashier/payments/pending',
             title: 'Chờ thanh toán',
-            showIfRoles: ['cashier', 'admin', 'manager'],
+            showIfRoles: ['staff', 'admin'],
           },
           {
             href: '/cashier/payments/completed',
             title: 'Lịch sử thanh toán',
-            showIfRoles: ['cashier', 'admin', 'manager'],
+            showIfRoles: ['staff', 'admin'],
           },
         ],
       },
@@ -74,7 +74,7 @@ const cashierMenuSections = [
         href: '/cashier/shifts',
         icon: <ArrowPathIcon className="w-5 h-5" />,
         title: 'Quản lý ca',
-        showIfRoles: ['cashier', 'admin', 'manager'],
+        showIfRoles: ['staff', 'admin'],
       },
     ],
   },
@@ -85,17 +85,17 @@ const cashierMenuSections = [
         href: '#',
         icon: <ChartBarIcon className="w-5 h-5" />,
         title: 'Báo cáo',
-        showIfRoles: ['cashier', 'admin', 'manager'],
+        showIfRoles: ['staff', 'admin'],
         subItems: [
           {
             href: '/cashier/reports/sales',
             title: 'Báo cáo doanh thu',
-            showIfRoles: ['cashier', 'admin', 'manager'],
+            showIfRoles: ['staff', 'admin'],
           },
           {
             href: '/cashier/reports/shifts',
             title: 'Báo cáo ca làm việc',
-            showIfRoles: ['cashier', 'admin', 'manager'],
+            showIfRoles: ['staff', 'admin'],
           },
         ],
       },
@@ -108,13 +108,13 @@ const cashierMenuSections = [
         href: '/cashier/profile',
         icon: <UserIcon className="w-5 h-5" />,
         title: 'Thông tin cá nhân',
-        showIfRoles: ['cashier', 'admin', 'manager'],
+        showIfRoles: ['staff', 'admin'],
       },
       {
         href: '/cashier/settings',
         icon: <Cog6ToothIcon className="w-5 h-5" />,
         title: 'Cài đặt thu ngân',
-        showIfRoles: ['cashier', 'admin', 'manager'],
+        showIfRoles: ['staff', 'admin'],
       },
     ],
   },
@@ -130,7 +130,7 @@ export default function CashierLayout({ children, title }: CashierLayoutProps) {
     <BaseLayout
       title={title}
       sidebarSections={cashierMenuSections}
-      userRole={UserRole.CASHIER}
+      userRole={UserRole.STAFF}
     >
       {children}
     </BaseLayout>

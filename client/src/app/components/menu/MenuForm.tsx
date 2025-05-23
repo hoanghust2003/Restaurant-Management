@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, Select, message, Spin } from 'antd';
+import { Form, Input, Button, Select, message, Spin, Checkbox } from 'antd';
 import { menuService } from '@/app/services/menu.service';
 import { dishService } from '@/app/services/dish.service';
 import { CreateMenuDto, MenuModel, UpdateMenuDto } from '@/app/models/menu.model';
@@ -15,7 +15,6 @@ interface MenuFormProps {
   isEdit?: boolean;
   onSuccess?: () => void;
 }
-
 const MenuForm: React.FC<MenuFormProps> = ({ menu, isEdit = false, onSuccess }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -47,6 +46,7 @@ const MenuForm: React.FC<MenuFormProps> = ({ menu, isEdit = false, onSuccess }) 
       form.setFieldsValue({
         name: menu.name,
         description: menu.description,
+        is_main: menu.is_main,
       });
 
       // If menu has dishes, set them in the select
@@ -66,7 +66,8 @@ const MenuForm: React.FC<MenuFormProps> = ({ menu, isEdit = false, onSuccess }) 
       const formData: CreateMenuDto | UpdateMenuDto = {
         name: values.name,
         description: values.description,
-        dishIds: values.dishIds || []
+        dishIds: values.dishIds || [],
+        is_main: values.is_main || false,
       };
       
       if (isEdit && menu) {
@@ -105,7 +106,7 @@ const MenuForm: React.FC<MenuFormProps> = ({ menu, isEdit = false, onSuccess }) 
       form={form}
       layout="vertical"
       onFinish={handleSubmit}
-      initialValues={{ name: '', description: '', dishIds: [] }}
+      initialValues={{ name: '', description: '', dishIds: [], is_main: false }}
     >
       <Form.Item
         name="name"
@@ -154,6 +155,15 @@ const MenuForm: React.FC<MenuFormProps> = ({ menu, isEdit = false, onSuccess }) 
             </Option>
           ))}
         </Select>
+      </Form.Item>
+
+      <Form.Item
+        name="is_main"
+        valuePropName="checked"
+        label="Đặt làm menu chính"
+        tooltip="Chỉ một menu được đặt làm menu chính. Khi lưu, menu này sẽ thay thế menu chính hiện tại."
+      >
+        <Checkbox>Menu chính</Checkbox>
       </Form.Item>
 
       <Form.Item>

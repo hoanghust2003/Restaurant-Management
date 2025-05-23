@@ -11,6 +11,7 @@ export interface MenuModel {
   image_url?: string;
   createdAt?: Date;
   dishes?: DishModel[]; // Optional list of dishes in the menu
+  is_main?: boolean; // Optional flag to indicate if this is the main menu
 }
 
 /**
@@ -21,6 +22,7 @@ export interface CreateMenuDto {
   description: string;
   image_url?: string;
   dishIds?: string[]; // Optional list of dish IDs to add to the menu
+  is_main?: boolean; // Optional flag to indicate if this should be the main menu
 }
 
 /**
@@ -31,6 +33,7 @@ export interface UpdateMenuDto {
   description?: string;
   image_url?: string;
   dishIds?: string[]; // Optional list of dish IDs to update in the menu
+  is_main?: boolean; // Optional flag to update the main menu status
 }
 
 /**

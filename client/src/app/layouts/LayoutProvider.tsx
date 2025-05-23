@@ -36,10 +36,8 @@ export default function LayoutProvider({ children, title }: LayoutProviderProps)
       return <ChefLayout title={title}>{children}</ChefLayout>;
     
     case 'cashier':
-      return <CashierLayout title={title}>{children}</CashierLayout>;
-    
     case 'waiter':
-      return <WaiterLayout title={title}>{children}</WaiterLayout>;
+      return <CashierLayout title={title}>{children}</CashierLayout>;
     
     case 'customer':
       return <CustomerLayout title={title}>{children}</CustomerLayout>;

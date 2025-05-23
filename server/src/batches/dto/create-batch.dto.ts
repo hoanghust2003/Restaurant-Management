@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsString, IsUUID, IsNumber, IsPositive, IsDateString } from 'class-validator';
+import { IsNotEmpty, IsString, IsUUID, IsNumber, IsPositive, IsDateString, IsOptional, IsEnum } from 'class-validator';
+import { BatchStatus } from '../../enums/batch-status.enum';
 
 export class CreateBatchDto {
   @IsNotEmpty({ message: 'ID nhập kho không được để trống' })
@@ -26,9 +27,20 @@ export class CreateBatchDto {
   @IsNotEmpty({ message: 'Ngày hết hạn không được để trống' })
   @IsDateString({}, { message: 'Ngày hết hạn không hợp lệ' })
   expiry_date: string;
+  @IsNotEmpty({ message: 'Đơn giá không được để trống' })
+  @IsNumber({}, { message: 'Đơn giá phải là số' })
+  @IsPositive({ message: 'Đơn giá phải là số dương' })
+  unit_price: number;
 
-  @IsNotEmpty({ message: 'Giá không được để trống' })
-  @IsNumber({}, { message: 'Giá phải là số' })
-  @IsPositive({ message: 'Giá phải là số dương' })
-  price: number;
+  @IsNumber({}, { message: 'Tổng giá phải là số' })
+  @IsPositive({ message: 'Tổng giá phải là số dương' })
+  total_price: number;
+
+  @IsString({ message: 'Số lô phải là chuỗi' })
+  @IsOptional()
+  lot_number?: string;
+
+  @IsEnum(BatchStatus, { message: 'Trạng thái không hợp lệ' })
+  @IsOptional()
+  status?: BatchStatus;
 }

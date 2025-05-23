@@ -72,7 +72,7 @@ export default function DashboardPage() {
       <h2 className="text-xl font-semibold text-gray-800 mb-6">Dashboard</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Table management - only for admin, waiter, and cashier */}
-        {hasRole(['admin', 'waiter', 'cashier']) && (
+        {hasRole(['admin', 'staff']) && (
           <DashboardCard
             title="Quản lý bàn"
             description="Xem và quản lý trạng thái bàn"
@@ -83,7 +83,7 @@ export default function DashboardPage() {
         )}
         
         {/* Waiter can manage orders */}
-        {hasRole(['admin', 'manager', 'waiter', 'cashier']) && (
+        {hasRole(['admin', 'staff']) && (
           <DashboardCard
             title="Đặt món"
             description="Tạo và quản lý đơn hàng"
@@ -94,7 +94,7 @@ export default function DashboardPage() {
         )}
 
         {/* Admin and Manager only */}
-        {hasRole(['admin', 'manager']) && (
+        {hasRole(['admin']) && (
           <>
             <DashboardCard
               title="Quản lý nhân viên"
@@ -142,7 +142,7 @@ export default function DashboardPage() {
         )}
         
         {/* Cashier staff only */}
-        {hasRole(['cashier', 'admin', 'manager']) && (
+        {hasRole(['staff', 'admin']) && (
           <DashboardCard
             title="Thanh toán"
             description="Xử lý thanh toán và hóa đơn"
@@ -169,7 +169,7 @@ export default function DashboardPage() {
         <p className="text-gray-600 mb-2">
           Bạn đang đăng nhập với vai trò <span className="font-semibold">
             {user?.role === 'admin' && 'Quản trị viên'}
-            {user?.role === 'waiter' && 'Nhân viên phục vụ'}
+            {user?.role === 'staff' && 'Nhân viên phục vụ'}
             {user?.role === 'chef' && 'Đầu bếp'}
             {user?.role === 'cashier' && 'Thu ngân'}
             {user?.role === 'warehouse' && 'Nhân viên kho'}

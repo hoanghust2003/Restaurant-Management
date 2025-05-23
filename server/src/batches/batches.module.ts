@@ -8,6 +8,7 @@ import { IngredientImport } from '../entities/ingredient-import.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from '../auth/auth.module';
+import { BatchAllocationService } from './batch-allocation.service';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { AuthModule } from '../auth/auth.module';
     ConfigModule,
   ],
   controllers: [BatchesController],
-  providers: [BatchesService],
-  exports: [BatchesService],
+  providers: [BatchesService, BatchAllocationService],
+  exports: [BatchesService, BatchAllocationService],
 })
 export class BatchesModule {}

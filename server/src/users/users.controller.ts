@@ -1,5 +1,24 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Request, ForbiddenException, UseInterceptors, UploadedFile, ParseFilePipe, FileTypeValidator, MaxFileSizeValidator } from '@nestjs/common';
+import { 
+  Controller, 
+  Get, 
+  Post, 
+  Patch, 
+  Delete, 
+  Body, 
+  Param, 
+  UseGuards, 
+  Request, 
+  ForbiddenException,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  FileTypeValidator,
+  MaxFileSizeValidator,
+  BadRequestException,
+  NotFoundException
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { FileUploadInterceptor } from '../common/interceptors/file-upload.interceptor';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
@@ -26,7 +45,7 @@ export class UsersController {
   // Update current user profile with avatar - accessible to authenticated users
   @UseGuards(JwtAuthGuard)
   @Patch('me')
-  @UseInterceptors(FileInterceptor('avatar'))
+  @UseInterceptors(FileInterceptor('avatar'), FileUploadInterceptor)
   async updateProfile(
     @Request() req,
     @Body() updateProfileDto: UpdateUserProfileDto,
@@ -76,7 +95,7 @@ export class UsersController {
   // Create a new user with avatar - accessible only to admins
   @UseGuards(JwtAuthGuard)
   @Post()
-  @UseInterceptors(FileInterceptor('avatar'))
+  @UseInterceptors(FileInterceptor('avatar'), FileUploadInterceptor)
   async createUser(
     @Request() req, 
     @Body() createUserDto: CreateUserDto,
@@ -110,7 +129,7 @@ export class UsersController {
   // Update a user with avatar - accessible only to admins
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  @UseInterceptors(FileInterceptor('avatar'))
+  @UseInterceptors(FileInterceptor('avatar'), FileUploadInterceptor)
   async updateUser(
     @Request() req,
     @Param('id') id: string,
@@ -119,34 +138,61 @@ export class UsersController {
       new ParseFilePipe({
         validators: [
           new FileTypeValidator({ fileType: '.(png|jpeg|jpg)' }),
-          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), 
         ],
         fileIsRequired: false,
+        errorHttpStatusCode: 400,
       }),
     ) avatar: Express.Multer.File,
   ) {
-    this.checkIsAdmin(req.user);
-    
-    if (avatar) {
-      // Upload avatar to S3 using our enhanced method
-      const avatarUrl = await this.fileUploadService.uploadFile(avatar, 'avatars');
+    try {
+      // Check admin permission
+      this.checkIsAdmin(req.user);
       
-      // Only add avatar URL if it's not null
-      if (avatarUrl) {
-        updateUserDto.avatar_url = avatarUrl;
+      // Prevent admin from editing their own role
+      if (id === req.user.userId && updateUserDto.role) {
+        throw new ForbiddenException('Không thể thay đổi vai trò của chính mình');
       }
+      
+      // Handle avatar upload if provided
+      if (avatar) {
+        const avatarUrl = await this.fileUploadService.uploadFile(avatar, 'avatars');
+        if (avatarUrl) {
+          updateUserDto.avatar_url = avatarUrl;
+        }
+      }
+      
+      const updatedUser = await this.usersService.update(id, updateUserDto);
+      return { message: 'Cập nhật người dùng thành công', user: updatedUser };
+    } catch (error) {
+      if (error instanceof ForbiddenException || error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(`Lỗi cập nhật người dùng: ${error.message}`);
     }
-    
-    return this.usersService.update(id, updateUserDto);
   }
 
   // Delete a user - accessible only to admins
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async deleteUser(@Request() req, @Param('id') id: string) {
-    this.checkIsAdmin(req.user);
-    await this.usersService.remove(id);
-    return { message: 'Xóa người dùng thành công' };
+    try {
+      // Check admin permission
+      this.checkIsAdmin(req.user);
+      
+      // Prevent admin from deleting themselves
+      if (id === req.user.userId) {
+        throw new ForbiddenException('Không thể xóa tài khoản của chính mình');
+      }
+
+      await this.usersService.remove(id);
+      return { message: 'Xóa người dùng thành công' };
+    } catch (error) {
+      if (error instanceof ForbiddenException || error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(`Lỗi xóa người dùng: ${error.message}`);
+    }
   }
 
   // Helper method to check if user is an admin

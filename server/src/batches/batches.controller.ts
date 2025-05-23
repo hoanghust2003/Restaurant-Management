@@ -15,7 +15,7 @@ export class BatchesController {
   constructor(private readonly batchesService: BatchesService) {}
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   @ApiOperation({ summary: 'Get all batches' })
   @ApiResponse({ status: 200, description: 'Returns all batches' })
   async findAll(@Query('include_deleted') includeDeleted: boolean = false) {
@@ -23,7 +23,7 @@ export class BatchesController {
   }
 
   @Get('expiring')
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   @ApiOperation({ summary: 'Get expiring batches' })
   @ApiResponse({ status: 200, description: 'Returns batches expiring soon' })
   async getExpiringBatches(@Query('days') days: number = 7) {
@@ -31,15 +31,15 @@ export class BatchesController {
   }
 
   @Get('expired')
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   @ApiOperation({ summary: 'Get expired batches' })
   @ApiResponse({ status: 200, description: 'Returns expired batches' })
-  async getExpiredBatches() {
-    return await this.batchesService.getExpiredBatches();
+  async findExpiredBatches() {
+    return await this.batchesService.getExpiringBatches();
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   @ApiOperation({ summary: 'Get batch by ID' })
   @ApiResponse({ status: 200, description: 'Returns the batch' })
   @ApiResponse({ status: 404, description: 'Batch not found' })
@@ -51,7 +51,7 @@ export class BatchesController {
   }
 
   @Post()
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   @ApiOperation({ summary: 'Create a new batch' })
   @ApiResponse({ status: 201, description: 'Batch successfully created' })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
@@ -60,7 +60,7 @@ export class BatchesController {
   }
 
   @Put(':id')
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   @ApiOperation({ summary: 'Update a batch' })
   @ApiResponse({ status: 200, description: 'Batch successfully updated' })
   @ApiResponse({ status: 404, description: 'Batch not found' })
@@ -74,7 +74,7 @@ export class BatchesController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a batch' })
   @ApiResponse({ status: 204, description: 'Batch successfully deleted' })
@@ -84,7 +84,7 @@ export class BatchesController {
   }
 
   @Put(':id/restore')
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   @ApiOperation({ summary: 'Restore a deleted batch' })
   @ApiResponse({ status: 200, description: 'Batch successfully restored' })
   @ApiResponse({ status: 404, description: 'Batch not found' })

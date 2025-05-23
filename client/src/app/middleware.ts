@@ -18,8 +18,8 @@ const publicRoutes = ['/auth/login', '/auth/register'];
 // Các routes chỉ dành cho ADMIN
 const adminOnlyRoutes = ['/admin', '/admin/users'];
 
-// Routes cần quyền MANAGER hoặc ADMIN
-const managerRoutes = ['/reports', '/settings'];
+// Routes cần quyền ADMIN
+const adminRoutes = ['/reports', '/settings'];
 
 // Routes dành cho bếp trưởng/đầu bếp
 const chefRoutes = ['/kitchen'];
@@ -74,20 +74,20 @@ export function middleware(request: NextRequest) {
     }
 
     // Kiểm tra quyền manager
-    if (managerRoutes.some(route => pathname.startsWith(route)) && 
-        !['admin', 'manager'].includes(role)) {
+    if (adminRoutes.some(route => pathname.startsWith(route)) && 
+        !['admin'].includes(role)) {
       return NextResponse.redirect(new URL('/', request.url));
     }
 
     // Kiểm tra quyền đầu bếp
     if (chefRoutes.some(route => pathname.startsWith(route)) && 
-        !['admin', 'manager', 'chef'].includes(role)) {
+        !['admin', 'chef'].includes(role)) {
       return NextResponse.redirect(new URL('/', request.url));
     }
 
     // Kiểm tra quyền nhân viên kho
     if (warehouseRoutes.some(route => pathname.startsWith(route)) && 
-        !['admin', 'manager', 'warehouse'].includes(role)) {
+        !['admin', 'warehouse'].includes(role)) {
       return NextResponse.redirect(new URL('/', request.url));
     }
 

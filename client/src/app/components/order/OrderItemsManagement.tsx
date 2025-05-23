@@ -84,35 +84,34 @@ const OrderItemsManagement: React.FC<OrderItemsManagementProps> = ({
               <Text type="secondary" italic>Ghi chú: {record.note}</Text>
             </div>
           )}
-        </div>
-      ),
-    },
-    {
-      title: 'Số lượng',
-      dataIndex: 'quantity',
-      key: 'quantity',
-      width: 100,
-    },
-    {
-      title: 'Đơn giá',
-      dataIndex: ['dish', 'price'],
-      key: 'price',
-      width: 150,
-      render: (price: number) => formatPrice(price),
-    },
-    {
-      title: 'Thành tiền',
-      key: 'total',
-      width: 150,
-      render: (_, record: OrderItemModel) => 
-        formatPrice((record.dish?.price || 0) * record.quantity),
-    },
-    {
-      title: 'Trạng thái',
-      dataIndex: 'status',
-      key: 'status',
-      width: 150,
-      render: (status: OrderItemStatus) => (
+        ),
+          },
+          {
+        title: 'Số lượng',
+        dataIndex: 'quantity',
+        key: 'quantity',
+        width: 100,
+          } as const,
+          {
+        title: 'Đơn giá',
+        dataIndex: ['dish', 'price'],
+        key: 'price',
+        width: 150,
+        render: (price: number) => formatPrice(price),
+          } as const,
+          {
+        title: 'Thành tiền',
+        key: 'total',
+        width: 150,
+        render: (_: unknown, record: OrderItemModel) => 
+          formatPrice((record.dish?.price || 0) * record.quantity),
+          } as const,
+          {
+        title: 'Trạng thái',
+        dataIndex: 'status',
+        key: 'status',
+        width: 150,
+        render: (status: OrderItemStatus) => (
         <Tag color={orderItemStatusColors[status]} icon={getStatusIcon(status)}>
           {orderItemStatusText[status]}
         </Tag>

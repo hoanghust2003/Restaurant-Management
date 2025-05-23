@@ -20,12 +20,12 @@ export class CategoriesController {
     return this.categoriesService.findOne(id);
   }  @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async create(@Body() createCategoryDto: CreateCategoryDto, @Request() req) {
     return this.categoriesService.create(createCategoryDto, req.user.role);
   }  @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async update(
     @Param('id') id: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
@@ -34,7 +34,7 @@ export class CategoriesController {
     return this.categoriesService.update(id, updateCategoryDto, req.user.role);
   }  @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async remove(@Param('id') id: string, @Request() req) {
     await this.categoriesService.remove(id, req.user.role);
     return { message: 'Đã xóa danh mục thành công' };
@@ -42,7 +42,7 @@ export class CategoriesController {
 
   @Post(':id/restore')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async restore(@Param('id') id: string, @Request() req) {
     await this.categoriesService.restore(id, req.user.role);
     return { message: 'Đã khôi phục danh mục thành công' };

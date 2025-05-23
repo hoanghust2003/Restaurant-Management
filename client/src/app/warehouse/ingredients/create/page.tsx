@@ -11,6 +11,7 @@ const CreateIngredientPage: React.FC = () => {
   const router = useRouter();
   
   const handleSuccess = () => {
+    router.refresh();
     router.push('/warehouse/ingredients');
   };
   

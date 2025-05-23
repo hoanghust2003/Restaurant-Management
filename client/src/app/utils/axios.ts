@@ -139,14 +139,36 @@ axiosInstance.interceptors.response.use(
         });
       }
     } 
-    // Handle session expiration (401 Unauthorized) or Forbidden (403)
-    else if ((error.response?.status === 401 || error.response?.status === 403) && typeof window !== 'undefined') {
-      // Clear local storage and redirect to login if token is invalid/expired or access forbidden
-      localStorage.removeItem('token');
-      window.location.href = '/auth/login';
+    // Handle session expiration (401 Unauthorized) 
+    else if (error.response?.status === 401 && typeof window !== 'undefined') {
+      // Don't redirect on API operations that might reasonably return 401
+      const isApiOperation = error.config?.url && (
+        error.config.url.includes('/delete') ||
+        error.config.url.includes('/update') ||
+        error.config.method === 'delete' ||
+        error.config.method === 'patch' ||
+        error.config.method === 'put'
+      );
+      
+      if (!isApiOperation) {
+        // Only clear token and redirect for non-API operations
+        localStorage.removeItem('token');
+        // Use dynamic import for message to avoid SSR issues
+        import('antd').then(({ message }) => {
+          message.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        });
+        
+        // Use a small timeout to allow the message to be displayed before redirecting
+        setTimeout(() => {
+          window.location.href = '/auth/login';
+        }, 1000);
+      }
+    }
+    // Handle Forbidden (403) - display message but don't redirect
+    else if (error.response?.status === 403 && typeof window !== 'undefined') {
       // Use dynamic import for message to avoid SSR issues
       import('antd').then(({ message }) => {
-        message.error('Phiên đăng nhập đã hết hạn hoặc bạn không có quyền truy cập. Vui lòng đăng nhập lại.');
+        message.error('Bạn không có quyền thực hiện thao tác này.');
       });
     }
     return Promise.reject(error);

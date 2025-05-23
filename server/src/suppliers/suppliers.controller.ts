@@ -24,21 +24,21 @@ export class SuppliersController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async create(@Body() createSupplierDto: CreateSupplierDto, @Request() req) {
     return this.suppliersService.create(createSupplierDto, req.user.role);
   }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async update(@Param('id') id: string, @Body() updateSupplierDto: UpdateSupplierDto, @Request() req) {
     return this.suppliersService.update(id, updateSupplierDto, req.user.role);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async remove(@Param('id') id: string, @Request() req) {
     await this.suppliersService.remove(id, req.user.role);
     return { message: 'Đã xóa nhà cung cấp thành công' };
@@ -46,7 +46,7 @@ export class SuppliersController {
 
   @Post(':id/restore')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async restore(@Param('id') id: string, @Request() req) {
     await this.suppliersService.restore(id, req.user.role);
     return { message: 'Đã khôi phục nhà cung cấp thành công' };

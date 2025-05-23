@@ -39,9 +39,8 @@ interface BaseLayoutProps {
 
 const roleNames: Record<string, string> = {
   admin: 'Quản trị viên',
-  waiter: 'Nhân viên phục vụ',
+  staff: 'Nhân viên phục vụ',
   chef: 'Đầu bếp',
-  cashier: 'Thu ngân',
   warehouse: 'Nhân viên kho',
   customer: 'Khách hàng',
 };

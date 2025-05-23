@@ -7,34 +7,36 @@ import { UserRole } from '../enums/user-role.enum';
 import { CreateImportDto } from './dto/create-import.dto';
 import { CreateExportDto } from './dto/create-export.dto';
 
+import { BadRequestException } from '@nestjs/common';
+
 @Controller('inventory')
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 
   @Get('stats')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async getInventoryStats() {
     return this.inventoryService.getInventoryStats();
   }
 
   @Get('low-stock')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE, UserRole.CHEF)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE, UserRole.CHEF)
   async getLowStockItems() {
     return this.inventoryService.getLowStockItems();
   }
 
   @Get('expiring-soon')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async getExpiringSoonItems(@Query('days') days: number = 30) {
     return this.inventoryService.getExpiringSoonItems(days);
   }
 
   @Get('imports')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async getAllImports(@Query('includeDeleted') includeDeleted?: string) {
     const include = includeDeleted === 'true';
     return this.inventoryService.getAllImports(include);
@@ -42,7 +44,7 @@ export class InventoryController {
 
   @Get('imports/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async getImportById(@Param('id') id: string, @Query('includeDeleted') includeDeleted?: string) {
     const include = includeDeleted === 'true';
     return this.inventoryService.getImportById(id, include);
@@ -50,14 +52,14 @@ export class InventoryController {
 
   @Post('imports')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async createImport(@Body() createImportDto: CreateImportDto, @Request() req) {
     return this.inventoryService.createImport(createImportDto, req.user.id);
   }
 
   @Delete('imports/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async removeImport(@Param('id') id: string, @Request() req) {
     await this.inventoryService.removeImport(id, req.user.role);
     return { message: 'Đã xóa phiếu nhập kho thành công' };
@@ -65,7 +67,7 @@ export class InventoryController {
 
   @Post('imports/:id/restore')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async restoreImport(@Param('id') id: string, @Request() req) {
     await this.inventoryService.restoreImport(id, req.user.role);
     return { message: 'Đã khôi phục phiếu nhập kho thành công' };
@@ -73,7 +75,7 @@ export class InventoryController {
 
   @Get('exports')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async getAllExports(@Query('includeDeleted') includeDeleted?: string) {
     const include = includeDeleted === 'true';
     return this.inventoryService.getAllExports(include);
@@ -81,7 +83,7 @@ export class InventoryController {
 
   @Get('exports/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async getExportById(@Param('id') id: string, @Query('includeDeleted') includeDeleted?: string) {
     const include = includeDeleted === 'true';
     return this.inventoryService.getExportById(id, include);
@@ -89,14 +91,14 @@ export class InventoryController {
 
   @Post('exports')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async createExport(@Body() createExportDto: CreateExportDto, @Request() req) {
     return this.inventoryService.createExport(createExportDto, req.user.id);
   }
 
   @Delete('exports/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async removeExport(@Param('id') id: string, @Request() req) {
     await this.inventoryService.removeExport(id, req.user.role);
     return { message: 'Đã xóa phiếu xuất kho thành công' };
@@ -104,7 +106,7 @@ export class InventoryController {
 
   @Post('exports/:id/restore')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async restoreExport(@Param('id') id: string, @Request() req) {
     await this.inventoryService.restoreExport(id, req.user.role);
     return { message: 'Đã khôi phục phiếu xuất kho thành công' };
@@ -112,7 +114,7 @@ export class InventoryController {
 
   @Get('batches')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE, UserRole.CHEF)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE, UserRole.CHEF)
   async getAllBatches(@Query('includeDeleted') includeDeleted?: string) {
     const include = includeDeleted === 'true';
     return this.inventoryService.getAllBatches(include);
@@ -120,7 +122,7 @@ export class InventoryController {
 
   @Get('batches/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE, UserRole.CHEF)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE, UserRole.CHEF)
   async getBatchById(@Param('id') id: string, @Query('includeDeleted') includeDeleted?: string) {
     const include = includeDeleted === 'true';
     return this.inventoryService.getBatchById(id, include);
@@ -128,29 +130,29 @@ export class InventoryController {
 
   @Get('ingredient-stock')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE, UserRole.CHEF)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE, UserRole.CHEF)
   async getIngredientStock() {
     return this.inventoryService.getIngredientStock();
   }
 
   @Get('import-history')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async getImportHistory(@Query('startDate') startDate: string, @Query('endDate') endDate: string) {
-    return this.inventoryService.getImportHistory(startDate, endDate);
+    return this.inventoryService.getImportHistory(new Date(startDate), new Date(endDate));
   }
 
   @Get('export-history')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async getExportHistory(@Query('startDate') startDate: string, @Query('endDate') endDate: string) {
-    return this.inventoryService.getExportHistory(startDate, endDate);
+    return this.inventoryService.getExportHistory(new Date(startDate), new Date(endDate));
   }
 
   @Get('reports/stock-value')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.WAREHOUSE)
-  async getStockValueReport() {
-    return this.inventoryService.getStockValueReport();
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
+  async getStockValue() {
+    return this.inventoryService.getStockValue();
   }
 }

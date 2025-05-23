@@ -85,7 +85,10 @@ const EditIngredientPage = ({ params }: { params: Params }) => {
           <IngredientForm 
             ingredient={ingredient} 
             isEdit={true} 
-            onSuccess={() => router.push('/admin/ingredients')} 
+            onSuccess={() => {
+              router.refresh(); // Add this line
+              router.push('/admin/ingredients');
+            }} 
           />
         </Card>
       </div>

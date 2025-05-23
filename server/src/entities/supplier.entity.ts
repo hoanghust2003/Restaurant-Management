@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, DeleteDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, DeleteDateColumn } from 'typeorm';
+import { IngredientImport } from './ingredient-import.entity';
 
 @Entity('suppliers')
 export class Supplier {
@@ -20,9 +21,12 @@ export class Supplier {
   @Column('text')
   address: string;
 
+  @OneToMany(() => IngredientImport, import_ => import_.supplier)
+  imports: IngredientImport[];
+
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
-  
+
   @DeleteDateColumn({ name: 'deleted_at', nullable: true })
   deleted_at: Date;
 }
