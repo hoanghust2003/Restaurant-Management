@@ -317,4 +317,28 @@ export class OrdersService {
     // Then delete the order
     await this.orderRepository.delete(id);
   }
+
+  async createCustomerOrder(createOrderDto: any): Promise<OrderWithItems> {
+    // Validate table exists
+    const table = await this.tableRepository.findOne({
+      where: { id: createOrderDto.tableId },
+    });
+    
+    if (!table) {
+      throw new NotFoundException(`Table with ID ${createOrderDto.tableId} not found`);
+    }
+    
+    // Use a default system user ID for customer orders
+    // In production, consider implementing anonymous user or guest customer system
+    const systemUserId = process.env.SYSTEM_USER_ID || '00000000-0000-0000-0000-000000000001';
+    
+    // Prepare data with the system user
+    const orderData = {
+      ...createOrderDto,
+      userId: systemUserId
+    };
+    
+    // Call the regular create method
+    return this.create(orderData);
+  }
 }

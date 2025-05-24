@@ -17,6 +17,7 @@ import { SuppliersModule } from './suppliers/suppliers.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { FinancialModule } from './financial/financial.module';
 import { ReportsModule } from './reports/reports.module';
+import { CustomerModule } from './customer/customer.module';
 import { ConfigModule } from '@nestjs/config';
 import { FileUploadModule } from './file-upload/file-upload.module';
 import { CategoriesModule } from './categories/categories.module';
@@ -49,6 +50,7 @@ import * as path from 'path';
     MenusModule,
     OrdersModule,
     KitchenModule,
+    CustomerModule,
     BatchesModule,
     SuppliersModule,    
     InventoryModule,

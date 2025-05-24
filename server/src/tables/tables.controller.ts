@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { TablesService } from './tables.service';
-import { CreateTableDto, UpdateTableDto, UpdateTableStatusDto } from './dto';
+import { CreateTableDto, UpdateTableDto, UpdateTableStatusDto, QrCodeResponseDto } from './dto';
 import { TableEntity } from '../entities/table.entity';
 import { TableStatus } from '../enums/table-status.enum';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -104,5 +104,13 @@ export class TablesController {
       updateTableStatusDto.status, 
       req.user.role
     );
+  }
+
+  @Get(':id/qr-code')
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
+  async generateQrCode(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<QrCodeResponseDto> {
+    return this.tablesService.generateQrCode(id);
   }
 }
