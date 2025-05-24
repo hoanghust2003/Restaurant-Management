@@ -15,25 +15,32 @@ interface ShoppingCartContextType {
   items: CartItem[];
   totalItems: number;
   totalPrice: number;
+  tableId: string | null;
   addItem: (dish: DishModel, quantity?: number, note?: string) => void;
   removeItem: (dishId: string) => void;
   updateItemQuantity: (dishId: string, quantity: number) => void;
   updateItemNote: (dishId: string, note: string) => void;
   clearCart: () => void;
   isItemInCart: (dishId: string) => boolean;
+  setTableId: (tableId: string | null) => void;
 }
 
 const ShoppingCartContext = createContext<ShoppingCartContextType | undefined>(undefined);
 
 export const ShoppingCartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [tableId, setTableId] = useState<string | null>(null);
   
   // Load cart from localStorage on initial render
   useEffect(() => {
     try {
       const savedCart = localStorage.getItem('shoppingCart');
+      const savedTableId = localStorage.getItem('shoppingCartTableId');
       if (savedCart) {
         setItems(JSON.parse(savedCart));
+      }
+      if (savedTableId) {
+        setTableId(savedTableId);
       }
     } catch (error) {
       console.error('Error loading cart from localStorage:', error);
@@ -48,18 +55,25 @@ export const ShoppingCartProvider = ({ children }: { children: ReactNode }) => {
       console.error('Error saving cart to localStorage:', error);
     }
   }, [items]);
+
+  // Save tableId to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      if (tableId) {
+        localStorage.setItem('shoppingCartTableId', tableId);
+      } else {
+        localStorage.removeItem('shoppingCartTableId');
+      }
+    } catch (error) {
+      console.error('Error saving tableId to localStorage:', error);
+    }
+  }, [tableId]);
   
   // Calculate total number of items and total price
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = items.reduce((sum, item) => sum + (item.dish.price * item.quantity), 0);
-  
-  // Add item to cart or update quantity if it already exists
+    // Add item to cart or update quantity if it already exists
   const addItem = useCallback((dish: DishModel, quantity: number = 1, note?: string) => {
-    if (!dish.available) {
-      message.error('Món ăn này hiện không có sẵn');
-      return;
-    }
-    
     setItems(prevItems => {
       const existingItemIndex = prevItems.findIndex(item => item.dishId === dish.id);
       
@@ -125,19 +139,20 @@ export const ShoppingCartProvider = ({ children }: { children: ReactNode }) => {
   const isItemInCart = useCallback((dishId: string) => {
     return items.some(item => item.dishId === dishId);
   }, [items]);
-  
-  return (
+    return (
     <ShoppingCartContext.Provider
       value={{
         items,
         totalItems,
         totalPrice,
+        tableId,
         addItem,
         removeItem,
         updateItemQuantity,
         updateItemNote,
         clearCart,
-        isItemInCart
+        isItemInCart,
+        setTableId
       }}
     >
       {children}

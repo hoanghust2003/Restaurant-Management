@@ -7,6 +7,24 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { usePerformanceMonitor } from '@/app/utils/performanceMonitoring';
 import { prefetchWaiterDashboardData } from '@/app/utils/prefetch';
+import QrCodeModal from '@/app/components/QrCodeModal';
+import { 
+  Button, 
+  Select, 
+  Modal, 
+  Form, 
+  message, 
+  Spin 
+} from 'antd';
+import axios from '../../utils/axios';
+import { TableStatus } from '@/app/utils/enums';
+import { withRetry } from '@/app/utils/apiRetry';t React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import dynamic from 'next/dynamic';
+import WaiterLayout from '@/app/layouts/WaiterLayout';
+import { useAuth } from '@/app/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { usePerformanceMonitor } from '@/app/utils/performanceMonitoring';
+import { prefetchWaiterDashboardData } from '@/app/utils/prefetch';
 import { 
   Button, 
   Select, 
@@ -55,6 +73,8 @@ export default function WaiterTablesPage() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<TableData | null>(null);
   const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
+  const [qrModalVisible, setQrModalVisible] = useState(false);
+  const [selectedTableForQr, setSelectedTableForQr] = useState<TableData | null>(null);
   const [form] = Form.useForm();
   
   // Monitor component performance
@@ -185,13 +205,22 @@ export default function WaiterTablesPage() {
 
     const newStatus = values.status;
     const originalStatus = selectedTable.status;
+    const tableId = selectedTable.id;
 
-    // Optimistic UI update: Cập nhật trạng thái bàn trong state `tables`
-    setTables(prevTables =>
-      prevTables.map(t =>
-        t.id === selectedTable.id ? { ...t, status: newStatus } : t
-      )
-    );
+    try {
+      // Optimistic UI update
+      setTables(prevTables =>
+        prevTables.map(t =>
+          t.id === tableId ? { ...t, status: newStatus } : t
+        )
+      );
+
+      // Close modal first for better UX
+      setIsStatusModalVisible(false);
+
+      // Make the API call
+      await axios.patch(`/tables/${tableId}/status`, { status: newStatus });
+      message.success('Cập nhật trạng thái bàn thành công');
     setIsStatusModalVisible(false); // Đóng modal ngay
 
     try {
@@ -225,7 +254,19 @@ export default function WaiterTablesPage() {
     // Sử dụng router.push thay vì window.location để tránh làm mới toàn bộ trang
     router.push(`/orders/create?tableId=${table.id}`);
   }, [router]);
-    // Sử dụng useMemo để tránh tính toán lại mỗi khi render
+
+  // Handle QR code display
+  const handleShowQrCode = useCallback((table: TableData) => {
+    setSelectedTableForQr(table);
+    setQrModalVisible(true);
+  }, []);
+
+  const handleQrModalClose = useCallback(() => {
+    setQrModalVisible(false);
+    setSelectedTableForQr(null);
+  }, []);
+  
+  // Sử dụng useMemo để tránh tính toán lại mỗi khi render
   const getStatusColor = useMemo(() => (status: string) => {
     return statusColors[status as TableStatus] || 'default';
   }, []);
@@ -257,6 +298,7 @@ export default function WaiterTablesPage() {
               loading={loading}
               onStatusChange={showStatusModal}
               onCreateOrder={handleCreateOrder}
+              onShowQrCode={handleShowQrCode}
             />
           </Suspense>
       </div>
@@ -288,6 +330,15 @@ export default function WaiterTablesPage() {
           </div>
         </Form>
       </Modal>
+
+      <QrCodeModal
+        open={qrModalVisible}
+        table={selectedTableForQr ? {
+          ...selectedTableForQr,
+          status: selectedTableForQr.status as any
+        } : null}
+        onClose={handleQrModalClose}
+      />
     </WaiterLayout>
   );
 }

@@ -17,6 +17,7 @@ interface TablesGridProps {
   loading: boolean;
   onStatusChange: (table: TableData) => void;
   onCreateOrder: (table: TableData) => void;
+  onShowQrCode?: (table: TableData) => void;
 }
 
 // Fallback component for error states
@@ -42,7 +43,7 @@ const ErrorFallback = ({ error, resetErrorBoundary }: { error: Error, resetError
 };
 
 // Optimized component with performance monitoring
-const TablesGrid = memo(({ tables, loading, onStatusChange, onCreateOrder }: TablesGridProps) => {
+const TablesGrid = memo(({ tables, loading, onStatusChange, onCreateOrder, onShowQrCode }: TablesGridProps) => {
   const [renderTime, setRenderTime] = useState<number | null>(null);
   const [visibleChunks, setVisibleChunks] = useState<number>(5); // Initially show 5 chunks
   
@@ -132,6 +133,7 @@ const TablesGrid = memo(({ tables, loading, onStatusChange, onCreateOrder }: Tab
                       table={table}
                       onStatusChange={onStatusChange}
                       onCreateOrder={onCreateOrder}
+                      onShowQrCode={onShowQrCode || (() => {})}
                     />
                   </Col>
                 ))}
@@ -156,6 +158,7 @@ const TablesGrid = memo(({ tables, loading, onStatusChange, onCreateOrder }: Tab
                       table={table}
                       onStatusChange={onStatusChange}
                       onCreateOrder={onCreateOrder}
+                      onShowQrCode={onShowQrCode || (() => {})}
                     />
                   </Col>
                 ))}

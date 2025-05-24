@@ -2,6 +2,7 @@
 
 import React, { memo, useCallback, useMemo } from 'react';
 import { Card, Tag, Button } from 'antd';
+import { QrcodeOutlined } from '@ant-design/icons';
 import { TableStatus } from '@/app/utils/enums';
 
 // Status color mapping
@@ -31,13 +32,14 @@ interface TableCardProps {
   table: TableData;
   onStatusChange: (table: TableData) => void;
   onCreateOrder: (table: TableData) => void;
+  onShowQrCode: (table: TableData) => void;
 }
 
 /**
  * TableCard component - displays a restaurant table with its status and actions
  * Optimized with memo to prevent unnecessary re-renders
  */
-const TableCard = memo(({ table, onStatusChange, onCreateOrder }: TableCardProps) => {
+const TableCard = memo(({ table, onStatusChange, onCreateOrder, onShowQrCode }: TableCardProps) => {
   // Memoize derived values
   const statusColor = useMemo(() => {
     return statusColors[table.status as TableStatus] || 'default';
@@ -55,6 +57,10 @@ const TableCard = memo(({ table, onStatusChange, onCreateOrder }: TableCardProps
   const handleCreateOrder = useCallback(() => {
     onCreateOrder(table);
   }, [onCreateOrder, table]);
+
+  const handleShowQrCode = useCallback(() => {
+    onShowQrCode(table);
+  }, [onShowQrCode, table]);
   
   // Memoize button disabled state
   const orderButtonDisabled = useMemo(() => {
@@ -77,6 +83,13 @@ const TableCard = memo(({ table, onStatusChange, onCreateOrder }: TableCardProps
           onClick={handleStatusChange}
         >
           Đổi trạng thái
+        </Button>,
+        <Button 
+          key="qr" 
+          icon={<QrcodeOutlined />}
+          onClick={handleShowQrCode}
+        >
+          QR Code
         </Button>,
         <Button 
           key="order" 

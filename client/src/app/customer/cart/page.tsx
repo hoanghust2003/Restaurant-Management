@@ -29,6 +29,8 @@ import { useShoppingCart } from '@/app/contexts/ShoppingCartContext';
 import { formatPrice } from '@/app/utils/format';
 import { tableService } from '@/app/services/table.service';
 import { orderService } from '@/app/services/order.service';
+import { customerService } from '@/app/services/customer.service';
+import { CreateCustomerOrderDto } from '@/app/models/customer.model';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { TableModel } from '@/app/models/table.model';
 import { TableStatus } from '@/app/utils/enums';
@@ -40,7 +42,7 @@ const { Option } = Select;
 const { confirm } = Modal;
 
 export default function ShoppingCartPage() {
-  const { items, totalPrice, updateItemQuantity, updateItemNote, removeItem, clearCart } = useShoppingCart();
+  const { items, totalPrice, updateItemQuantity, updateItemNote, removeItem, clearCart, tableId: cartTableId } = useShoppingCart();
   const [checkoutLoading, setCheckoutLoading] = useState<boolean>(false);
   const [checkoutModalVisible, setCheckoutModalVisible] = useState<boolean>(false);
   const [tables, setTables] = useState<TableModel[]>([]);
@@ -73,14 +75,8 @@ export default function ShoppingCartPage() {
       },
     });
   };
-  
   // Handle showing checkout modal
   const showCheckoutModal = async () => {
-    if (!user) {
-      message.error('Vui lòng đăng nhập để đặt hàng');
-      return;
-    }
-    
     try {
       setTablesLoading(true);
       const tableData = await tableService.getAll();
@@ -89,6 +85,12 @@ export default function ShoppingCartPage() {
         table.status === TableStatus.AVAILABLE || table.status === TableStatus.RESERVED
       );
       setTables(availableTables);
+      
+      // If we have a table selected from QR code, set it in the form
+      if (cartTableId) {
+        form.setFieldsValue({ tableId: cartTableId });
+      }
+      
       setCheckoutModalVisible(true);
     } catch (error) {
       console.error('Error fetching tables:', error);
@@ -96,45 +98,62 @@ export default function ShoppingCartPage() {
     } finally {
       setTablesLoading(false);
     }
-  };
-  
-  // Handle checkout form submission
+  };// Handle checkout form submission
   const handleCheckout = async (values: any) => {
-    if (!user) {
-      message.error('Vui lòng đăng nhập để đặt hàng');
+    if (items.length === 0) {
+      message.error('Giỏ hàng trống');
       return;
     }
     
-    if (items.length === 0) {
-      message.error('Giỏ hàng trống');
+    // Check if tableId is available either from context or form
+    const selectedTableId = cartTableId || values.tableId;
+    if (!selectedTableId) {
+      message.error('Vui lòng chọn bàn để đặt hàng');
       return;
     }
     
     try {
       setCheckoutLoading(true);
       
-      // Prepare order data
-      const orderData = {
-        tableId: values.tableId,
-        userId: user.id,
-        items: items.map(item => ({
-          dishId: item.dishId,
-          quantity: item.quantity,
-          note: item.note
-        }))
-      };
+      // Prepare items data
+      const orderItems = items.map(item => ({
+        dishId: item.dishId,
+        quantity: item.quantity,
+        note: item.note
+      }));
       
-      // Create order through the API
-      await orderService.create(orderData);
+      if (user) {
+        // Authenticated user order
+        const orderData = {
+          tableId: selectedTableId,
+          userId: user.id,
+          items: orderItems
+        };
+        
+        // Create order through the authenticated API
+        await orderService.create(orderData);
+      } else {
+        // Customer (unauthenticated) order
+        const customerOrderData: CreateCustomerOrderDto = {
+          tableId: selectedTableId,
+          items: orderItems
+        };
+        
+        // Create order through the customer API
+        await customerService.createOrder(customerOrderData);      }
       
       message.success('Đặt hàng thành công!');
       
       // Clear cart and close modal
       clearCart();
       setCheckoutModalVisible(false);
-      
-      // Redirect to active orders
-      router.push('/customer/orders/active');
+        // Redirect based on user state
+      if (user) {
+        router.push('/customer/orders/active');
+      } else {
+        // For unauthenticated users, go back to menu with order success flag
+        router.push(`/customer/menu?tableId=${selectedTableId}&orderSuccess=true`);
+      }
     } catch (error) {
       console.error('Error creating order:', error);
       message.error('Không thể đặt hàng. Vui lòng thử lại sau.');
@@ -291,35 +310,64 @@ export default function ShoppingCartPage() {
             </Empty>
           )}
         </Card>
-        
-        <Modal
-          title="Xác nhận đặt hàng"
-          visible={checkoutModalVisible}
+          <Modal
+          title={
+            <div className="flex items-center">
+              <ShoppingOutlined className="mr-2" />
+              <span>Xác nhận đặt hàng</span>
+            </div>
+          }
+          open={checkoutModalVisible}
           onCancel={() => setCheckoutModalVisible(false)}
           footer={null}
-          destroyOnClose
+          destroyOnHidden
+          centered
         >
           <Form
             form={form}
             layout="vertical"
             onFinish={handleCheckout}
+            initialValues={{ tableId: cartTableId || undefined }}
           >
-            <Form.Item
-              name="tableId"
-              label="Chọn bàn"
-              rules={[{ required: true, message: 'Vui lòng chọn bàn' }]}
-            >
-              <Select 
-                placeholder="Chọn bàn"
-                loading={tablesLoading}
+            {cartTableId ? (
+              <div className="mb-6">
+                <Card className="bg-blue-50 border border-blue-200">
+                  <div className="flex items-center">
+                    <div className="mr-4">
+                      <TableOutlined style={{ fontSize: '24px', color: '#1890ff' }}/>
+                    </div>
+                    <div>
+                      <div className="text-lg font-medium">
+                        {tables.find(t => t.id === cartTableId)?.name || `Bàn đã chọn`}
+                      </div>
+                      <Text type="secondary">
+                        Thông tin bàn đã lấy từ mã QR
+                      </Text>
+                      <Input type="hidden" name="tableId" value={cartTableId} />
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            ) : (
+              <Form.Item
+                name="tableId"
+                label="Chọn bàn"
+                rules={[{ required: true, message: 'Vui lòng chọn bàn để đặt món' }]}
               >
-                {tables.map(table => (
-                  <Option key={table.id} value={table.id}>
-                    {table.name} - {table.capacity} chỗ
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
+                <Select 
+                  placeholder="Chọn bàn để đặt món"
+                  loading={tablesLoading}
+                  size="large"
+                  style={{ width: '100%' }}
+                >
+                  {tables.map(table => (
+                    <Option key={table.id} value={table.id}>
+                      {table.name} - {table.capacity} chỗ ngồi
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            )}
             
             <Divider />
             
