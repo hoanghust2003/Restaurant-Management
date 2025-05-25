@@ -81,9 +81,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       (response) => response,
       (error) => {
         // Chỉ xử lý lỗi 401 khi không phải đang đăng nhập/đăng ký
+        // Và cũng không xử lý lỗi từ auth/me để tránh vòng lặp redirect
         if (error.response?.status === 401 && 
             !error.config.url.includes('/auth/login') && 
-            !error.config.url.includes('/auth/register')) {
+            !error.config.url.includes('/auth/register') &&
+            !error.config.url.includes('/auth/me')) {
           logout();
           router.push('/auth/login');
           toast.error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại');
@@ -99,8 +101,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Kiểm tra xem người dùng đã đăng nhập chưa
   useEffect(() => {
+    console.log('AuthContext - Checking authentication status');
     const checkAuth = async () => {
       const token = localStorage.getItem('token');
+      console.log('AuthContext - Token from localStorage:', token ? 'Found' : 'Not found');
       if (token) {
         try {
           // Giải mã token để lấy thông tin người dùng
@@ -154,17 +158,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 name: response.data.name,
                 role: decoded.role,
                 avatar_url: response.data.avatar_url
-              });
-            } catch (apiError) {
-              console.error('Error fetching user info:', apiError);
-              // Vẫn set thông tin cơ bản từ token nếu API lỗi
-              setUser({
-                id: decoded.sub,
-                email: decoded.email,
-                name: decoded.email.split('@')[0], // Fallback nếu không có name
-                role: decoded.role,
-                avatar_url: undefined
-              });
+              });        } catch (apiError: any) {
+          console.error('Error fetching user info:', apiError);
+          
+          // Check if the error is due to token being invalid/expired
+          if (apiError.response?.status === 401) {
+            console.log('Token không hợp lệ hoặc hết hạn, xóa token');
+            localStorage.removeItem('token');
+            setUser(null);
+            // KHÔNG chuyển hướng ở đây để tránh vòng lặp redirect
+          } else {
+                // Cho các lỗi khác không phải 401, vẫn sử dụng thông tin từ token
+                setUser({
+                  id: decoded.sub,
+                  email: decoded.email,
+                  name: decoded.email.split('@')[0], // Fallback nếu không có name
+                  role: decoded.role,
+                  avatar_url: undefined
+                });
+              }
             }
           }
         } catch (error) {
@@ -184,6 +196,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       console.log('Sending login request to:', `${API_BASE_URL}/auth/login`);
+      console.log('Checking API connectivity...');
+      
+      try {
+        // First check if the API is reachable with a simple OPTIONS request
+        await axios.options(`${API_BASE_URL}/auth/login`);
+        console.log('API endpoint is reachable');
+      } catch (optionsError) {
+        console.error('API endpoint unreachable:', optionsError);
+      }
+      
+      console.log('Proceeding with login request');
       const response = await axios.post(`${API_BASE_URL}/auth/login`, {
         email,
         password
@@ -194,6 +217,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Lưu token vào localStorage
       localStorage.setItem('token', accessToken);
+      
+      // Thiết lập cookie để middleware có thể truy cập token
+      document.cookie = `token=${accessToken}; path=/; max-age=${60*60*24}; SameSite=Strict`;
       
       // Thiết lập token cho các request sau này
       axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
@@ -243,6 +269,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Đăng xuất
   const logout = () => {
     localStorage.removeItem('token');
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
     setUser(null);
     axios.defaults.headers.common['Authorization'] = '';
     toast.info('Đã đăng xuất');
@@ -254,22 +281,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const token = localStorage.getItem('token');
       if (token) {
         const decoded = jwtDecode<JwtPayload>(token);
-        const response = await axios.get(`${API_BASE_URL}/auth/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`
+        try {
+          const response = await axios.get(`${API_BASE_URL}/auth/me`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
+          
+          // Log the response data to see what we're getting from the server
+          console.log('Auth ME response data:', response.data);
+          
+          setUser({
+            id: decoded.sub,
+            email: decoded.email,
+            name: response.data.name,
+            role: decoded.role,
+            avatar_url: response.data.avatar_url
+          });
+        } catch (apiError: any) {
+          console.error('Error fetching user profile:', apiError);
+          
+          // Xử lý lỗi token không hợp lệ
+          if (apiError.response?.status === 401) {
+            localStorage.removeItem('token');
+            setUser(null);
+            // Không chuyển hướng ở đây để tránh vòng lặp
           }
-        });
-        
-        // Log the response data to see what we're getting from the server
-        console.log('Auth ME response data:', response.data);
-        
-        setUser({
-          id: decoded.sub,
-          email: decoded.email,
-          name: response.data.name,
-          role: decoded.role,
-          avatar_url: response.data.avatar_url
-        });
+        }
       }
     } catch (error) {
       console.error('Error updating user profile:', error);
