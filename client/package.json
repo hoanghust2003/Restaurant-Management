@@ -17,6 +17,7 @@
     "antd": "^5.25.1",
     "autoprefixer": "^10.4.21",
     "axios": "^1.9.0",
+    "client": "file:",
     "clsx": "^2.1.1",
     "framer-motion": "^12.12.1",
     "jwt-decode": "^4.0.0",

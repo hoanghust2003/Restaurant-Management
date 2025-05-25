@@ -12,16 +12,22 @@ import {
   BuildingStorefrontIcon,
   ChartBarIcon,
   Cog6ToothIcon,
+  InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 
-const adminMenuSections = [
-  {
+const adminMenuSections = [  {
     title: "Tổng quan",
     items: [
       {
         href: "/admin/dashboard",
         icon: <HomeIcon className="w-5 h-5" />,
         title: "Bảng điều khiển",
+        showIfRoles: ["admin"],
+      },
+      {
+        href: "/admin/restaurant/info",
+        icon: <InformationCircleIcon className="w-5 h-5" />,
+        title: "Thông tin nhà hàng",
         showIfRoles: ["admin"],
       },
       {

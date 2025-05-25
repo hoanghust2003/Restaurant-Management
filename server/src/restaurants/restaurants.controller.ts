@@ -8,10 +8,12 @@ import {
   Delete,
   HttpStatus,
   HttpCode,
+  Res,
 } from '@nestjs/common';
 import { RestaurantsService } from './restaurants.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
+import { Response } from 'express';
 
 @Controller('restaurants')
 export class RestaurantsController {
@@ -30,8 +32,13 @@ export class RestaurantsController {
 
   @Get('info')
   @HttpCode(HttpStatus.OK)
-  async getRestaurantInfo() {
+  async getRestaurantInfo(@Res({ passthrough: true }) response: Response) {
     const restaurant = await this.restaurantsService.getRestaurantInfo();
+
+    // Set cache headers - cache for 5 minutes
+    response.setHeader('Cache-Control', 'public, max-age=300');
+    response.setHeader('ETag', `"${restaurant.id}-${Date.now()}"`);
+
     return {
       statusCode: HttpStatus.OK,
       message: 'Restaurant information retrieved successfully',

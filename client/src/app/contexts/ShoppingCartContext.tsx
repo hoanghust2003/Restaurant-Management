@@ -30,14 +30,19 @@ const ShoppingCartContext = createContext<ShoppingCartContextType | undefined>(u
 export const ShoppingCartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
   const [tableId, setTableId] = useState<string | null>(null);
-  
-  // Load cart from localStorage on initial render
+    // Load cart from localStorage on initial render
   useEffect(() => {
     try {
       const savedCart = localStorage.getItem('shoppingCart');
       const savedTableId = localStorage.getItem('shoppingCartTableId');
-      if (savedCart) {
-        setItems(JSON.parse(savedCart));
+      if (savedCart && savedCart !== "undefined") {
+        try {
+          setItems(JSON.parse(savedCart));
+        } catch (parseError) {
+          console.error('Error parsing cart data:', parseError);
+          // Reset corrupted cart data
+          localStorage.removeItem('shoppingCart');
+        }
       }
       if (savedTableId) {
         setTableId(savedTableId);

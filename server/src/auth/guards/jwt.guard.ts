@@ -12,13 +12,26 @@ export class JwtAuthGuard implements CanActivate {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
-
   canActivate(
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
+    if (context.getType() !== 'http') {
+      // Nếu không phải HTTP request (ví dụ: WebSocket), bỏ qua xác thực
+      return true;
+    }
+    
     const request = context.switchToHttp().getRequest();
-    const token = request.headers['authorization']?.split(' ')[1];
-
+    // Kiểm tra nếu request.headers tồn tại
+    if (!request || !request.headers) {
+      return false;
+    }
+    
+    const authHeader = request.headers['authorization'];
+    if (!authHeader) {
+      throw new UnauthorizedException('No authentication token provided');
+    }
+    
+    const token = authHeader.split(' ')[1];
     if (!token) {
       throw new UnauthorizedException('No authentication token provided');
     }

@@ -225,3 +225,5 @@ export enum UserRole {
     - Truy xuất nguồn gốc nguyên liệu của đơn cụ thể
     - Quản lý khoản thu/chi (gắn với `orders`, `ingredient_imports`)
     - In báo cáo chi tiết
+- **Quản lý nhà hàng**
+    - Xem thông tin nhà hànghàng

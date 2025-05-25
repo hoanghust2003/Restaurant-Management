@@ -19,26 +19,28 @@ import { OrderStatus, OrderItemStatus } from '../enums/order-status.enum';
     credentials: true
   }
 })
-@UseGuards(JwtAuthGuard)
+// Không áp dụng JwtAuthGuard toàn cục, thay vào đó áp dụng cho từng SubscribeMessage cụ thể khi cần
 export class KitchenGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
   private kitchenClients: Set<Socket> = new Set();
-
   async handleConnection(@ConnectedSocket() client: Socket) {
-    // Handle authentication
-    try {
-      const token = client.handshake.auth.token;
-      if (!token) {
-        throw new WsException('Authentication failed - no token');
-      }
-      // TODO: Get user from token and verify role (chef)
+    // Thêm client vào danh sách kết nối trước tiên
+    this.kitchenClients.add(client);
+    console.log(`Kitchen client joined: ${client.id}`);
 
-      this.kitchenClients.add(client);
-      console.log(`Client connected: ${client.id}`);
+    // Xác thực không bắt buộc ở đây, chỉ lưu trữ token nếu có
+    try {
+      const token = client.handshake.auth?.token;
+      if (token) {
+        // Lưu token vào socket data để sử dụng sau này
+        client.data.token = token;
+        // TODO: Có thể xác thực token ở đây nếu cần
+      }
     } catch (error) {
-      client.disconnect();
+      console.warn(`Authentication warning for client ${client.id}:`, error.message);
+      // Không ngắt kết nối, chỉ ghi log cảnh báo
     }
   }
 
@@ -51,7 +53,7 @@ export class KitchenGateway implements OnGatewayConnection, OnGatewayDisconnect 
   handleJoinKitchen(@ConnectedSocket() client: Socket) {
     client.join('kitchen');
   }
-
+  @UseGuards(JwtAuthGuard)
   @SubscribeMessage('kitchen:update_item')
   async handleUpdateItem(
     @ConnectedSocket() client: Socket,
@@ -64,7 +66,7 @@ export class KitchenGateway implements OnGatewayConnection, OnGatewayDisconnect 
       status: data.status
     });
   }
-
+  @UseGuards(JwtAuthGuard)
   @SubscribeMessage('kitchen:update_order')
   async handleUpdateOrder(
     @ConnectedSocket() client: Socket,

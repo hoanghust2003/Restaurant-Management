@@ -18,9 +18,21 @@ const axiosInstance = axios.create({
 // Tạo một Map để lưu trữ thời gian request trước đó để tránh hiển thị loading quá nhiều lần
 const requestTimestamps = new Map();
 
-axiosInstance.interceptors.request.use(  (config) => {
+// Track ETags for conditional requests
+const etagsCache = new Map();
+
+axiosInstance.interceptors.request.use(
+  (config) => {
     const url = config.url || '';
     const isPrefetch = config.headers?.['X-Prefetch'] === 'true';
+    
+    // Add If-None-Match header if we have an ETag for this URL
+    if (config.method?.toLowerCase() === 'get') {
+      const etag = etagsCache.get(url);
+      if (etag && config.headers) {
+        config.headers['If-None-Match'] = etag;
+      }
+    }
     
     // Check cache for GET requests when not forced to skip cache
     if (config.method?.toLowerCase() === 'get' && !config.headers?.['x-skip-cache']) {
@@ -73,32 +85,73 @@ axiosInstance.interceptors.request.use(  (config) => {
 // Add a response interceptor for error handling and caching
 axiosInstance.interceptors.response.use(
   (response) => {
+    // Save ETag if provided by the server
+    if (response.headers.etag) {
+      const url = response.config.url || '';
+      etagsCache.set(url, response.headers.etag);
+    }
+    
+    // Handle HTTP 304 Not Modified responses
+    if (response.status === 304) {
+      const url = response.config.url || '';
+      const params = response.config.params ? JSON.stringify(response.config.params) : '';
+      const cacheKey = `${url}${params}`;
+      const cachedData = requestCache.get(cacheKey);
+      
+      if (cachedData) {
+        return {
+          ...response,
+          data: cachedData,
+          status: 200,
+          statusText: 'OK (from cache)'
+        };
+      }
+    }
+    
     // Only cache GET requests
     if (response.config.method?.toLowerCase() === 'get') {
       const url = response.config.url || '';
       const params = response.config.params ? JSON.stringify(response.config.params) : '';
       const cacheKey = `${url}${params}`;
-        // Cache the successful response data
+      
+      // Parse Cache-Control header if available
+      let expiry = 30 * 1000; // 30 seconds default
+      if (response.headers['cache-control']) {
+        const maxAgeMatch = response.headers['cache-control'].match(/max-age=(\d+)/);
+        if (maxAgeMatch && maxAgeMatch[1]) {
+          expiry = parseInt(maxAgeMatch[1], 10) * 1000; // Convert seconds to milliseconds
+        }
+      }
+      
       // Use longer expiry and higher priority for important routes
       const isImportantRoute = url.includes('/tables') || url.includes('/orders');
-      const expiry = isImportantRoute ? 60 * 1000 : 30 * 1000; // 60s for important routes, 30s for others
-      const priority = isImportantRoute ? 2 : 1; // Higher priority for important routes
+      const isRestaurantInfo = url.includes('/restaurants/info');
+      
+      // Restaurant info is often static and can be cached longer
+      if (!response.headers['cache-control']) {
+        expiry = isRestaurantInfo ? 5 * 60 * 1000 : // 5 minutes for restaurant info
+                isImportantRoute ? 60 * 1000 :      // 60s for important routes
+                30 * 1000;                          // 30s for others
+      }
+      
+      const priority = isRestaurantInfo ? 3 :           // Highest priority for restaurant info
+                      isImportantRoute ? 2 :            // Higher priority for important routes
+                      1;
       
       requestCache.set(cacheKey, response.data, expiry, priority);
-          // Measure and log response time for performance monitoring
+      
+      // Measure and log response time for performance monitoring
       const startTime = requestTimestamps.get(url);
       if (startTime) {
         const responseTime = Date.now() - startTime;
         const isPrefetch = response.config.headers?.['X-Prefetch'] === 'true';
-        
-        // Only log non-prefetch requests to reduce console noise
-        if (!isPrefetch) {
-          console.debug(`Response time for ${url}: ${responseTime}ms`);
-        }
-        
-        // Log slow responses regardless of prefetch status
+          
+        // Only log important or slow responses to reduce console noise and improve performance
         if (responseTime > 1000) { // More than 1 second is slow
           console.warn(`Slow response: ${url} took ${responseTime.toFixed(2)}ms`);
+        } else if (!isPrefetch && (isRestaurantInfo || isImportantRoute)) {
+          // Only log important routes that aren't prefetch requests
+          console.debug(`Response time for ${url}: ${responseTime}ms`);
         }
         
         requestTimestamps.delete(url);
@@ -106,12 +159,11 @@ axiosInstance.interceptors.response.use(
     }
     
     return response;
-  },  
-  (error) => {
+  },    (error) => {
     // Check if this is our "fake" cancellation with cached data
     if (axios.isCancel(error) && error.message) {
       try {
-        const { cachedData } = JSON.parse(error.message);
+        const { cachedData } = JSON.parse(error.message || "{}");
         if (cachedData) {
           // Return the cached data as if it came from the network
           return Promise.resolve({ 
