@@ -15,6 +15,14 @@ export class IngredientsController {
     private readonly ingredientsService: IngredientsService,
     private readonly fileUploadService: FileUploadService
   ) {}
+
+  @Get('low-stock')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
+  async getLowStock() {
+    return this.ingredientsService.getLowStock();
+  }
+
   @Get()
   async findAll(@Query('includeDeleted') includeDeleted?: string) {
     const include = includeDeleted === 'true';

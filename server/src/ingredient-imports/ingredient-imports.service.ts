@@ -1,11 +1,12 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository, IsNull } from 'typeorm';
-import { IngredientImport } from '../entities/ingredient-import.entity'; // Corrected path
-import { Batch } from '../entities/batch.entity'; // Corrected path
-import { CreateImportDto } from './dto/create-import.dto'; // Assuming DTO path
-import { User } from '../entities/user.entity'; // Assuming User entity path
-import { Supplier } from '../entities/supplier.entity'; // Assuming Supplier entity path
+import { IngredientImport } from '../entities/ingredient-import.entity';
+import { Batch } from '../entities/batch.entity';
+import { CreateImportDto } from './dto/create-import.dto';
+import { User } from '../entities/user.entity';
+import { Supplier } from '../entities/supplier.entity';
+import { BatchStatus } from '../enums/batch-status.enum';
 
 @Injectable()
 export class IngredientImportsService {
@@ -17,97 +18,81 @@ export class IngredientImportsService {
     private readonly dataSource: DataSource,
   ) {}
 
+  async findAll(includeDeleted = false) {
+    return this.importRepository.find({
+      where: { deleted_at: includeDeleted ? undefined : IsNull() },
+      relations: ['batches', 'supplier', 'created_by'],
+    });
+  }
+
+  async findOne(id: string, includeDeleted = false) {
+    const importRecord = await this.importRepository.findOne({
+      where: { 
+        id,
+        deleted_at: includeDeleted ? undefined : IsNull() 
+      },
+      relations: ['batches', 'supplier', 'created_by'],
+    });
+
+    if (!importRecord) {
+      throw new NotFoundException('Import record not found');
+    }
+
+    return importRecord;
+  }
+
   async create(userId: string, createImportDto: CreateImportDto) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // Create import record
-      const importRecord = this.importRepository.create({
-        createdById: userId, // Corrected field name
-        supplierId: createImportDto.supplier_id, // Corrected field name
+      const importRecord = await queryRunner.manager.save(IngredientImport, {
+        createdById: userId,
+        supplierId: createImportDto.supplier_id,
         note: createImportDto.note,
-        // total_amount: createImportDto.total_amount, // If total_amount is on DTO and entity
       });
 
-      await queryRunner.manager.save(IngredientImport, importRecord); // Pass entity class
+      const batches = await Promise.all(
+        createImportDto.batches.map(async (batchDto) => {
+          const batch = await queryRunner.manager.save(Batch, {
+            importId: importRecord.id,
+            ingredientId: batchDto.ingredient_id,
+            name: batchDto.name,
+            quantity: batchDto.quantity,
+            remaining_quantity: batchDto.quantity,
+            expiry_date: batchDto.expiry_date,
+            price: batchDto.price,
+            status: BatchStatus.AVAILABLE
+          });
+          return batch;
+        })
+      );
 
-      // Create batches
-      const batches = createImportDto.batches.map(batchDto => {
-        const batch = new Batch(); // It's better to use repository.create for consistency
-        // batch.importId = importRecord.id; // Link to the saved import record
-        // batch.ingredientId = batchDto.ingredient_id;
-        // batch.name = batchDto.name; // Or generate name
-        // batch.quantity = batchDto.quantity;
-        // batch.remaining_quantity = batchDto.quantity;
-        // batch.expiry_date = batchDto.expiry_date;
-        // batch.price = batchDto.price;
-        // batch.status = BatchStatus.AVAILABLE; // Set initial status
-        // return batch;
-        return this.batchRepository.create({
-          importId: importRecord.id,
-          ingredientId: batchDto.ingredient_id,
-          name: batchDto.name, // Consider a naming convention
-          quantity: batchDto.quantity,
-          remaining_quantity: batchDto.quantity,
-          expiry_date: batchDto.expiry_date,
-          price: batchDto.price,
-          // status: BatchStatus.AVAILABLE, // Default is set in entity
-        });
-      });
-
-      await queryRunner.manager.save(Batch, batches); // Pass entity class
       await queryRunner.commitTransaction();
-
-      return {
-        ...importRecord,
-        batches,
-      };
-    } catch (err) {
+      
+      return { importRecord, batches };
+    } catch (error) {
       await queryRunner.rollbackTransaction();
-      throw new BadRequestException('Không thể tạo phiếu nhập kho');
+      throw new BadRequestException('Failed to create import record');
     } finally {
       await queryRunner.release();
     }
   }
 
-  async findAll(includeDeleted: boolean = false) { // Added includeDeleted parameter for consistency
-    return this.importRepository.find({
-      where: { deleted_at: includeDeleted ? undefined : IsNull() }, // Corrected to use IsNull()
-      relations: ['batches', 'supplier', 'created_by'],
-      order: { created_at: 'DESC' },
-      withDeleted: includeDeleted, // Added for consistency
-    });
-  }
-
-  async findOne(id: string, includeDeleted: boolean = false) { // Added includeDeleted parameter
-    const importRecord = await this.importRepository.findOne({
-      where: { id, deleted_at: includeDeleted ? undefined : IsNull() }, // Corrected to use IsNull()
-      relations: ['batches', 'supplier', 'created_by'],
-      withDeleted: includeDeleted, // Added for consistency
-    });
-
-    if (!importRecord) {
-      throw new BadRequestException('Không tìm thấy phiếu nhập kho');
-    }
-
-    return importRecord;
-  }
-
   async softDelete(id: string) {
     const importRecord = await this.findOne(id);
-    // importRecord.deleted_at = new Date(); // Not needed if using softRemove or if @DeleteDateColumn is present
-    // await this.importRepository.save(importRecord);
-    await this.importRepository.softRemove(importRecord);
+    
+    if (!importRecord) {
+      throw new NotFoundException('Import record not found');
+    }
 
-
-    // Also soft delete all associated batches
+    await this.importRepository.softDelete(id);
     await this.batchRepository.update(
-      { importId: id }, // Corrected field name
-      { deleted_at: new Date() } // This is a direct update, softRemove is for entities
+      { importId: id },
+      { deleted_at: new Date() }
     );
 
-    return { message: 'Đã xóa phiếu nhập kho' };
+    return { message: 'Import record and associated batches soft deleted' };
   }
 }

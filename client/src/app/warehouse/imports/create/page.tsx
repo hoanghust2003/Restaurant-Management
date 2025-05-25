@@ -1,43 +1,43 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Form, 
   Input, 
   Button, 
-  DatePicker, 
   Select, 
-  InputNumber, 
-  Table, 
+  DatePicker, 
   Space, 
   Card, 
-  Typography, 
   Divider,
+  Typography,
   Row,
   Col,
   message,
   Spin,
-  Alert
+  Alert,
+  InputNumber,
+  Table
 } from 'antd';
 import { 
-  PlusOutlined, 
   MinusCircleOutlined, 
-  SaveOutlined, 
-  ArrowLeftOutlined 
+  PlusOutlined,
+  WarningOutlined 
 } from '@ant-design/icons';
-import { useRouter, useSearchParams } from 'next/navigation';
 import moment from 'moment';
+import { SupplierModel } from '@/app/models/warehouse.model';
+import { IngredientModel } from '@/app/models/ingredient.model';
 import { supplierService, importService } from '@/app/services/warehouse.service';
 import { ingredientService } from '@/app/services/ingredient.service';
 import { CreateImportDto } from '@/app/models/warehouse.model';
-import { IngredientModel } from '@/app/models/ingredient.model';
-import { SupplierModel } from '@/app/models/warehouse.model';
+import WarehouseLayout from '@/app/layouts/WarehouseLayout';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
 
-const CreateImportPage: React.FC = () => {
+export default function CreateImportPage() {
   const [form] = Form.useForm();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -49,7 +49,7 @@ const CreateImportPage: React.FC = () => {
   const [ingredientsLoading, setIngredientsLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   useEffect(() => {
     fetchSuppliers();
     fetchIngredients();
@@ -136,7 +136,7 @@ const CreateImportPage: React.FC = () => {
       router.push(`/warehouse/imports/${result.id}`);
     } catch (err: any) {
       console.error('Error creating import:', err);
-      message.error(`Lỗi: ${err.message || 'Không thể tạo phiếu nhập kho'}`);
+      message.error('Không thể tạo phiếu nhập kho');
     } finally {
       setSubmitting(false);
     }
@@ -150,308 +150,285 @@ const CreateImportPage: React.FC = () => {
     }, 0);
   };
 
-  const loadingContent = (
-    <div className="flex justify-center items-center h-64">
-      <Spin size="large" tip="Đang tải dữ liệu..." />
-    </div>
-  );
-
   if (suppliersLoading || ingredientsLoading) {
-    return loadingContent;
+    return (
+      <WarehouseLayout title="Tạo phiếu nhập kho">
+        <div className="flex justify-center items-center h-64">
+          <Spin size="large" />
+        </div>
+      </WarehouseLayout>
+    );
   }
 
   if (error) {
     return (
-      <div className="p-6">
-        <Alert
-          message="Lỗi"
-          description={error}
-          type="error"
-          showIcon
-          action={
-            <Button onClick={() => router.push('/warehouse/imports')}>
-              Quay lại
-            </Button>
-          }
-        />
-      </div>
+      <WarehouseLayout title="Tạo phiếu nhập kho">
+        <div className="p-6">
+          <Alert
+            message="Lỗi"
+            description={error}
+            type="error"
+            showIcon
+          />
+        </div>
+      </WarehouseLayout>
     );
   }
 
   return (
-    <div className="p-6">
-      <Card>
-        <div className="mb-6">
-          <Title level={4}>Tạo phiếu nhập kho mới</Title>
-          <Text type="secondary">
-            Nhập thông tin để tạo phiếu nhập kho mới
-          </Text>
-        </div>
+    <WarehouseLayout title="Tạo phiếu nhập kho">
+      <div className="p-6">
+        <Card>
+          <div className="mb-6">
+            <Title level={4}>Tạo phiếu nhập kho mới</Title>
+            <Text type="secondary">Nhập thông tin để tạo phiếu nhập kho mới</Text>
+          </div>
 
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSubmit}
-          initialValues={{
-            import_date: moment(),
-            items: initialIngredientId ? [{ ingredient_id: initialIngredientId, quantity: 1 }] : [],
-          }}
-          onValuesChange={(_, allValues) => {
-            // This will re-render the component when values change
-            // useful for calculating total
-          }}
-        >
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Form.Item
-                name="supplier_id"
-                label="Nhà cung cấp"
-                rules={[{ required: true, message: 'Vui lòng chọn nhà cung cấp' }]}
-              >
-                <Select
-                  placeholder="Chọn nhà cung cấp"
-                  showSearch
-                  optionFilterProp="children"
-                >
-                  {suppliers.map(supplier => (
-                    <Option key={supplier.id} value={supplier.id}>{supplier.name}</Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            
-            <Col xs={24} md={12}>
-              <Form.Item
-                name="reference_number"
-                label="Mã phiếu nhập"
-                help="Để trống để hệ thống tự sinh mã"
-              >
-                <Input placeholder="Nhập mã phiếu" />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Form.Item
-                name="import_date"
-                label="Ngày nhập"
-                rules={[{ required: true, message: 'Vui lòng chọn ngày nhập' }]}
-              >
-                <DatePicker 
-                  style={{ width: '100%' }} 
-                  format="DD/MM/YYYY"
-                  placeholder="Chọn ngày nhập"
-                />
-              </Form.Item>
-            </Col>
-            
-            <Col xs={24} md={12}>
-              <Form.Item
-                name="notes"
-                label="Ghi chú"
-              >
-                <TextArea 
-                  rows={1}
-                  placeholder="Nhập ghi chú (nếu có)"
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Divider>Danh sách nguyên liệu</Divider>
-
-          <Form.List
-            name="items"
-            rules={[
-              {
-                validator: async (_, items) => {
-                  if (!items || items.length === 0) {
-                    return Promise.reject(new Error('Vui lòng thêm ít nhất một nguyên liệu'));
-                  }
-                },
-              },
-            ]}
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleSubmit}
+            initialValues={{
+              import_date: moment(),
+              items: initialIngredientId ? [{ ingredient_id: initialIngredientId, quantity: 1 }] : [],
+            }}
           >
-            {(fields, { add, remove }) => (
-              <>
-                <div className="overflow-x-auto">
-                  <Table
-                    dataSource={fields.map(field => ({
-                      ...field,
-                      ...form.getFieldValue('items')[field.name],
-                      key: field.key,
-                    }))}
-                    pagination={false}
-                    rowKey="key"
-                    columns={[
-                      {
-                        title: 'Nguyên liệu',
-                        dataIndex: 'ingredient_id',
-                        key: 'ingredient_id',
-                        width: '25%',
-                        render: (_, record) => (
-                          <Form.Item
-                            name={[record.name, 'ingredient_id']}
-                            rules={[{ required: true, message: 'Vui lòng chọn nguyên liệu' }]}
-                            style={{ margin: 0 }}
-                          >
-                            <Select
-                              placeholder="Chọn nguyên liệu"
-                              showSearch
-                              optionFilterProp="children"
-                            >
-                              {ingredients.map(ingredient => (
-                                <Option key={ingredient.id} value={ingredient.id}>
-                                  {ingredient.name} ({ingredient.unit})
-                                </Option>
-                              ))}
-                            </Select>
-                          </Form.Item>
-                        ),
-                      },
-                      {
-                        title: 'Số lượng',
-                        dataIndex: 'quantity',
-                        key: 'quantity',
-                        width: '15%',
-                        render: (_, record) => (
-                          <Form.Item
-                            name={[record.name, 'quantity']}
-                            rules={[{ required: true, message: 'Nhập số lượng' }]}
-                            style={{ margin: 0 }}
-                          >
-                            <InputNumber
-                              min={0.1}
-                              step={0.1}
-                              placeholder="Số lượng"
-                              style={{ width: '100%' }}
-                            />
-                          </Form.Item>
-                        ),
-                      },
-                      {
-                        title: 'Đơn giá',
-                        dataIndex: 'unit_price',
-                        key: 'unit_price',
-                        width: '15%',
-                        render: (_, record) => (
-                          <Form.Item
-                            name={[record.name, 'unit_price']}
-                            rules={[{ required: true, message: 'Nhập đơn giá' }]}
-                            style={{ margin: 0 }}
-                          >
-                            <InputNumber
-                              min={0}
-                              placeholder="Đơn giá"
-                              style={{ width: '100%' }}
-                              formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                              parser={value => value!.replace(/\$\s?|(,*)/g, '')}
-                              addonAfter="VND"
-                            />
-                          </Form.Item>
-                        ),
-                      },
-                      {
-                        title: 'Hạn sử dụng',
-                        dataIndex: 'expiry_date',
-                        key: 'expiry_date',
-                        width: '15%',
-                        render: (_, record) => (
-                          <Form.Item
-                            name={[record.name, 'expiry_date']}
-                            style={{ margin: 0 }}
-                          >
-                            <DatePicker
-                              placeholder="Chọn hạn sử dụng"
-                              style={{ width: '100%' }}
-                              format="DD/MM/YYYY"
-                            />
-                          </Form.Item>
-                        ),
-                      },
-                      {
-                        title: 'Mã lô',
-                        dataIndex: 'lot_number',
-                        key: 'lot_number',
-                        width: '15%',
-                        render: (_, record) => (
-                          <Form.Item
-                            name={[record.name, 'lot_number']}
-                            style={{ margin: 0 }}
-                          >
-                            <Input placeholder="Nhập mã lô" />
-                          </Form.Item>
-                        ),
-                      },
-                      {
-                        title: 'Thao tác',
-                        key: 'action',
-                        width: '10%',
-                        render: (_, record) => (
-                          <Button
-                            type="text"
-                            danger
-                            icon={<MinusCircleOutlined />}
-                            onClick={() => remove(record.name)}
-                          />
-                        ),
-                      },
-                    ]}
-                    summary={() => {
-                      const items = form.getFieldValue('items') || [];
-                      const total = calculateTotal(items);
-                      return (
-                        <Table.Summary.Row>
-                          <Table.Summary.Cell index={0} colSpan={2}>
-                            <strong>Tổng cộng</strong>
-                          </Table.Summary.Cell>
-                          <Table.Summary.Cell index={1} colSpan={4}>
-                            <strong>{total.toLocaleString('vi-VN')} VND</strong>
-                          </Table.Summary.Cell>
-                        </Table.Summary.Row>
-                      );
-                    }}
-                  />
-                </div>
-                
-                <Button
-                  type="dashed"
-                  onClick={() => add()}
-                  icon={<PlusOutlined />}
-                  style={{ marginTop: 16, marginBottom: 16 }}
-                  block
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="supplier_id"
+                  label="Nhà cung cấp"
+                  rules={[{ required: true, message: 'Vui lòng chọn nhà cung cấp' }]}
                 >
-                  Thêm nguyên liệu
+                  <Select
+                    placeholder="Chọn nhà cung cấp"
+                    showSearch
+                    optionFilterProp="children"
+                    loading={suppliersLoading}
+                  >
+                    {suppliers.map(supplier => (
+                      <Option key={supplier.id} value={supplier.id}>
+                        {supplier.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+              
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="reference_number"
+                  label="Mã phiếu nhập"
+                  help="Để trống để hệ thống tự sinh mã"
+                >
+                  <Input placeholder="Nhập mã phiếu" />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="import_date"
+                  label="Ngày nhập"
+                  rules={[{ required: true, message: 'Vui lòng chọn ngày nhập' }]}
+                >
+                  <DatePicker 
+                    style={{ width: '100%' }} 
+                    format="DD/MM/YYYY"
+                    placeholder="Chọn ngày nhập"
+                  />
+                </Form.Item>
+              </Col>
+              
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="notes"
+                  label="Ghi chú"
+                >
+                  <TextArea rows={1} placeholder="Nhập ghi chú (nếu có)" />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Divider>Danh sách nguyên liệu</Divider>
+
+            <Form.List
+              name="items"
+              rules={[
+                {
+                  validator: async (_, items) => {
+                    if (!items || items.length === 0) {
+                      return Promise.reject(new Error('Vui lòng thêm ít nhất một nguyên liệu'));
+                    }
+                  },
+                },
+              ]}
+            >
+              {(fields, { add, remove }) => (
+                <>
+                  <div className="overflow-x-auto">
+                    <Table
+                      dataSource={fields.map(field => ({
+                        ...field,
+                        ...form.getFieldValue('items')[field.name],
+                        key: field.key,
+                      }))}
+                      pagination={false}
+                      rowKey="key"
+                      columns={[
+                        {
+                          title: 'Nguyên liệu',
+                          dataIndex: 'ingredient_id',
+                          key: 'ingredient_id',
+                          width: '25%',
+                          render: (_, record) => (
+                            <Form.Item
+                              name={[record.name, 'ingredient_id']}
+                              rules={[{ required: true, message: 'Vui lòng chọn nguyên liệu' }]}
+                              style={{ margin: 0 }}
+                            >
+                              <Select
+                                placeholder="Chọn nguyên liệu"
+                                showSearch
+                                optionFilterProp="children"
+                                loading={ingredientsLoading}
+                              >
+                                {ingredients.map(ingredient => (
+                                  <Option key={ingredient.id} value={ingredient.id}>
+                                    {ingredient.name} ({ingredient.unit})
+                                  </Option>
+                                ))}
+                              </Select>
+                            </Form.Item>
+                          ),
+                        },
+                        {
+                          title: 'Số lượng',
+                          dataIndex: 'quantity',
+                          key: 'quantity',
+                          width: '15%',
+                          render: (_, record) => (
+                            <Form.Item
+                              name={[record.name, 'quantity']}
+                              rules={[
+                                { required: true, message: 'Vui lòng nhập số lượng' },
+                                { type: 'number', min: 0, message: 'Số lượng không được âm' }
+                              ]}
+                              style={{ margin: 0 }}
+                            >
+                              <InputNumber
+                                placeholder="Nhập số lượng"
+                                style={{ width: '100%' }}
+                                min={0}
+                              />
+                            </Form.Item>
+                          ),
+                        },
+                        {
+                          title: 'Đơn giá',
+                          dataIndex: 'unit_price',
+                          key: 'unit_price',
+                          width: '15%',
+                          render: (_, record) => (
+                            <Form.Item
+                              name={[record.name, 'unit_price']}
+                              rules={[
+                                { required: true, message: 'Vui lòng nhập đơn giá' },
+                                { type: 'number', min: 0, message: 'Đơn giá không được âm' }
+                              ]}
+                              style={{ margin: 0 }}
+                            >
+                              <InputNumber
+                                placeholder="Nhập đơn giá"
+                                style={{ width: '100%' }}
+                                min={0}
+                                formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                parser={value => value?.replace(/\$\s?|(,*)/g, '') || ''}
+                              />
+                            </Form.Item>
+                          ),
+                        },
+                        {
+                          title: 'Mã lô',
+                          dataIndex: 'lot_number',
+                          key: 'lot_number',
+                          width: '15%',
+                          render: (_, record) => (
+                            <Form.Item
+                              name={[record.name, 'lot_number']}
+                              style={{ margin: 0 }}
+                            >
+                              <Input placeholder="Nhập mã lô" />
+                            </Form.Item>
+                          ),
+                        },
+                        {
+                          title: 'Hạn sử dụng',
+                          dataIndex: 'expiry_date',
+                          key: 'expiry_date',
+                          width: '20%',
+                          render: (_, record) => (
+                            <Form.Item
+                              name={[record.name, 'expiry_date']}
+                              style={{ margin: 0 }}
+                            >
+                              <DatePicker
+                                style={{ width: '100%' }}
+                                format="DD/MM/YYYY"
+                                placeholder="Chọn hạn sử dụng"
+                              />
+                            </Form.Item>
+                          ),
+                        },
+                        {
+                          title: '',
+                          key: 'actions',
+                          width: '5%',
+                          render: (_, record) => (
+                            fields.length > 1 ? (
+                              <Button
+                                type="text"
+                                danger
+                                icon={<MinusCircleOutlined />}
+                                onClick={() => remove(record.name)}
+                              />
+                            ) : null
+                          ),
+                        },
+                      ]}
+                    />
+                  </div>
+
+                  <Form.Item style={{ marginTop: 16 }}>
+                    <Button
+                      type="dashed"
+                      onClick={() => add()}
+                      icon={<PlusOutlined />}
+                      block
+                    >
+                      Thêm nguyên liệu
+                    </Button>
+                  </Form.Item>
+                </>
+              )}
+            </Form.List>
+
+            <Divider />
+
+            <Form.Item>
+              <Space>
+                <Button type="primary" htmlType="submit" loading={submitting}>
+                  Tạo phiếu nhập
                 </Button>
-              </>
-            )}
-          </Form.List>
-
-          <Divider />
-
-          <Form.Item>
-            <Space>
-              <Button 
-                type="primary" 
-                htmlType="submit" 
-                loading={submitting}
-                icon={<SaveOutlined />}
-              >
-                Tạo phiếu nhập
-              </Button>
-              <Button 
-                onClick={() => router.push('/warehouse/imports')}
-                icon={<ArrowLeftOutlined />}
-              >
-                Hủy
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Card>
-    </div>
+                <Button onClick={() => router.push('/warehouse/imports')}>
+                  Hủy
+                </Button>
+              </Space>
+            </Form.Item>
+          </Form>
+        </Card>
+      </div>
+    </WarehouseLayout>
   );
-};
-
-export default CreateImportPage;
+}

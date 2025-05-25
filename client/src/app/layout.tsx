@@ -8,6 +8,7 @@ import { RefreshProvider } from "./contexts/RefreshContext";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AppWrapper from "./components/AppWrapper";
+import AntdRegistry from "@/lib/antd";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,31 +32,31 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" className="mdl-js">
-      <body
-        className={`${geistSans.variable} antialiased`}
-      >
-        <AuthProvider>
-          <SocketProvider>
-            <KitchenProvider>
-              <RefreshProvider>
-                <AppWrapper>
-                  {children}
-                </AppWrapper>
-                <ToastContainer
-                  position="top-right"
-                  autoClose={3000}
-                  hideProgressBar={false}
-                  newestOnTop
-                  closeOnClick
-                  rtl={false}
-                  pauseOnFocusLoss
-                  draggable
-                  pauseOnHover
-                />
-              </RefreshProvider>
-            </KitchenProvider>
-          </SocketProvider>
-        </AuthProvider>
+      <body className={`${geistSans.variable} antialiased`}>
+        <AntdRegistry>
+          <AuthProvider>
+            <SocketProvider>
+              <KitchenProvider>
+                <RefreshProvider>
+                  <AppWrapper>
+                    {children}
+                  </AppWrapper>
+                  <ToastContainer
+                    position="top-right"
+                    autoClose={3000}
+                    hideProgressBar={false}
+                    newestOnTop
+                    closeOnClick
+                    rtl={false}
+                    pauseOnFocusLoss
+                    draggable
+                    pauseOnHover
+                  />
+                </RefreshProvider>
+              </KitchenProvider>
+            </SocketProvider>
+          </AuthProvider>
+        </AntdRegistry>
       </body>
     </html>
   );

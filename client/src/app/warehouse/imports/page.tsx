@@ -30,7 +30,6 @@ import Link from 'next/link';
 import moment from 'moment';
 import { importService, supplierService } from '@/app/services/warehouse.service';
 import { ImportModel, SupplierModel } from '@/app/models/warehouse.model';
-import WarehouseLayout from '@/app/layouts/WarehouseLayout';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -326,8 +325,8 @@ const ImportsList: React.FC = () => {
 
 export default function ImportsPage() {
   return (
-    <WarehouseLayout title="Nhập kho">
+    <div className="p-6">
       <ImportsList />
-    </WarehouseLayout>
+    </div>
   );
 }

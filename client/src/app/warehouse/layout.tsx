@@ -1,22 +1,19 @@
-import { Metadata } from "next";
-import PageContainer from "@/components/container/PageContainer";
-import { WarehouseProvider } from "@/contexts/WarehouseContext";
+'use client';
 
-export const metadata: Metadata = {
-  title: "Warehouse Management",
-  description: "This is the warehouse management section",
-};
+import { ReactNode } from "react";
+import { WarehouseProvider } from "@/app/contexts/WarehouseContext";
+import { WarehouseLayout } from "@/app/layouts";
 
-export default function WarehouseLayout({
+export default function WarehouseRootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <WarehouseProvider>
-      <PageContainer>
+      <WarehouseLayout title="Kho">
         {children}
-      </PageContainer>
+      </WarehouseLayout>
     </WarehouseProvider>
   );
 }

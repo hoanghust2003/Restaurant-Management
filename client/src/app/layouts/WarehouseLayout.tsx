@@ -17,41 +17,25 @@ import {
 
 const warehouseMenuSections = [
   {
-    title: "Tổng quan",
+    title: "Kho & Nguyên liệu",
     items: [
       {
-        href: "/warehouse/dashboard",
-        icon: <HomeIcon className="w-5 h-5" />,
-        title: "Bảng điều khiển",
-        showIfRoles: ["warehouse", "admin"],
-      },
-    ],
-  },
-  {
-    title: "Quản lý kho",
-    items: [
-      {
-        href: "#",
+        href: "/warehouse/ingredients",
         icon: <BuildingStorefrontIcon className="w-5 h-5" />,
-        title: "Quản lý tồn kho",
-        showIfRoles: ["warehouse", "admin"],
-        subItems: [
-          {
-            href: "/warehouse/ingredients",
-            title: "Nguyên liệu",
-            showIfRoles: ["warehouse", "admin"],
-          },
-          {
-            href: "/warehouse/categories",
-            title: "Danh mục",
-            showIfRoles: ["warehouse", "admin"],
-          },
-          {
-            href: "/warehouse/locations",
-            title: "Vị trí kho",
-            showIfRoles: ["warehouse", "admin"],
-          },
-        ],
+        title: "Nguyên liệu",
+        showIfRoles: ["warehouse"],
+      },
+      {
+        href: "/warehouse/suppliers",
+        icon: <UsersIcon className="w-5 h-5" />,
+        title: "Nhà cung cấp",
+        showIfRoles: ["warehouse"],
+      },
+      {
+        href: "/warehouse/batches",
+        icon: <TruckIcon className="w-5 h-5" />,
+        title: "Lô hàng",
+        showIfRoles: ["warehouse"],
       },
     ],
   },
@@ -61,37 +45,14 @@ const warehouseMenuSections = [
       {
         href: "/warehouse/imports",
         icon: <ArrowPathIcon className="w-5 h-5" />,
-        title: "Lịch sử nhập kho",
-        showIfRoles: ["warehouse", "admin"],
+        title: "Nhập kho",
+        showIfRoles: ["warehouse"],
       },
       {
         href: "/warehouse/exports",
         icon: <ArrowPathIcon className="w-5 h-5" />,
-        title: "Lịch sử xuất kho",
-        showIfRoles: ["warehouse", "admin"],
-      },
-      {
-        href: "/warehouse/suppliers",
-        icon: <UsersIcon className="w-5 h-5" />,
-        title: "Quản lý nhà cung cấp",
-        showIfRoles: ["warehouse", "admin"],
-      },
-      {
-        href: "/warehouse/batches",
-        icon: <TruckIcon className="w-5 h-5" />,
-        title: "Quản lý lô hàng",
-        showIfRoles: ["warehouse", "admin"],
-      },
-    ],
-  },
-  {
-    title: "Quản lý yêu cầu",
-    items: [
-      {
-        href: "/warehouse/requests",
-        icon: <ClipboardDocumentListIcon className="w-5 h-5" />,
-        title: "Yêu cầu từ bếp",
-        showIfRoles: ["warehouse", "admin", "chef"],
+        title: "Xuất kho",
+        showIfRoles: ["warehouse"],
       },
     ],
   },
@@ -99,44 +60,10 @@ const warehouseMenuSections = [
     title: "Báo cáo",
     items: [
       {
-        href: "#",
+        href: "/warehouse/reports",
         icon: <ChartBarIcon className="w-5 h-5" />,
         title: "Báo cáo kho",
-        showIfRoles: ["warehouse", "admin"],
-        subItems: [
-          {
-            href: "/warehouse/reports/inventory",
-            title: "Báo cáo tồn kho",
-            showIfRoles: ["warehouse", "admin"],
-          },
-          {
-            href: "/warehouse/reports/imports",
-            title: "Báo cáo nhập kho",
-            showIfRoles: ["warehouse", "admin"],
-          },
-          {
-            href: "/warehouse/reports/exports",
-            title: "Báo cáo xuất kho",
-            showIfRoles: ["warehouse", "admin"],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    title: "Cài đặt",
-    items: [
-      {
-        href: "/warehouse/profile",
-        icon: <UserIcon className="w-5 h-5" />,
-        title: "Thông tin cá nhân",
-        showIfRoles: ["warehouse", "admin"],
-      },
-      {
-        href: "/warehouse/settings",
-        icon: <Cog6ToothIcon className="w-5 h-5" />,
-        title: "Cài đặt kho",
-        showIfRoles: ["warehouse", "admin"],
+        showIfRoles: ["warehouse"],
       },
     ],
   },

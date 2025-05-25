@@ -30,7 +30,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supplierService } from '@/app/services/warehouse.service';
 import { SupplierModel } from '@/app/models/warehouse.model';
-import WarehouseLayout from '@/app/layouts/WarehouseLayout';
 
 const { Title, Text } = Typography;
 const { confirm } = Modal;
@@ -284,8 +283,8 @@ const SuppliersList: React.FC = () => {
 
 export default function SuppliersPage() {
   return (
-    <WarehouseLayout title="Nhà cung cấp">
+    <div className="p-6">
       <SuppliersList />
-    </WarehouseLayout>
+    </div>
   );
 }

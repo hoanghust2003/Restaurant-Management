@@ -149,10 +149,29 @@ export class InventoryController {
     return this.inventoryService.getExportHistory(new Date(startDate), new Date(endDate));
   }
 
-  @Get('reports/stock-value')
+  @Get('costs')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
+  async getInventoryCosts(
+    @Query('start') startDate: string,
+    @Query('end') endDate: string
+  ) {
+    const start = startDate ? new Date(startDate) : new Date(new Date().setMonth(new Date().getMonth() - 1));
+    const end = endDate ? new Date(endDate) : new Date();
+    return this.inventoryService.calculateInventoryCosts(start, end);
+  }
+
+  @Get('stock-value') 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async getStockValue() {
     return this.inventoryService.getStockValue();
+  }
+
+  @Get('expiring')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
+  async getExpiringSoon(@Query('days') days?: number) {
+    return this.inventoryService.getExpiringSoonItems(days);
   }
 }

@@ -1,12 +1,14 @@
-import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan, MoreThanOrEqual, Between, DataSource } from 'typeorm';
+import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';  
+import { Repository, LessThan, MoreThan, Between, DataSource } from 'typeorm';
+import { Cron } from '@nestjs/schedule';
 import { Ingredient } from '../entities/ingredient.entity';
 import { Batch } from '../entities/batch.entity';
-import { Supplier } from '../entities/supplier.entity';
 import { IngredientImport } from '../entities/ingredient-import.entity';
 import { IngredientExport } from '../entities/ingredient-export.entity';
 import { ExportItem } from '../entities/export-item.entity';
+import { Supplier } from '../entities/supplier.entity';
+import { BatchStatus } from '../enums/batch-status.enum';
 import { CreateImportDto, CreateExportDto } from './dto';
 import { UserRole } from '../enums/user-role.enum';
 
@@ -41,7 +43,7 @@ export class InventoryService {
       // Count total batches
       const totalBatches = await this.batchRepository.count({
         where: {
-          remaining_quantity: MoreThanOrEqual(0.001) // Only consider batches with remaining quantity
+          remaining_quantity: MoreThan(0) // Only consider batches with remaining quantity
         }
       });
       
@@ -63,7 +65,7 @@ export class InventoryService {
       const expiringBatches = await this.batchRepository.count({
         where: {
           expiry_date: LessThan(thirtyDaysFromNow),
-          remaining_quantity: MoreThanOrEqual(0.001)
+          remaining_quantity: MoreThan(0)
         }
       });
       
@@ -74,20 +76,20 @@ export class InventoryService {
       
       const totalImports = await this.importRepository.count({
         where: {
-          created_at: MoreThanOrEqual(startOfMonth)
+          created_at: MoreThan(startOfMonth)
         }
       });
       
       const totalExports = await this.exportRepository.count({
         where: {
-          created_at: MoreThanOrEqual(startOfMonth)
+          created_at: MoreThan(startOfMonth)
         }
       });
       
       // Calculate total inventory value
       const batches = await this.batchRepository.find({
         where: {
-          remaining_quantity: MoreThanOrEqual(0.001)
+          remaining_quantity: MoreThan(0)
         }
       });
       
@@ -151,7 +153,7 @@ export class InventoryService {
       const batches = await this.batchRepository.find({
         where: {
           expiry_date: LessThan(futureDate),
-          remaining_quantity: MoreThanOrEqual(0.001)
+          remaining_quantity: MoreThan(0)
         },
         relations: ['ingredient']
       });
@@ -192,7 +194,7 @@ export class InventoryService {
       const batches = await this.batchRepository.find({
         where: {
           ingredientId,
-          remaining_quantity: MoreThanOrEqual(0.001)
+          remaining_quantity: MoreThan(0)
         }
       });
       
@@ -714,7 +716,7 @@ export class InventoryService {
         const batches = await this.batchRepository.find({
           where: {
             ingredientId: ingredient.id,
-            remaining_quantity: MoreThanOrEqual(0.001)
+            remaining_quantity: MoreThan(0)
           },
           order: {
             expiry_date: 'ASC' // Sort by expiry date to show earliest expiring first
@@ -779,7 +781,7 @@ export class InventoryService {
     try {
       const batches = await this.batchRepository.find({
         where: {
-          remaining_quantity: MoreThanOrEqual(0.001)
+          remaining_quantity: MoreThan(0)
         },
         relations: ['ingredient']
       });
@@ -830,6 +832,117 @@ export class InventoryService {
     } catch (error) {
       this.logger.error(`Error calculating stock value: ${error.message}`, error.stack);
       throw error;
+    }
+  }
+
+  /**
+   * Calculate inventory costs for a period
+   * @param startDate Start date of period
+   * @param endDate End date of period
+   */
+  async calculateInventoryCosts(startDate: Date, endDate: Date) {
+    try {
+      // Get all imports in period
+      const imports = await this.importRepository.find({
+        where: {
+          created_at: Between(startDate, endDate)
+        },
+        relations: ['batches']
+      });
+
+      // Calculate total import cost
+      const importCost = imports.reduce((total, imp) => {
+        const batchCosts = imp.batches.reduce(
+          (batchTotal, batch) => batchTotal + (batch.price * batch.quantity),
+          0
+        );
+        return total + batchCosts;
+      }, 0);
+
+      // Get all exports in period
+      const exports = await this.exportRepository.find({
+        where: { 
+          created_at: Between(startDate, endDate)
+        },
+        relations: ['items', 'items.batch']
+      });
+
+      // Calculate total export cost (based on batch prices)
+      const exportCost = exports.reduce((total, exp) => {
+        const itemCosts = exp.items.reduce(
+          (itemTotal, item) => itemTotal + (item.batch.price * item.quantity),
+          0
+        );
+        return total + itemCosts;
+      }, 0);
+
+      // Calculate current inventory value
+      const currentValue = await this.getStockValue();
+
+      return {
+        period: {
+          start: startDate,
+          end: endDate
+        },
+        costs: {
+          import_cost: importCost,
+          export_cost: exportCost,
+          current_stock_value: currentValue.total_value
+        }
+      };
+    } catch (error) {
+      this.logger.error(`Error calculating inventory costs: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Scheduled stock check
+   * @cron 0 0 * * * - Runs at midnight everyday
+   */
+  @Cron('0 0 * * *') // Run at midnight everyday
+  async scheduleStockCheck() {
+    try {
+      this.logger.log('Running scheduled stock check...');
+
+      // Get all ingredients
+      const ingredients = await this.ingredientRepository.find();
+      
+      // Check stock level for each ingredient
+      for (const ingredient of ingredients) {
+        const totalQuantity = await this.getTotalQuantityForIngredient(ingredient.id);
+        
+        // If below threshold, create notification
+        if (totalQuantity < ingredient.threshold) {
+          // TODO: Integrate with notification service
+          this.logger.warn(`Low stock alert: ${ingredient.name} (${totalQuantity} ${ingredient.unit})`);
+        }
+      }
+
+      // Check for expiring batches (within next 7 days)
+      const sevenDaysFromNow = new Date();
+      sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+      
+      const expiringBatches = await this.batchRepository.find({
+        where: {
+          expiry_date: LessThan(sevenDaysFromNow),
+          remaining_quantity: MoreThan(0)
+        },
+        relations: ['ingredient']
+      });
+
+      // Create expiry notifications
+      for (const batch of expiringBatches) {
+        // TODO: Integrate with notification service
+        this.logger.warn(
+          `Expiring batch alert: ${batch.ingredient.name} - Batch ${batch.name} ` +
+          `expires on ${batch.expiry_date.toLocaleDateString()}`
+        );
+      }
+
+      this.logger.log('Stock check completed');
+    } catch (error) {
+      this.logger.error(`Error in scheduled stock check: ${error.message}`, error.stack);
     }
   }
 }

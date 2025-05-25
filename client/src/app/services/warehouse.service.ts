@@ -267,6 +267,16 @@ export const warehouseService = {
     return response.data;
   },
 
+  async getRecentImports(): Promise<ImportModel[]> {
+    const response = await axios.get(`${IMPORT_API_URL}/recent`);
+    return response.data;
+  },
+
+  async getRecentExports(): Promise<ExportModel[]> {
+    const response = await axios.get(`${EXPORT_API_URL}/recent`);
+    return response.data;
+  },
+
   async generateInventoryReport(params?: {
     startDate?: Date,
     endDate?: Date,

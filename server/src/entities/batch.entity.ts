@@ -43,10 +43,10 @@ export class Batch {
   @DeleteDateColumn({ name: 'deleted_at', nullable: true })
   deleted_at: Date;
 
-  @Column({
-    type: 'enum',
-    enum: BatchStatus,
-    default: BatchStatus.AVAILABLE
+  @Column({ 
+    type: 'enum', 
+    enum: BatchStatus, 
+    default: BatchStatus.AVAILABLE 
   })
   status: BatchStatus;
 }

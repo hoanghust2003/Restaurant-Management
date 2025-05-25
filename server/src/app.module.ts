@@ -27,6 +27,7 @@ import { join } from 'path';
 import { StaticFilesMiddleware } from './common/middlewares/static-files.middleware';
 import { StaticAssetsController } from './common/controllers/static-assets.controller';
 import * as path from 'path';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import * as path from 'path';
     FileUploadModule,
     CategoriesModule,
     EventsModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [AppController, StaticAssetsController],
   providers: [AppService],

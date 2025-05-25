@@ -34,7 +34,6 @@ import { ingredientService } from '@/app/services/ingredient.service';
 import { IngredientModel } from '@/app/models/ingredient.model';
 import { BatchModel } from '@/app/models/warehouse.model';
 import moment from 'moment';
-import WarehouseLayout from '@/app/layouts/WarehouseLayout';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -456,8 +455,8 @@ const BatchesList: React.FC = () => {
 
 export default function BatchesPage() {
   return (
-    <WarehouseLayout title="Lô hàng">
+    <div className="p-6">
       <BatchesList />
-    </WarehouseLayout>
+    </div>
   );
 }

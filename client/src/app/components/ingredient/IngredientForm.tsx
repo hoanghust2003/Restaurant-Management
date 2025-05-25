@@ -53,7 +53,17 @@ const IngredientForm: React.FC<IngredientFormProps> = ({
     try {
       setLoading(true);
       
-      // Ensure image_url is included in the values
+      // Validate required fields
+      if (!values.name || !values.unit || values.threshold === undefined) {
+        throw new Error('Vui lòng điền đầy đủ thông tin bắt buộc');
+      }
+      
+      // Validate threshold
+      if (values.threshold < 0) {
+        throw new Error('Ngưỡng cảnh báo không được âm');
+      }
+
+      // Ensure image_url is included if available
       if (imageUrl && !values.image_url) {
         values.image_url = imageUrl;
       }
@@ -81,11 +91,11 @@ const IngredientForm: React.FC<IngredientFormProps> = ({
         onSuccess(result);
       } else {
         // Quay lại trang danh sách
-        router.push('/admin/ingredients');
+        router.push('/warehouse/ingredients');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting ingredient:', error);
-      message.error(isEdit ? 'Không thể cập nhật nguyên liệu' : 'Không thể tạo nguyên liệu');
+      message.error(error.message || (isEdit ? 'Không thể cập nhật nguyên liệu' : 'Không thể tạo nguyên liệu'));
     } finally {
       setLoading(false);
     }

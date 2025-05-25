@@ -9,24 +9,19 @@ import {
   Tag, 
   Popconfirm, 
   message, 
-  Tooltip, 
   Card, 
   Typography,
-  Dropdown,
-  Menu,
+  Badge,
   Spin,
-  Alert,
-  Modal
 } from 'antd';
 import { 
   PlusOutlined, 
   EditOutlined, 
   DeleteOutlined, 
   SearchOutlined, 
-  FilterOutlined,
-  SortAscendingOutlined,
   WarningOutlined,
-  EllipsisOutlined
+  ImportOutlined,
+  ExportOutlined
 } from '@ant-design/icons';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -39,8 +34,7 @@ const { Title, Text } = Typography;
 const IngredientList: React.FC = () => {
   const [ingredients, setIngredients] = useState<IngredientModel[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [searchText, setSearchText] = useState<string>('');
-  const [error, setError] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -52,10 +46,9 @@ const IngredientList: React.FC = () => {
       setLoading(true);
       const data = await ingredientService.getAll();
       setIngredients(data);
-      setError(null);
-    } catch (err: any) {
-      console.error('Error fetching ingredients:', err);
-      setError(err.message || 'Failed to load ingredients');
+    } catch (error) {
+      message.error('Không thể tải danh sách nguyên liệu');
+      console.error('Error fetching ingredients:', error);
     } finally {
       setLoading(false);
     }
@@ -64,15 +57,12 @@ const IngredientList: React.FC = () => {
   const handleDelete = async (id: string) => {
     try {
       await ingredientService.delete(id);
-      message.success('Đã xóa nguyên liệu thành công');
+      message.success('Xóa nguyên liệu thành công');
       fetchIngredients();
-    } catch (err: any) {
-      message.error(`Lỗi: ${err.message || 'Không thể xóa nguyên liệu'}`);
+    } catch (error) {
+      message.error('Không thể xóa nguyên liệu');
+      console.error('Error deleting ingredient:', error);
     }
-  };
-
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchText(e.target.value);
   };
 
   const getFilteredIngredients = () => {
@@ -82,6 +72,20 @@ const IngredientList: React.FC = () => {
       ingredient.name.toLowerCase().includes(searchText.toLowerCase()) ||
       ingredient.unit.toLowerCase().includes(searchText.toLowerCase())
     );
+  };
+
+  const getStockStatusColor = (currentQty: number = 0, threshold: number) => {
+    if (currentQty <= 0) return 'error';
+    if (currentQty <= threshold) return 'warning';
+    if (currentQty <= threshold * 1.2) return 'processing';
+    return 'success';
+  };
+
+  const getStockStatusText = (currentQty: number = 0, threshold: number) => {
+    if (currentQty <= 0) return 'Hết hàng';
+    if (currentQty <= threshold) return 'Sắp hết';
+    if (currentQty <= threshold * 1.2) return 'Thấp';
+    return 'Đủ hàng';
   };
 
   const columns = [
@@ -118,6 +122,33 @@ const IngredientList: React.FC = () => {
       width: 100,
     },
     {
+      title: 'Số lượng hiện tại',
+      dataIndex: 'current_quantity',
+      key: 'current_quantity',
+      width: 150,
+      sorter: (a: IngredientModel, b: IngredientModel) => {
+        const qtyA = a.current_quantity || 0;
+        const qtyB = b.current_quantity || 0;
+        return qtyA - qtyB;
+      },
+      render: (qty: number | undefined, record: IngredientModel) => {
+        const quantity = qty || 0;
+        const status = getStockStatusColor(quantity, record.threshold);
+        const text = getStockStatusText(quantity, record.threshold);
+        
+        return (
+          <Space>
+            <Badge status={status} text={`${quantity} ${record.unit}`} />
+            {status !== 'success' && (
+              <Tag color={status === 'error' ? 'red' : 'orange'}>
+                {text}
+              </Tag>
+            )}
+          </Space>
+        );
+      },
+    },
+    {
       title: 'Ngưỡng cảnh báo',
       dataIndex: 'threshold',
       key: 'threshold',
@@ -142,113 +173,53 @@ const IngredientList: React.FC = () => {
       },
     },
     {
-      title: 'Số lượng hiện tại',
-      dataIndex: 'current_quantity',
-      key: 'current_quantity',
-      width: 150,
-      sorter: (a: IngredientModel, b: IngredientModel) => {
-        const qtyA = a.current_quantity || 0;
-        const qtyB = b.current_quantity || 0;
-        return qtyA - qtyB;
-      },
-      render: (qty: number | undefined, record: IngredientModel) => {
-        const quantity = qty || 0;
-        const threshold = record.threshold;
-        let color = 'green';
-        
-        if (quantity <= threshold) {
-          color = 'red';
-        } else if (quantity <= threshold * 1.2) {
-          color = 'orange';
-        }
-        
-        return (
-          <Tag color={color}>
-            {quantity} {record.unit}
-          </Tag>
-        );
-      },
-    },
-    {
       title: 'Thao tác',
       key: 'action',
-      width: 180,
+      width: 280,
       render: (_: any, record: IngredientModel) => (
-        <Space size="small">
-          <Tooltip title="Chỉnh sửa">
-            <Button 
-              icon={<EditOutlined />} 
-              size="small"
-              onClick={() => router.push(`/warehouse/ingredients/edit/${record.id}`)}
-            />
-          </Tooltip>
-          <Tooltip title="Nhập kho">
-            <Button 
-              type="primary" 
-              size="small"
-              onClick={() => router.push(`/warehouse/imports/create?ingredient=${record.id}`)}
-            >
-              Nhập kho
-            </Button>
-          </Tooltip>
-          <Dropdown
-            overlay={
-              <Menu items={[
-                {
-                  key: '1',
-                  label: 'Xuất kho',
-                  onClick: () => router.push(`/warehouse/exports/create?ingredient=${record.id}`),
-                },
-                {
-                  key: '2',
-                  label: 'Xem lịch sử',
-                  onClick: () => router.push(`/warehouse/ingredients/${record.id}/history`),
-                },
-                {
-                  key: '3',
-                  label: 'Xóa',
-                  danger: true,
-                  onClick: () => {
-                    // Using Popconfirm directly in dropdown doesn't work well, so we use message.confirm
-                    Modal.confirm({
-                      title: 'Xác nhận xóa',
-                      content: `Bạn có chắc chắn muốn xóa nguyên liệu "${record.name}"?`,
-                      okText: 'Xóa',
-                      okType: 'danger',
-                      cancelText: 'Hủy',
-                      onOk: () => handleDelete(record.id),
-                    });
-                  },
-                },
-              ]} 
-            />
-            }
-            trigger={['click']}
+        <Space>
+          <Button 
+            icon={<ImportOutlined />}
+            onClick={() => router.push(`/warehouse/imports/create?ingredient=${record.id}`)}
           >
-            <Button size="small" icon={<EllipsisOutlined />} />
-          </Dropdown>
+            Nhập kho
+          </Button>
+          <Button
+            icon={<ExportOutlined />}
+            onClick={() => router.push(`/warehouse/exports/create?ingredient=${record.id}`)}
+          >
+            Xuất kho
+          </Button>
+          <Button
+            icon={<EditOutlined />}
+            onClick={() => router.push(`/warehouse/ingredients/edit/${record.id}`)}
+          >
+            Sửa
+          </Button>
+          <Popconfirm
+            title="Xác nhận xóa nguyên liệu?"
+            onConfirm={() => handleDelete(record.id)}
+            okText="Xóa"
+            cancelText="Hủy"
+          >
+            <Button danger icon={<DeleteOutlined />}>
+              Xóa
+            </Button>
+          </Popconfirm>
         </Space>
       ),
     },
   ];
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Spin size="large" tip="Đang tải danh sách nguyên liệu..." />
-      </div>
-    );
-  }
-
-  if (error) {
+  if (loading && ingredients.length === 0) {
     return (
       <div className="p-6">
-        <Alert
-          message="Lỗi"
-          description={error}
-          type="error"
-          showIcon
-        />
+        <Card>
+          <div className="flex flex-col items-center justify-center h-64">
+            <Spin size="large" />
+            <span className="mt-3 text-gray-600">Đang tải danh sách nguyên liệu...</span>
+          </div>
+        </Card>
       </div>
     );
   }
@@ -277,7 +248,7 @@ const IngredientList: React.FC = () => {
             placeholder="Tìm kiếm theo tên hoặc đơn vị" 
             prefix={<SearchOutlined />} 
             value={searchText}
-            onChange={handleSearch}
+            onChange={(e) => setSearchText(e.target.value)}
             allowClear
           />
         </div>
@@ -286,6 +257,7 @@ const IngredientList: React.FC = () => {
           columns={columns} 
           dataSource={getFilteredIngredients()} 
           rowKey="id"
+          loading={loading}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,

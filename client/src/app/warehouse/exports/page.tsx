@@ -27,7 +27,6 @@ import Link from 'next/link';
 import moment from 'moment';
 import { exportService } from '@/app/services/warehouse.service';
 import { ExportModel } from '@/app/models/warehouse.model';
-import WarehouseLayout from '@/app/layouts/WarehouseLayout';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -263,8 +262,8 @@ const ExportsList: React.FC = () => {
 
 export default function ExportsPage() {
   return (
-    <WarehouseLayout title="Xuất kho">
+    <div className="p-6">
       <ExportsList />
-    </WarehouseLayout>
+    </div>
   );
 }

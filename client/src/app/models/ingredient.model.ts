@@ -9,6 +9,7 @@ export interface IngredientModel {
   image_url?: string | null;
   created_at?: Date;
   deleted_at?: Date | null;
+  current_quantity?: number;
 }
 
 /**
