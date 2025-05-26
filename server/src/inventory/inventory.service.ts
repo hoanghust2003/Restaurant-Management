@@ -945,4 +945,64 @@ export class InventoryService {
       this.logger.error(`Error in scheduled stock check: ${error.message}`, error.stack);
     }
   }
+
+  /**
+   * Get recent imports
+   * @param limit Maximum number of imports to return
+   */
+  async getRecentImports(limit: number = 5) {
+    try {
+      const imports = await this.importRepository.find({
+        relations: ['supplier', 'created_by'],
+        order: {
+          created_at: 'DESC'
+        },
+        take: limit
+      });
+      
+      // For each import, get its batches
+      const importsWithBatches: any[] = [];
+      
+      for (const importItem of imports) {
+        const batches = await this.batchRepository.find({
+          where: {
+            importId: importItem.id
+          },
+          relations: ['ingredient']
+        });
+        
+        importsWithBatches.push({
+          ...importItem,
+          batches,
+          total_value: batches.reduce((sum, batch) => sum + (batch.price * batch.quantity), 0)
+        });
+      }
+      
+      return importsWithBatches;
+    } catch (error) {
+      this.logger.error(`Error getting recent imports: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Get recent exports
+   * @param limit Maximum number of exports to return
+   */
+  async getRecentExports(limit: number = 5) {
+    try {
+      const exports = await this.exportRepository.find({
+        relations: ['items', 'items.ingredient', 'items.batch'],
+        order: {
+          created_at: 'DESC'
+        },
+        take: limit
+      });
+
+      return exports;
+    } catch (error) {
+      this.logger.error(`Error getting recent exports: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
 }

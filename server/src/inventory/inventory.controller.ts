@@ -34,6 +34,13 @@ export class InventoryController {
     return this.inventoryService.getExpiringSoonItems(days);
   }
 
+  @Get('imports/recent')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
+  async getRecentImports(@Query('limit') limit: number = 5) {
+    return this.inventoryService.getRecentImports(limit);
+  }
+
   @Get('imports')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
@@ -71,6 +78,13 @@ export class InventoryController {
   async restoreImport(@Param('id') id: string, @Request() req) {
     await this.inventoryService.restoreImport(id, req.user.role);
     return { message: 'Đã khôi phục phiếu nhập kho thành công' };
+  }
+
+  @Get('exports/recent')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
+  async getRecentExports(@Query('limit') limit: number = 5) {
+    return this.inventoryService.getRecentExports(limit);
   }
 
   @Get('exports')
