@@ -89,18 +89,18 @@ const adminMenuSections = [
         showIfRoles: ["admin"],
         subItems: [
           {
-            href: "/admin/inventory/overview",
+            href: "/admin/inventory/ingredients",
             title: "Tổng quan kho",
             showIfRoles: ["admin"],
           },
           {
-            href: "/admin/inventory/management",
-            title: "Quản lý tồn kho",
+            href: "/admin/inventory/imports",
+            title: "Nhập kho",
             showIfRoles: ["admin"],
           },
           {
-            href: "/admin/inventory/settings",
-            title: "Thiết lập kho",
+            href: "/admin/inventory/exports",
+            title: "Xuất kho",
             showIfRoles: ["admin"],
           },
         ],
