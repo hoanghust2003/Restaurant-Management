@@ -1,13 +1,10 @@
 ## 🔐 PHÂN QUYỀN (User Roles)
 
 ```
-ts
-Copy code
 export enum UserRole {
   ADMIN = 'admin',
-  WAITER = 'waiter',
+  STAFF = 'staff',
   CHEF = 'chef',
-  CASHIER = 'cashier',
   WAREHOUSE = 'warehouse',
   CUSTOMER = 'customer',
 }
@@ -219,6 +216,8 @@ export enum UserRole {
     - CRUD `categories`, `dishes`, `dish_ingredients`, `menus`
 - **Quản lý bàn**
     - CRUD bàn ăn
+- **Quản lý kho**
+    - Như warehouse
 - **Báo cáo - Thống kê**
     - Doanh thu theo ngày/tháng
     - Món bán chạy
