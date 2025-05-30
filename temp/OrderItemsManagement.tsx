@@ -32,7 +32,7 @@ export interface OrderItemsManagementProps {
   loading?: boolean;
 }
 
-export export export const OrderItemsManagement: React.FC<OrderItemsManagementProps> = ({ 
+export const OrderItemsManagement: React.FC<OrderItemsManagementProps> = ({ 
   items, 
   onStatusChange,
   isKitchenView = false,
@@ -40,7 +40,6 @@ export export export const OrderItemsManagement: React.FC<OrderItemsManagementPr
 }): React.ReactElement => {
   const [loadingItems, setLoadingItems] = useState<Record<string, boolean>>({});
 
-  // Handle status change for an item
   const handleStatusChange = async (itemId: string, status: OrderItemStatus) => {
     try {
       setLoadingItems(prev => ({ ...prev, [itemId]: true }));
@@ -54,8 +53,7 @@ export export export const OrderItemsManagement: React.FC<OrderItemsManagementPr
     }
   };
 
-  // Get status icon based on status
-  const getStatusIcon = (status: OrderItemStatus) => {
+  const getStatusIcon = (status: OrderItemStatus): React.ReactElement => {
     switch (status) {
       case OrderItemStatus.WAITING:
         return <ClockCircleOutlined />;
@@ -66,11 +64,10 @@ export export export const OrderItemsManagement: React.FC<OrderItemsManagementPr
       case OrderItemStatus.FAILED:
         return <ExclamationCircleOutlined />;
       default:
-        return null;
+        return <ClockCircleOutlined />;
     }
   };
 
-  // Columns for the items table
   const columns = [
     {
       title: 'Món',
@@ -84,51 +81,47 @@ export export export const OrderItemsManagement: React.FC<OrderItemsManagementPr
               <Text type="secondary" italic>Ghi chú: {record.note}</Text>
             </div>
           )}
-        ),
-          },
-          {
-        title: 'Số lượng',
-        dataIndex: 'quantity',
-        key: 'quantity',
-        width: 100,
-          } as const,
-          {
-        title: 'Đơn giá',
-        dataIndex: ['dish', 'price'],
-        key: 'price',
-        width: 150,
-        render: (price: number) => formatPrice(price),
-          } as const,
-          {
-        title: 'Thành tiền',
-        key: 'total',
-        width: 150,
-        render: (_: unknown, record: OrderItemModel) => 
-          formatPrice((record.dish?.price || 0) * record.quantity),
-          } as const,
-          {
-        title: 'Trạng thái',
-        dataIndex: 'status',
-        key: 'status',
-        width: 150,
-        render: (status: OrderItemStatus) => (
+        </div>
+      ),
+    },
+    {
+      title: 'Số lượng',
+      dataIndex: 'quantity',
+      key: 'quantity',
+      width: 100,
+    },
+    {
+      title: 'Đơn giá',
+      dataIndex: ['dish', 'price'],
+      key: 'price',
+      width: 150,
+      render: (price: number) => formatPrice(price),
+    },
+    {
+      title: 'Thành tiền',
+      key: 'total',
+      width: 150,
+      render: (_: string, record: OrderItemModel) => 
+        formatPrice((record.dish?.price || 0) * record.quantity),
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      key: 'status',
+      width: 150,
+      render: (status: OrderItemStatus) => (
         <Tag color={orderItemStatusColors[status]} icon={getStatusIcon(status)}>
           {orderItemStatusText[status]}
         </Tag>
       ),
     },
-  ];
-
-  // Add actions column if it's kitchen view
-  if (isKitchenView) {
-    columns.push({
+    ...(isKitchenView ? [{
       title: 'Thao tác',
       key: 'action',
       width: 200,
-      render: (_, record: OrderItemModel) => {
+      render: (_: string, record: OrderItemModel): React.ReactElement | null => {
         const isItemLoading = loadingItems[record.id];
 
-        // Different actions based on current status
         if (record.status === OrderItemStatus.WAITING) {
           return (
             <Button 
@@ -174,21 +167,17 @@ export export export const OrderItemsManagement: React.FC<OrderItemsManagementPr
 
         return null;
       },
-    });
-  } else {
-    // For waiter view, add a simpler actions column
-    columns.push({
+    }] : [{
       title: 'Thao tác',
       key: 'action',
       width: 150,
-      render: (_, record: OrderItemModel) => {
-        // Only show actions for items that need attention
+      render: (_: string, record: OrderItemModel): React.ReactElement | null => {
         if (record.status === OrderItemStatus.DONE || record.status === OrderItemStatus.FAILED) {
           return (
             <Select
               defaultValue={record.status}
               style={{ width: 130 }}
-              onChange={(value) => handleStatusChange(record.id, value)}
+              onChange={(value: OrderItemStatus) => handleStatusChange(record.id, value)}
               loading={loadingItems[record.id]}
             >
               <Option value={OrderItemStatus.WAITING}>Chờ xử lý</Option>
@@ -200,32 +189,29 @@ export export export const OrderItemsManagement: React.FC<OrderItemsManagementPr
         }
         return null;
       },
-    });
-  }
+    }]),
+  ];
 
-  // Group items by status for kitchen view
-  const getGroupedItems = () => {
-    if (!isKitchenView) return items;
+  const groupItems = (itemsToGroup: OrderItemModel[]): OrderItemModel[] => {
+    if (!isKitchenView) return itemsToGroup;
     
-    // Sort by priority: PREPARING, WAITING, DONE, FAILED
-    return [...items].sort((a, b) => {
-      const priorityMap: Record<OrderItemStatus, number> = {
-        [OrderItemStatus.PREPARING]: 0,
-        [OrderItemStatus.WAITING]: 1,
-        [OrderItemStatus.DONE]: 2,
-        [OrderItemStatus.FAILED]: 3,
-      };
-      
-      return priorityMap[a.status] - priorityMap[b.status];
-    });
+    const priorityMap: { [key in OrderItemStatus]: number } = {
+      [OrderItemStatus.PREPARING]: 0,
+      [OrderItemStatus.WAITING]: 1,
+      [OrderItemStatus.DONE]: 2,
+      [OrderItemStatus.FAILED]: 3,
+    };
+    
+    return [...itemsToGroup].sort((a, b) => 
+      priorityMap[a.status] - priorityMap[b.status]
+    );
   };
 
-  // Summary section showing counts by status
-  const renderSummary = () => {
-    const statusCounts = items.reduce((acc, item) => {
+  const renderSummary = (): React.ReactElement => {
+    const statusCounts = items.reduce<Record<string, number>>((acc, item) => {
       acc[item.status] = (acc[item.status] || 0) + 1;
       return acc;
-    }, {} as Record<string, number>);
+    }, {});
     
     return (
       <div className="mb-4 flex gap-4">
@@ -251,7 +237,7 @@ export export export const OrderItemsManagement: React.FC<OrderItemsManagementPr
       
       <Table 
         columns={columns} 
-        dataSource={getGroupedItems()} 
+        dataSource={groupItems(items)} 
         rowKey="id" 
         pagination={false}
         loading={loading}
@@ -260,5 +246,3 @@ export export export const OrderItemsManagement: React.FC<OrderItemsManagementPr
     </div>
   );
 };
-
-export default OrderItemsManagement;

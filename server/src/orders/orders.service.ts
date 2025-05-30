@@ -395,4 +395,25 @@ export class OrdersService {
       throw new BadRequestException(error.message);
     }
   }
+
+  // Method to update order when payment is completed
+  async completeOrderPayment(orderId: string): Promise<Order> {
+    const order = await this.orderRepository.findOne({ where: { id: orderId } });
+    if (!order) {
+      throw new NotFoundException(`Order #${orderId} not found`);
+    }
+
+    // Just update the timestamp for now as we don't have a payment_status field
+    order.updated_at = new Date();
+    
+    // Optionally set to completed status if needed
+    // order.status = OrderStatus.COMPLETED;
+
+    const savedOrder = await this.orderRepository.save(order);
+    
+    // Notify clients that the order has been updated
+    this.eventsGateway.server.emit('order:updated', savedOrder);
+    
+    return savedOrder;
+  }
 }
