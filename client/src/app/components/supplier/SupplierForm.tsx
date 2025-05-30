@@ -50,7 +50,7 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ supplier, onSuccess }) => {
         onSuccess(result);
       } else {
         // Quay lại trang danh sách
-        router.push('/admin/suppliers');
+        router.push('/admin/inventory/suppliers');
       }
     } catch (error) {
       console.error('Error submitting supplier:', error);
@@ -132,7 +132,7 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ supplier, onSuccess }) => {
             <Button 
               type="default" 
               className="mr-2"
-              onClick={() => router.push('/admin/suppliers')}
+              onClick={() => router.push('/admin/inventory/suppliers')}
             >
               Hủy
             </Button>

@@ -3,6 +3,15 @@ import { CanActivate, ExecutionContext } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Observable } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
+import { Request } from 'express';
+
+interface RequestWithUser extends Request {
+  user: {
+    userId: string;
+    email: string;
+    role: string;
+  };
+}
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -16,27 +25,39 @@ export class JwtAuthGuard implements CanActivate {
   canActivate(
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const token = request.headers['authorization']?.split(' ')[1];
+    let token: string | undefined;
+
+    if (context.getType() === 'ws') {
+      // Handle WebSocket connections
+      const client = context.switchToWs().getClient();
+      token = client.handshake?.auth?.token;
+    } else {
+      // Handle HTTP requests
+      const req = context.switchToHttp().getRequest<Request>();
+      token = req.headers['authorization']?.split(' ')[1];
+    }
 
     if (!token) {
       throw new UnauthorizedException('No authentication token provided');
     }
 
     try {
-      // Đảm bảo sử dụng cùng một JWT_SECRET với JwtStrategy
+      // Ensure we use the same JWT_SECRET as JwtStrategy
       const jwtSecret = this.configService.get<string>('JWT_SECRET');
       const defaultSecret = 'restaurant_management_secure_jwt_secret_key_2025';
       const secret = jwtSecret || defaultSecret;
       
       const payload = this.jwtService.verify(token, { secret });
       
-      // Transform the JWT payload to match the expected structure
-      request.user = {
-        userId: payload.sub,
-        email: payload.email,
-        role: payload.role
-      };
+      if (context.getType() === 'http') {
+        const req = context.switchToHttp().getRequest<RequestWithUser>();
+        // Transform the JWT payload to match the expected structure
+        req.user = {
+          userId: payload.sub,
+          email: payload.email,
+          role: payload.role
+        };
+      }
       
       return true;
     } catch (error) {

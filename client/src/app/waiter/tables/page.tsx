@@ -18,23 +18,6 @@ import {
 } from 'antd';
 import axios from '../../utils/axios';
 import { TableStatus } from '@/app/utils/enums';
-import { withRetry } from '@/app/utils/apiRetry';t React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
-import dynamic from 'next/dynamic';
-import WaiterLayout from '@/app/layouts/WaiterLayout';
-import { useAuth } from '@/app/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
-import { usePerformanceMonitor } from '@/app/utils/performanceMonitoring';
-import { prefetchWaiterDashboardData } from '@/app/utils/prefetch';
-import { 
-  Button, 
-  Select, 
-  Modal, 
-  Form, 
-  message, 
-  Spin 
-} from 'antd';
-import axios from '../../utils/axios';
-import { TableStatus } from '@/app/utils/enums';
 import { withRetry } from '@/app/utils/apiRetry';
 
 // Dynamically import components for code splitting
@@ -196,7 +179,7 @@ export default function WaiterTablesPage() {
     setIsStatusModalVisible(false);
   };
   
-  // Handle status update với optimistic update
+  // Handle status update with optimistic update
   const handleStatusUpdate = async (values: { status: TableStatus }) => {
     if (!selectedTable) {
       message.error('Không có bàn nào được chọn để cập nhật.');
@@ -220,32 +203,34 @@ export default function WaiterTablesPage() {
 
       // Make the API call
       await axios.patch(`/tables/${tableId}/status`, { status: newStatus });
-      message.success('Cập nhật trạng thái bàn thành công');
-    setIsStatusModalVisible(false); // Đóng modal ngay
-
-    try {
-      // Gọi API để cập nhật trạng thái bàn
-      await axios.patch(`/tables/${selectedTable.id}/status`, {
-        status: newStatus,
-      });
-      message.success('Cập nhật trạng thái bàn thành công!');
       
       // Clear cache in local storage to ensure fresh data
       localStorage.removeItem(`last_refresh_/tables?status=${statusFilter || ''}`);
       
+      // Show success message
+      message.success('Cập nhật trạng thái bàn thành công!');
+      
       // Tải lại danh sách bàn để đảm bảo dữ liệu luôn mới nhất từ server
-      // Điều này cũng giúp đồng bộ nếu có thay đổi khác từ server
       fetchTablesData();
-    } catch (error) {
-      message.error('Lỗi cập nhật trạng thái bàn. Đang hoàn tác...');
-      // Hoàn tác lại thay đổi trên UI nếu API call thất bại
+
+    } catch (error: any) {
+      // Revert optimistic update
       setTables(prevTables =>
         prevTables.map(t =>
           t.id === selectedTable.id ? { ...t, status: originalStatus } : t
         )
       );
-      // Có thể cân nhắc mở lại modal hoặc xử lý lỗi cụ thể hơn
-      // setIsStatusModalVisible(true); 
+
+      // Show appropriate error message
+      if (error.response?.status === 403) {
+        message.error('Bạn không có quyền cập nhật trạng thái bàn');
+      } else if (error.response?.status === 400) {
+        message.error(error.response?.data?.message || 'Trạng thái không hợp lệ');
+      } else if (!error.response) {
+        message.error('Mất kết nối tới máy chủ. Vui lòng kiểm tra mạng.');
+      } else {
+        message.error('Lỗi cập nhật trạng thái bàn. Đang hoàn tác...');
+      }
       console.error("Lỗi khi cập nhật trạng thái bàn:", error);
     }
   };

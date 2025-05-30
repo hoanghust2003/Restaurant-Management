@@ -14,10 +14,10 @@ import {
   Select
 } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
-import { locationService } from '@/app/services/warehouse.service';
+import { warehouseService } from '@/app/services/warehouse.service';
 import WarehouseLayout from '@/app/layouts/WarehouseLayout';
 
-const { Title } = Typography;
+const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
@@ -29,8 +29,8 @@ interface CreateLocationFormData {
 
 const CreateLocation: React.FC = () => {
   const router = useRouter();
-  const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
+  const [form] = Form.useForm<CreateLocationFormData>();
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const onFinish = async (values: CreateLocationFormData) => {
@@ -38,12 +38,13 @@ const CreateLocation: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      await locationService.create(values);
+      await warehouseService.createLocation(values);
       message.success('Tạo vị trí mới thành công');
       router.push('/warehouse/locations');
     } catch (err: any) {
       console.error('Error creating location:', err);
       setError(err.message || 'Không thể tạo vị trí mới');
+      message.error('Có lỗi xảy ra khi tạo vị trí mới');
     } finally {
       setLoading(false);
     }
@@ -53,27 +54,19 @@ const CreateLocation: React.FC = () => {
     <WarehouseLayout title="Tạo vị trí mới">
       <div className="p-6">
         <Card>
-          <div className="mb-4">
-            <Space>
-              <Button
-                icon={<ArrowLeftOutlined />}
-                onClick={() => router.push('/warehouse/locations')}
-              >
-                Quay lại
-              </Button>
-              <Title level={4} className="!mb-0">
-                Tạo vị trí mới
-              </Title>
-            </Space>
+          <div className="mb-6">
+            <Title level={4}>Tạo vị trí mới</Title>
+            <Paragraph type="secondary">
+              Nhập thông tin để tạo vị trí mới trong kho
+            </Paragraph>
           </div>
 
           {error && (
-            <Alert
-              message="Lỗi"
-              description={error}
-              type="error"
-              showIcon
-              className="mb-4"
+            <Alert 
+              message={error} 
+              type="error" 
+              showIcon 
+              className="mb-6" 
             />
           )}
 
@@ -81,12 +74,14 @@ const CreateLocation: React.FC = () => {
             form={form}
             layout="vertical"
             onFinish={onFinish}
-            autoComplete="off"
           >
             <Form.Item
               name="name"
               label="Tên vị trí"
-              rules={[{ required: true, message: 'Vui lòng nhập tên vị trí' }]}
+              rules={[
+                { required: true, message: 'Vui lòng nhập tên vị trí' },
+                { max: 100, message: 'Tên vị trí không được vượt quá 100 ký tự' }
+              ]}
             >
               <Input placeholder="Nhập tên vị trí" />
             </Form.Item>
@@ -97,9 +92,8 @@ const CreateLocation: React.FC = () => {
             >
               <Select placeholder="Chọn khu vực">
                 <Option value="storage">Kho chính</Option>
-                <Option value="freezer">Kho lạnh</Option>
-                <Option value="dry">Kho khô</Option>
-                <Option value="spice">Kho gia vị</Option>
+                <Option value="kitchen">Bếp</Option>
+                <Option value="bar">Quầy bar</Option>
                 <Option value="other">Khác</Option>
               </Select>
             </Form.Item>
@@ -108,23 +102,26 @@ const CreateLocation: React.FC = () => {
               name="description"
               label="Mô tả"
             >
-              <TextArea
-                placeholder="Nhập mô tả cho vị trí"
-                rows={4}
+              <TextArea 
+                rows={4} 
+                placeholder="Nhập mô tả về vị trí (không bắt buộc)" 
               />
             </Form.Item>
 
             <Form.Item>
               <Space>
-                <Button
-                  type="primary"
-                  htmlType="submit"
+                <Button 
+                  type="primary" 
+                  htmlType="submit" 
                   loading={loading}
                 >
                   Tạo vị trí
                 </Button>
-                <Button onClick={() => router.push('/warehouse/locations')}>
-                  Hủy
+                <Button 
+                  onClick={() => router.push('/warehouse/locations')}
+                  icon={<ArrowLeftOutlined />}
+                >
+                  Quay lại
                 </Button>
               </Space>
             </Form.Item>

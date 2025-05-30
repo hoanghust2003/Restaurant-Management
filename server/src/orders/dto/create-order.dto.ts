@@ -24,11 +24,10 @@ export class CreateOrderDto {
   @IsNotEmpty()
   @IsString()
   tableId: string;
-
-  @ApiProperty({ description: 'User ID (server/waiter)', example: 'uuid-string' })
-  @IsNotEmpty()
+  @ApiProperty({ description: 'User ID (server/waiter)', example: 'uuid-string', required: false })
+  @IsOptional()
   @IsString()
-  userId: string;
+  userId?: string;
 
   @ApiProperty({ 
     description: 'Order items',

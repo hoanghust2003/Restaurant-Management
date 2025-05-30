@@ -22,32 +22,47 @@ const TableManagementPage = () => {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const { refreshSpecificData } = useRefresh();
 
+  // Show modal for creating/editing
+  const showModal = () => {
+    form.resetFields();
+    form.setFieldsValue({ status: TableStatus.AVAILABLE });
+    setIsModalVisible(true);
+  };
+
+  // Handle status change
   const handleStatusChange = async (tableId: string, newStatus: string) => {
     setUpdatingStatus(tableId);
     try {
-      await tableService.updateStatus(tableId, newStatus as TableStatus);
+      if (!Object.values(TableStatus).includes(newStatus as TableStatus)) {
+        throw new Error(`Invalid status value: ${newStatus}`);
+      }
+      await tableService.updateStatus(tableId, newStatus);
       message.success('Cập nhật trạng thái bàn thành công!');
       refreshSpecificData('tables');
-    } catch (error) {
-      message.error('Lỗi khi cập nhật trạng thái bàn.');
+    } catch (error: any) {
       console.error('Failed to update table status:', error);
+      const errorMessage = error.message || 'Lỗi khi cập nhật trạng thái bàn.';
+      message.error(errorMessage);
     } finally {
       setUpdatingStatus(null);
     }
-  };  // Handle showing QR code
+  };
+
+  // Handle showing QR code
   const handleShowQrCode = (table: TableModel) => {
     setSelectedTableForQr(table);
     setQrModalVisible(true);
   };
 
+  // Handle QR modal close
   const handleQrModalClose = () => {
     setQrModalVisible(false);
-    // Use a short timeout to allow modal close animation to complete
     setTimeout(() => {
       setSelectedTableForQr(null);
     }, 200);
   };
 
+  // Handle delete
   const handleDelete = async (id: string) => {
     try {
       await tableService.delete(id);
@@ -58,37 +73,28 @@ const TableManagementPage = () => {
       console.error('Error deleting table:', error);
     }
   };
+
   // Handle editing table
   const handleEdit = (table: TableModel) => {
-    console.log('Editing table:', table);
     setEditingTable(table);
-    
-    // Use setTimeout to ensure the form is mounted before setting values
-    setTimeout(() => {
-      form.setFieldsValue({
-        name: table.name,
-        capacity: table.capacity,
-        status: table.status,
-      });
-      setIsModalVisible(true);
-    }, 0);
+    form.setFieldsValue({
+      name: table.name,
+      capacity: table.capacity,
+      status: table.status,
+    });
+    setIsModalVisible(true);
   };
 
-  // Handle modal form submission
+  // Handle modal form submission 
   const handleModalOk = async () => {
     try {
-      // Validate all fields and get values
       const values = await form.validateFields();
       
       if (editingTable) {
-        console.log('Updating table:', editingTable.id, values);
-        const updatedTable = await tableService.update(editingTable.id, values);
-        console.log('Table updated successfully:', updatedTable);
+        await tableService.update(editingTable.id, values);
         message.success('Cập nhật bàn thành công!');
       } else {
-        console.log('Creating new table with values:', values);
-        const newTable = await tableService.create(values);
-        console.log('Table created successfully:', newTable);
+        await tableService.create(values);
         message.success('Thêm bàn mới thành công!');
       }
       
@@ -98,11 +104,7 @@ const TableManagementPage = () => {
       refreshSpecificData('tables');
     } catch (error) {
       console.error('Error saving table:', error);
-      // Check for validation error
-      if ((error as any).errorFields) {
-        return; // Form validation error, no need for error message
-      }
-      message.error('Có lỗi xảy ra khi lưu thông tin bàn: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      message.error('Có lỗi xảy ra khi lưu thông tin bàn');
     }
   };
 
@@ -128,114 +130,59 @@ const TableManagementPage = () => {
     }
   };
 
-  const columns = [
-    {
-      title: 'Tên bàn',
-      dataIndex: 'name',
-      key: 'name',
-      sorter: (a: TableModel, b: TableModel) => a.name.localeCompare(b.name),
-    },
-    {
-      title: 'Sức chứa',
-      dataIndex: 'capacity',
-      key: 'capacity',
-      render: (capacity: number) => `${capacity} người`,
-    },    {
-      title: 'Trạng thái',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string, record: TableModel) => (
-        <Select
-          value={status}
-          onChange={(newStatus) => handleStatusChange(record.id, newStatus)}
-          style={{ width: 120 }}
-          bordered={false}
-        >
-          {Object.entries(tableStatusText).map(([value, label]) => (
-            <Option key={value} value={value}>
-              <Tag color={getTableStatusColor(value)} style={{ border: 'none', marginRight: 4 }}>
-                {label}
-              </Tag>
-            </Option>
-          ))}
-        </Select>
-      ),
-    },
-    {
-      title: 'Thao tác',
-      key: 'action',
-      render: (_: unknown, record: TableModel) => (
-        <Space size="middle">
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            size="small"
-            type="link"
-          >
-            Sửa
-          </Button>
-          <Button
-            icon={<QrcodeOutlined />}
-            onClick={() => handleShowQrCode(record)}
-            size="small"
-            type="link"
-          >
-            Mã QR
-          </Button>
-          <Popconfirm
-            title="Xóa bàn"
-            description="Bạn có chắc chắn muốn xóa bàn này?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Có"
-            cancelText="Không"
-            placement="topRight"
-            okButtonProps={{ danger: true }}
-          >
-            <Button
-              icon={<DeleteOutlined />}
-              danger
-              size="small"
-              type="link"
-            >
-              Xóa
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
-
   return (
-    <AdminLayout title="Quản lý bàn">
-      <Button
-        type="primary"
-        onClick={() => {
-          setEditingTable(null);
-          form.resetFields();
-          setIsModalVisible(true);
-        }}
-        style={{ marginBottom: 16 }}
-        icon={<PlusOutlined />}
-      >
-        Thêm bàn mới
-      </Button>
-
-      <BaseCrudTable<TableModel>
-        title="Danh sách bàn"
+    <AdminLayout>
+      <BaseCrudTable
         service={tableService}
-        columns={columns}
+        title="Quản lý bàn"
+        columns={[
+          {
+            title: 'Tên bàn',
+            dataIndex: 'name',
+            key: 'name',
+            sorter: (a: TableModel, b: TableModel) => a.name.localeCompare(b.name),
+          },
+          {
+            title: 'Sức chứa',
+            dataIndex: 'capacity',
+            key: 'capacity',
+            render: (capacity: number) => `${capacity} người`,
+          },
+          {
+            title: 'Trạng thái',
+            dataIndex: 'status',
+            key: 'status',
+            render: (status: string, record: TableModel) => (
+              <Select
+                value={status}
+                onChange={(newStatus: string) => handleStatusChange(record.id, newStatus)} 
+                style={{ width: 120 }}
+                disabled={updatingStatus === record.id}
+              >
+                {Object.values(TableStatus).map((status) => (
+                  <Option key={status} value={status}>
+                    <Tag color={getTableStatusColor(status)} style={{ border: 'none', marginRight: 4 }}>
+                      {tableStatusText[status]}
+                    </Tag>
+                  </Option>
+                ))}
+              </Select>
+            ),
+          }
+        ]}
+        addButtonText="Thêm bàn mới"
         onCreate={() => {
-          setEditingTable(null);
           form.resetFields();
+          setEditingTable(null);
           setIsModalVisible(true);
         }}
         onEdit={handleEdit}
         fetchDataConfig={{ includeDeleted: false }}
         dataType="tables"
-        showActions={false}
+        showActions={true}
       />
 
-      {/* Edit Modal */}
+      {/* Edit/Create Modal */}
       <Modal
         title={editingTable ? "Sửa thông tin bàn" : "Thêm bàn mới"}
         open={isModalVisible}
@@ -244,9 +191,9 @@ const TableManagementPage = () => {
         okText={editingTable ? "Cập nhật" : "Tạo mới"}
         cancelText="Hủy"
       >
-        <Form 
+        <Form
           form={form}
-          layout="vertical"  
+          layout="vertical"
           initialValues={editingTable || { status: TableStatus.AVAILABLE }}
         >
           <Form.Item
@@ -271,10 +218,11 @@ const TableManagementPage = () => {
               min={1} 
             />
           </Form.Item>
-          
+
           <Form.Item
             name="status"
             label="Trạng thái"
+            rules={[{ required: true, message: 'Vui lòng chọn trạng thái!' }]}
           >
             <Select>
               {Object.entries(tableStatusText).map(([value, label]) => (
@@ -284,7 +232,7 @@ const TableManagementPage = () => {
           </Form.Item>
         </Form>
       </Modal>
-      
+
       {/* QR Code Modal */}
       <QrCodeModal
         open={qrModalVisible}

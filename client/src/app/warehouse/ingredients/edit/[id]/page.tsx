@@ -43,29 +43,32 @@ const EditIngredientPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <Spin size="large" tip="Đang tải thông tin nguyên liệu..." />
+      <div className="p-6">
+        <Card>
+          <div className="flex justify-center items-center h-64">
+            <Spin size="large" />
+          </div>
+        </Card>
       </div>
     );
   }
 
-  if (error || !ingredient) {
+  if (error) {
     return (
       <div className="p-6">
-        <Alert
-          message="Lỗi"
-          description={error || 'Không tìm thấy thông tin nguyên liệu'}
-          type="error"
-          showIcon
-          action={
-            <Button 
-              type="primary" 
-              onClick={() => router.push('/warehouse/ingredients')}
-            >
-              Quay lại
-            </Button>
-          }
-        />
+        <Card>
+          <Alert
+            message="Lỗi"
+            description={error}
+            type="error"
+            showIcon
+            action={
+              <Button onClick={() => router.push('/warehouse/ingredients')} size="small">
+                Quay lại
+              </Button>
+            }
+          />
+        </Card>
       </div>
     );
   }
@@ -74,14 +77,13 @@ const EditIngredientPage: React.FC = () => {
     <div className="p-6">
       <Card>
         <Title level={4}>Chỉnh sửa nguyên liệu</Title>
-        <Text type="secondary" className="mb-4 block">
-          Cập nhật thông tin nguyên liệu
-        </Text>
-        <IngredientForm 
-          ingredient={ingredient}
-          isEdit={true}
-          onSuccess={handleSuccess}
-        />
+        {ingredient && (
+          <IngredientForm 
+            ingredient={ingredient} 
+            isEdit={true} 
+            onSuccess={handleSuccess}
+          />
+        )}
       </Card>
     </div>
   );

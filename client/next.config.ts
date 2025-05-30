@@ -18,8 +18,9 @@ const nextConfig: NextConfig = {
         pathname: '/assets/**',
       },
     ],
-    unoptimized: true, // Disable image optimization to avoid issues with remote sources
+    unoptimized: true,
   },
+  transpilePackages: ['@ant-design', '@ant-design/icons', 'antd'],
   // Tối ưu hiệu suất
   reactStrictMode: false, // Tắt strict mode để giảm số lượng render
   poweredByHeader: false, // Không gửi header X-Powered-By
@@ -47,6 +48,32 @@ const nextConfig: NextConfig = {
     optimizeCss: true, // Enable CSS optimization
     optimizeServerReact: true, // Optimize React on the server
     scrollRestoration: true, // Restore scroll position on navigation
+  },
+
+  // Ant Design v5 compatibility fixes
+  webpack: (config) => {
+    // Ant Design compatibility fixes
+    config.resolve = config.resolve || {};
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@ant-design/icons/lib/dist$': '@ant-design/icons/lib/index.js',
+      '@ant-design/icons-svg': '@ant-design/icons-svg',
+    };
+    
+    // Improve chunk loading
+    if (config.optimization?.splitChunks) {
+      config.optimization.splitChunks = {
+        ...config.optimization.splitChunks,
+        chunks: 'all',
+        minSize: 20000,
+        minRemainingSize: 0,
+        minChunks: 1,
+        maxAsyncRequests: 30,
+        maxInitialRequests: 30,
+      };
+    }
+
+    return config;
   }
 };
 

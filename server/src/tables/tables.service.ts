@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, InternalServerErrorException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, InternalServerErrorException, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -74,10 +74,26 @@ export class TablesService {
     }
   }
 
-  async update(id: string, updateTableDto: UpdateTableDto, userRole?: UserRole): Promise<TableEntity> {
+  async update(id: string, updateTableDto: UpdateTableDto, userRole: UserRole): Promise<TableEntity> {
     try {
       this.logger.log(`Updating table ${id} with data: ${JSON.stringify(updateTableDto)}`);
+      
+      if (!userRole) {
+        throw new ForbiddenException('User role is required for this operation');
+      }
+
+      if (![UserRole.ADMIN, UserRole.STAFF].includes(userRole)) {
+        throw new ForbiddenException('Insufficient permissions to update table');
+      }
+
       const table = await this.findOne(id);
+      
+      // If status is being updated, only allow certain transitions
+      if (updateTableDto.status) {
+        if (!this.isValidStatusTransition(table.status, updateTableDto.status, userRole)) {
+          throw new BadRequestException('Invalid table status transition');
+        }
+      }
       
       Object.assign(table, updateTableDto);
       const updatedTable = await this.tableRepository.save(table);
@@ -151,17 +167,46 @@ export class TablesService {
   async updateStatus(id: string, status: TableStatus, userRole?: UserRole): Promise<TableEntity> {
     try {
       this.logger.log(`Updating table ${id} status to ${status}`);
+      
+      // Validate user role
+      if (!userRole) {
+        this.logger.warn(`Attempted to update table ${id} status without a user role`);
+        throw new ForbiddenException('User role is required to update table status');
+      }
+
+      // Only admin and staff can update table status
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.STAFF) {
+        this.logger.warn(`User with role ${userRole} attempted to update table ${id} status`);
+        throw new ForbiddenException('Only admin or staff can update table status');
+      }
+
+      // Find and validate table exists
       const table = await this.findOne(id);
+      if (!table) {
+        throw new NotFoundException(`Table with ID ${id} not found`);
+      }
+
+      // Validate status enum value
+      if (!Object.values(TableStatus).includes(status)) {
+        this.logger.warn(`Invalid status value attempted: ${status}`);
+        throw new BadRequestException(`Invalid table status: ${status}`);
+      }
+
+      // Update status
       table.status = status;
       const updatedTable = await this.tableRepository.save(table);
-      this.logger.log(`Table ${id} status updated to ${status}`);
+      
+      this.logger.log(`Table ${id} status successfully updated to ${status}`);
       return updatedTable;
+      
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof NotFoundException || 
+          error instanceof ForbiddenException || 
+          error instanceof BadRequestException) {
         throw error;
       }
       this.logger.error(`Error updating table ${id} status: ${error.message}`, error.stack);
-      throw error;
+      throw new InternalServerErrorException('Failed to update table status');
     }
   }
 
@@ -219,5 +264,25 @@ export class TablesService {
       this.logger.error(`Error generating QR code for table ${id}: ${error.message}`, error.stack);
       throw new InternalServerErrorException('Failed to generate QR code');
     }
+  }
+
+  private isValidStatusTransition(currentStatus: TableStatus, newStatus: TableStatus, userRole: UserRole): boolean {
+    // Admin can make any status transition
+    if (userRole === UserRole.ADMIN) {
+      return true;
+    }
+
+    // Staff can only make certain transitions
+    if (userRole === UserRole.STAFF) {
+      const allowedTransitions = {
+        [TableStatus.AVAILABLE]: [TableStatus.OCCUPIED],
+        [TableStatus.OCCUPIED]: [TableStatus.AVAILABLE],
+        [TableStatus.RESERVED]: [TableStatus.OCCUPIED, TableStatus.AVAILABLE],
+      };
+
+      return allowedTransitions[currentStatus]?.includes(newStatus) || false;
+    }
+
+    return false;
   }
 }

@@ -18,7 +18,8 @@ import {
   Space,
   Alert,
   Modal,
-  Form
+  Form,
+  Divider
 } from 'antd';
 import { 
   ShoppingCartOutlined, 
@@ -26,7 +27,10 @@ import {
   PlusOutlined, 
   MinusOutlined,
   FilterOutlined,
-  TableOutlined
+  TableOutlined,
+  UsergroupAddOutlined,
+  CheckCircleOutlined,
+  SwapOutlined
 } from '@ant-design/icons';
 import { dishService } from '@/app/services/dish.service';
 import { categoryService } from '@/app/services/category.service';
@@ -56,40 +60,45 @@ export default function CustomerMenuPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);  
   const [mainMenu, setMainMenu] = useState<MenuModel | null>(null);
   const { addItem, isItemInCart, updateItemQuantity, items, setTableId: setCartTableId, tableId: cartTableId } = useShoppingCart();
-    // Table selection modal state
+
+  // Table selection modal state
   const [tableSelectionVisible, setTableSelectionVisible] = useState<boolean>(false);
   const [availableTables, setAvailableTables] = useState<TableModel[]>([]);
   const [tablesLoading, setTablesLoading] = useState<boolean>(false);
-  const [tableSelectionForm] = Form.useForm();
   const [searchTableText, setSearchTableText] = useState<string>('');
-  // Set table ID in cart when component mounts or tableId changes
-  useEffect(() => {
-    if (tableId) {
-      setCartTableId(tableId);
-    } else if (!cartTableId) {
-      // If no tableId in URL and no tableId in cart, show table selection modal
-      loadTables();
+
+  const [form] = Form.useForm();
+
+  // Check table availability before selection
+  const checkTableAvailability = async (tableId: string): Promise<boolean> => {
+    try {
+      const tableData = await tableService.getById(tableId);
+      if (tableData.status !== TableStatus.AVAILABLE) {
+        message.error('Bàn này đã được đặt hoặc đang được sử dụng');
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error checking table availability:', error);
+      message.error('Không thể kiểm tra trạng thái bàn');
+      return false;
     }
-    
-    // Show success message if order was successful
-    if (orderSuccess === 'true') {
-      message.success('Đặt món thành công! Đơn hàng của bạn đang được xử lý.');
-    }
-  }, [tableId, setCartTableId, cartTableId, orderSuccess]);
+  };
 
   // Load available tables for selection
   const loadTables = async () => {
     try {
       setTablesLoading(true);
       const tableData = await tableService.getAll();
-      // Only show available tables
+      // Only show actually available tables
       const availableTables = tableData.filter(table => 
-        table.status === TableStatus.AVAILABLE || table.status === TableStatus.RESERVED
+        table.status === TableStatus.AVAILABLE
       );
       setAvailableTables(availableTables);
       
-      // Only show the modal if we don't have a tableId
-      if (!tableId && !cartTableId) {
+      if (!tableId && !cartTableId && availableTables.length === 0) {
+        message.warning('Hiện tại không có bàn trống');
+      } else if (!tableId && !cartTableId) {
         setTableSelectionVisible(true);
       }
     } catch (error) {
@@ -101,19 +110,35 @@ export default function CustomerMenuPage() {
   };
 
   // Handle table selection
-  const handleTableSelection = (values: { tableId: string }) => {
-    setCartTableId(values.tableId);
-    setTableSelectionVisible(false);
-    
-    // Get table details
-    const selectedTable = availableTables.find(t => t.id === values.tableId);
-    if (selectedTable) {
-      setTable(selectedTable);
+  const handleTableSelection = async (values: { tableId: string }) => {
+    if (!values.tableId) {
+      message.error('Vui lòng chọn bàn');
+      return;
     }
-    
-    message.success(`Đã chọn bàn ${selectedTable?.name || values.tableId}`);
-  };
 
+    try {
+      // Verify table is still available
+      const isAvailable = await checkTableAvailability(values.tableId);
+      if (!isAvailable) {
+        loadTables(); // Refresh table list if table is no longer available
+        return;
+      }
+
+      setCartTableId(values.tableId);
+      setTableSelectionVisible(false);
+
+      // Find and set the selected table
+      const selectedTable = availableTables.find(t => t.id === values.tableId);
+      if (selectedTable) {
+        setTable(selectedTable);
+        message.success(`Đã chọn ${selectedTable.name}`);
+      }
+    } catch (error) {
+      console.error('Error selecting table:', error);
+      message.error('Không thể chọn bàn');
+    }
+  };
+  
   // Fetch dishes when component mounts
   useEffect(() => {
     const fetchData = async () => {
@@ -212,6 +237,7 @@ export default function CustomerMenuPage() {
               height={300}
               className="w-full h-full object-cover"
               type="dishes"
+              priority={true}
             />
           </div>
         }
@@ -276,55 +302,47 @@ export default function CustomerMenuPage() {
   
   return (
     <div className="p-6">
-      {/* Table Information */}      {(tableId || cartTableId) ? (
-        <Card className="mb-6 shadow-sm border border-blue-200">
+      {/* Table Information Display */}
+      {(tableId || cartTableId) && (
+        <Card className="mb-6 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200">
           <div className="flex justify-between items-center">
-            <div className="flex items-center">
-              <div className="bg-blue-100 p-3 rounded-full mr-4">
+            <div className="flex items-center space-x-4">
+              <div className="bg-white p-3 rounded-full">
                 <TableOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
               </div>
               <div>
                 <div className="text-lg font-medium">
-                  {table ? `Bàn ${table.name}` : `Bàn đã chọn`}
+                  {table?.name || 'Bàn đã chọn'}
                 </div>
-                <div className="text-gray-500 text-sm">
-                  {table?.status ? `Trạng thái: ${table.status}` : 'Đang phục vụ'}
+                <div className="text-gray-600">
+                  <Space>
+                    <span>
+                      <UsergroupAddOutlined className="mr-1" />
+                      Sức chứa: {table?.capacity || '-'} người
+                    </span>
+                    <Divider type="vertical" />
+                    <Tag color="success" icon={<CheckCircleOutlined />}>
+                      {table?.status === TableStatus.AVAILABLE ? 'Trống' : 'Đang phục vụ'}
+                    </Tag>
+                  </Space>
                 </div>
               </div>
             </div>
             
-            <div>
+            <Space>
               {!tableId && (
                 <Button 
                   type="primary"
                   ghost
+                  icon={<SwapOutlined />}
                   onClick={loadTables}
                 >
                   Đổi bàn
                 </Button>
               )}
-            </div>
+            </Space>
           </div>
         </Card>
-      ) : (
-        <Alert
-          message="Bạn chưa chọn bàn"
-          description={
-            <div>
-              <p>Vui lòng quét mã QR trên bàn hoặc chọn một bàn để tiếp tục đặt món.</p>
-              <Button 
-                type="primary" 
-                onClick={() => setTableSelectionVisible(true)}
-                className="mt-2"
-              >
-                Chọn bàn ngay
-              </Button>
-            </div>
-          }
-          type="warning"
-          showIcon
-          className="mb-6"
-        />
       )}
       
       <Card className="mb-6">
@@ -409,39 +427,53 @@ export default function CustomerMenuPage() {
           </div>
         }
         open={tableSelectionVisible}
-        onCancel={() => setTableSelectionVisible(false)}
+        onCancel={() => {
+          setTableSelectionVisible(false);
+          form.resetFields();
+        }}
         footer={null}
-        destroyOnHidden
+        destroyOnClose
         centered
+        width={600}
       >
         <Alert 
-          message="Vui lòng chọn bàn để tiếp tục" 
-          description="Bạn cần chọn bàn trước khi đặt món. Bạn cũng có thể quét mã QR trên bàn để tự động chọn bàn." 
+          message="Chọn bàn để đặt món" 
+          description="Vui lòng chọn bàn trước khi đặt món. Bạn cũng có thể quét mã QR trên bàn để tự động chọn bàn." 
           type="info" 
           showIcon 
           className="mb-4"
         />
         
-        <Input.Search
-          placeholder="Tìm kiếm bàn..."
-          onChange={(e) => setSearchTableText(e.target.value)}
-          className="mb-4"
-        />
+        <div className="mb-4 flex justify-between items-center">
+          <Input.Search
+            placeholder="Tìm kiếm bàn..."
+            onChange={(e) => setSearchTableText(e.target.value)}
+            style={{ width: '60%' }}
+            allowClear
+          />
+          <Text type="secondary">
+            {availableTables.length} bàn trống
+          </Text>
+        </div>
         
         <Form
-          form={tableSelectionForm}
+          form={form}
           layout="vertical"
           onFinish={handleTableSelection}
+          initialValues={{ tableId: '' }}
         >
           {tablesLoading ? (
             <div className="text-center py-6">
               <Spin />
-              <div className="mt-2">Đang tải danh sách bàn...</div>
+              <div className="mt-2 text-gray-500">Đang tải danh sách bàn...</div>
             </div>
           ) : availableTables.length === 0 ? (
-            <Empty description="Không có bàn trống" />
+            <Empty 
+              description="Không có bàn trống" 
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
           ) : (
-            <div className="grid grid-cols-2 gap-4 max-h-60 overflow-y-auto mb-4">
+            <div className="grid grid-cols-2 gap-4 max-h-[400px] overflow-y-auto mb-4">
               {availableTables
                 .filter(table => 
                   searchTableText ? table.name.toLowerCase().includes(searchTableText.toLowerCase()) : true
@@ -451,18 +483,23 @@ export default function CustomerMenuPage() {
                     key={table.id}
                     hoverable
                     size="small"
-                    className="cursor-pointer"
+                    className="cursor-pointer transition-all hover:shadow-md"
                     onClick={() => {
-                      tableSelectionForm.setFieldsValue({ tableId: table.id });
-                      handleTableSelection({ tableId: table.id });
+                      form.setFieldsValue({ tableId: table.id });
+                      form.submit(); // Use form.submit() instead of direct function call
                     }}
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="font-medium">{table.name}</div>
-                        <div className="text-xs text-gray-500">Sức chứa: {table.capacity} người</div>
+                        <div className="font-medium text-lg">{table.name}</div>
+                        <div className="text-gray-500">
+                          <UsergroupAddOutlined className="mr-1" />
+                          Sức chứa: {table.capacity} người
+                        </div>
                       </div>
-                      <Tag color="green">Trống</Tag>
+                      <Tag color="success" icon={<CheckCircleOutlined />}>
+                        Trống
+                      </Tag>
                     </div>
                   </Card>
                 ))
@@ -470,25 +507,8 @@ export default function CustomerMenuPage() {
             </div>
           )}
           
-          <Form.Item
-            name="tableId"
-            hidden={true}
-          >
+          <Form.Item name="tableId" hidden rules={[{ required: true, message: 'Vui lòng chọn bàn' }]}>
             <Input />
-          </Form.Item>
-          
-          <Form.Item className="mb-0">
-            <div className="flex justify-end space-x-2">
-              <Button onClick={() => setTableSelectionVisible(false)}>
-                Hủy
-              </Button>
-              <Button
-                type="primary"
-                htmlType="submit"
-              >
-                Xác nhận
-              </Button>
-            </div>
           </Form.Item>
         </Form>
       </Modal>

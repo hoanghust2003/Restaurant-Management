@@ -58,15 +58,20 @@ class TableService extends BaseService<TableModel> {
   /**
    * Cập nhật trạng thái bàn
    */
-  async updateStatus(tableId: string, status: string): Promise<TableModel> {
+  async updateStatus(id: string, status: string): Promise<TableModel> {
     try {
-      const response = await axios.patch(`${this.apiUrl}/${tableId}/status`, { status });
+      const response = await axios.put(`${this.apiUrl}/${id}`, { status });
       // Cập nhật cache sau khi cập nhật trạng thái
       requestCache.invalidateByPrefix(this.apiUrl);
-      requestCache.invalidate(`${this.apiUrl}/${tableId}`);
+      requestCache.invalidate(`${this.apiUrl}/${id}`);
       return response.data;
-    } catch (error) {
-      console.error(`Error updating table ${tableId} status:`, error);
+    } catch (error: any) {
+      if (error.response?.status === 403) {
+        throw new Error('Bạn không có quyền thực hiện thao tác này');
+      }
+      if (error.response?.status === 400) {
+        throw new Error('Không thể chuyển trạng thái bàn này');
+      }
       throw error;
     }
   }  /**

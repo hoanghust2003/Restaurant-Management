@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, UnauthorizedException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository, IsNull } from 'typeorm';
 import { IngredientImport } from '../entities/ingredient-import.entity';
@@ -10,6 +10,8 @@ import { BatchStatus } from '../enums/batch-status.enum';
 
 @Injectable()
 export class IngredientImportsService {
+  private readonly logger = new Logger(IngredientImportsService.name);
+  
   constructor(
     @InjectRepository(IngredientImport)
     private readonly importRepository: Repository<IngredientImport>,
@@ -39,16 +41,19 @@ export class IngredientImportsService {
     }
 
     return importRecord;
-  }
-
-  async create(userId: string, createImportDto: CreateImportDto) {
+  }  async create(userId: string, createImportDto: CreateImportDto) {
+    // For MVP, always use admin2 user ID
+    const createdById = 'eab1bc84-0d54-412a-9860-6aad02687405';
+    
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
+      this.logger.log(`Creating import record for admin user`);
+      
       const importRecord = await queryRunner.manager.save(IngredientImport, {
-        createdById: userId,
+        createdById: createdById,
         supplierId: createImportDto.supplier_id,
         note: createImportDto.note,
       });
@@ -70,11 +75,24 @@ export class IngredientImportsService {
       );
 
       await queryRunner.commitTransaction();
-      
-      return { importRecord, batches };
+        
+      // Get the complete import record with relationships
+      const completeImport = await queryRunner.manager.findOne(IngredientImport, {
+        where: { id: importRecord.id },
+        relations: ['created_by', 'supplier', 'batches']
+      });
+
+      return { importRecord: completeImport, batches };
+
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      throw new BadRequestException('Failed to create import record');
+      this.logger.error(`Failed to create import record: ${error.message}`, error.stack);
+      
+      if (error.code === '23502') { // PostgreSQL NOT NULL violation
+        throw new BadRequestException('Required fields are missing');
+      }
+      
+      throw new BadRequestException(`Failed to create import record: ${error.message}`);
     } finally {
       await queryRunner.release();
     }

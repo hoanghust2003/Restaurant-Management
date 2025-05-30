@@ -17,7 +17,7 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
   
   @Post()
-  @Roles(UserRole.STAFF, UserRole.ADMIN)
+  @Roles(UserRole.STAFF, UserRole.ADMIN, UserRole.CUSTOMER)
   @ApiOperation({ summary: 'Create a new order' })
   @ApiResponse({ status: 201, description: 'The order has been successfully created.' })
   create(@Body() createOrderDto: CreateOrderDto) {
@@ -25,7 +25,7 @@ export class OrdersController {
   }
   
   @Get()
-  @Roles(UserRole.STAFF, UserRole.CHEF, UserRole.ADMIN)
+  @Roles(UserRole.STAFF, UserRole.CHEF, UserRole.ADMIN, UserRole.CUSTOMER)
   @ApiOperation({ summary: 'Get all orders with optional filters' })
   @ApiResponse({ status: 200, description: 'Return all orders.' })
   findAll(

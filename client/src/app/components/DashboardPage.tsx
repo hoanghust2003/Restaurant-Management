@@ -16,6 +16,10 @@ import {
   ArchiveBoxIcon
 } from '@heroicons/react/24/outline';
 import LayoutProvider from '../layouts/LayoutProvider';
+import { Button, Typography, Card, Row, Col, Space } from 'antd';
+import { ShoppingCartOutlined, QrcodeOutlined, TableOutlined } from '@ant-design/icons';
+
+const { Title, Text } = Typography;
 
 // Dashboard card component
 interface DashboardCardProps {
@@ -45,6 +49,80 @@ const DashboardCard = ({ title, description, icon, href, color }: DashboardCardP
   );
 };
 
+// Guest welcome section
+const GuestDashboard = () => {
+  return (
+    <div className="p-6">
+      <Card className="text-center mb-6">
+        <Title level={2}>Chào mừng đến với nhà hàng</Title>
+        <Text className="text-lg block mb-6">
+          Hãy bắt đầu trải nghiệm dịch vụ đặt món trực tuyến của chúng tôi
+        </Text>
+        
+        <Space>
+          <Link href="/customer/menu">
+            <Button type="primary" size="large" icon={<TableOutlined />}>
+              Đặt món ngay
+            </Button>
+          </Link>
+          <Link href="/auth/login">
+            <Button size="large">
+              Đăng nhập
+            </Button>
+          </Link>
+        </Space>
+      </Card>
+
+      <Row gutter={[16, 16]}>
+        <Col xs={24} md={8}>
+          <Card className="text-center h-full">
+            <QrcodeOutlined style={{ fontSize: '48px', color: '#1890ff', marginBottom: '16px' }} />
+            <Title level={4}>Quét mã QR</Title>
+            <Text>Quét mã QR trên bàn để truy cập menu và đặt món dễ dàng</Text>
+          </Card>
+        </Col>
+        
+        <Col xs={24} md={8}>
+          <Card className="text-center h-full">
+            <TableOutlined style={{ fontSize: '48px', color: '#52c41a', marginBottom: '16px' }} />
+            <Title level={4}>Chọn bàn</Title>
+            <Text>Xem và chọn bàn trống để bắt đầu đặt món</Text>
+          </Card>
+        </Col>
+        
+        <Col xs={24} md={8}>
+          <Card className="text-center h-full">
+            <ShoppingCartOutlined style={{ fontSize: '48px', color: '#f5222d', marginBottom: '16px' }} />
+            <Title level={4}>Đặt món</Title>
+            <Text>Dễ dàng chọn món, thêm ghi chú và theo dõi đơn hàng</Text>
+          </Card>
+        </Col>
+      </Row>
+
+      <Card className="mt-6">
+        <Title level={3}>Hướng dẫn đặt món</Title>
+        <ol className="list-decimal pl-6">
+          <li className="mb-2">
+            Quét mã QR trên bàn hoặc chọn "Đặt món ngay" để bắt đầu
+          </li>
+          <li className="mb-2">
+            Chọn bàn bạn muốn ngồi từ danh sách bàn trống
+          </li>
+          <li className="mb-2">
+            Duyệt menu và thêm món ăn vào giỏ hàng
+          </li>
+          <li className="mb-2">
+            Xem lại giỏ hàng và xác nhận đặt món
+          </li>
+          <li className="mb-2">
+            Theo dõi trạng thái đơn hàng của bạn
+          </li>
+        </ol>
+      </Card>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { user, loading, isAuthenticated, hasRole } = useAuth();
   const router = useRouter();
@@ -63,14 +141,16 @@ export default function DashboardPage() {
     );
   }
 
+  // Show guest dashboard for non-authenticated users
   if (!isAuthenticated || !user) {
-    return null; // Will be redirected by the useEffect
+    return <GuestDashboard />;
   }
 
+  // Show admin dashboard for authenticated users
   return (
     <div className="py-4">
       <h2 className="text-xl font-semibold text-gray-800 mb-6">Dashboard</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Table management - only for admin, waiter, and cashier */}
         {hasRole(['admin', 'staff']) && (
           <DashboardCard
@@ -82,7 +162,7 @@ export default function DashboardPage() {
           />
         )}
         
-        {/* Waiter can manage orders */}
+        {/* Staff can manage orders */}
         {hasRole(['admin', 'staff']) && (
           <DashboardCard
             title="Đặt món"

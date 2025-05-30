@@ -193,8 +193,8 @@ const ImportForm: React.FC<ImportFormProps> = ({
                           min={0}
                           placeholder="Đơn giá"
                           style={{ width: '100%' }}
-                          formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                          parser={value => value!.replace(/\$\s?|(,*)/g, '')}
+                          formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
+                          parser={(value) => value ? parseFloat(value.replace(/[^\d.]/g, '')) : 0}
                         />
                       </Form.Item>
                     ),

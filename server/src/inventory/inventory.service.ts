@@ -291,6 +291,9 @@ export class InventoryService {
    */
   async createImport(createImportDto: CreateImportDto, userId: string) {
     try {
+      // Use default admin user ID if no user ID is provided
+      const createdById = userId || '00000000-0000-0000-0000-000000000001';
+      
       // Check if supplier exists
       const supplier = await this.supplierRepository.findOne({
         where: { id: createImportDto.supplierId }
@@ -303,7 +306,7 @@ export class InventoryService {
       // Create the import
       const importData = this.importRepository.create({
         supplierId: createImportDto.supplierId,
-        createdById: userId,
+        createdById: createdById,
         note: createImportDto.note
       });
       

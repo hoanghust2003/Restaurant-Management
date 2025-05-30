@@ -20,11 +20,12 @@ import {
   DeleteOutlined, 
   ShoppingOutlined, 
   ArrowLeftOutlined,
-  ExclamationCircleOutlined 
+  ExclamationCircleOutlined,
+  TableOutlined,
+  ShoppingCartOutlined
 } from '@ant-design/icons';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import CustomerLayout from '@/app/layouts/CustomerLayout';
 import { useShoppingCart } from '@/app/contexts/ShoppingCartContext';
 import { formatPrice } from '@/app/utils/format';
 import { tableService } from '@/app/services/table.service';
@@ -75,6 +76,7 @@ export default function ShoppingCartPage() {
       },
     });
   };
+  
   // Handle showing checkout modal
   const showCheckoutModal = async () => {
     try {
@@ -105,55 +107,30 @@ export default function ShoppingCartPage() {
       return;
     }
     
-    // Check if tableId is available either from context or form
-    const selectedTableId = cartTableId || values.tableId;
-    if (!selectedTableId) {
-      message.error('Vui lòng chọn bàn để đặt hàng');
-      return;
-    }
-    
     try {
       setCheckoutLoading(true);
       
-      // Prepare items data
-      const orderItems = items.map(item => ({
-        dishId: item.dishId,
-        quantity: item.quantity,
-        note: item.note
-      }));
-      
-      if (user) {
-        // Authenticated user order
-        const orderData = {
-          tableId: selectedTableId,
-          userId: user.id,
-          items: orderItems
-        };
-        
-        // Create order through the authenticated API
-        await orderService.create(orderData);
-      } else {
-        // Customer (unauthenticated) order
-        const customerOrderData: CreateCustomerOrderDto = {
-          tableId: selectedTableId,
-          items: orderItems
-        };
-        
-        // Create order through the customer API
-        await customerService.createOrder(customerOrderData);      }
+      // Đơn giản hóa payload
+      const orderData = {
+        tableId: cartTableId || values.tableId,
+        items: items.map(item => ({
+          dishId: item.dishId,
+          quantity: item.quantity,
+          note: item.note || undefined
+        }))
+      };
+
+      // Gửi yêu cầu tạo đơn hàng
+      await customerService.createOrder(orderData);
       
       message.success('Đặt hàng thành công!');
       
       // Clear cart and close modal
       clearCart();
       setCheckoutModalVisible(false);
-        // Redirect based on user state
-      if (user) {
-        router.push('/customer/orders/active');
-      } else {
-        // For unauthenticated users, go back to menu with order success flag
-        router.push(`/customer/menu?tableId=${selectedTableId}&orderSuccess=true`);
-      }
+      
+      // Chuyển hướng về trang menu
+      router.push('/customer/menu');
     } catch (error) {
       console.error('Error creating order:', error);
       message.error('Không thể đặt hàng. Vui lòng thử lại sau.');
@@ -236,172 +213,170 @@ export default function ShoppingCartPage() {
   ];
   
   return (
-    <CustomerLayout>
-      <div className="p-6">
-        <Card className="mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <Space>
-              <Link href="/customer/menu">
-                <Button icon={<ArrowLeftOutlined />}>Quay lại thực đơn</Button>
-              </Link>
-              <Title level={2} className="m-0">Giỏ hàng của tôi</Title>
-            </Space>
-            {items.length > 0 && (
-              <Button 
-                type="primary"
-                danger
-                onClick={() => {
-                  confirm({
-                    title: 'Xác nhận xóa tất cả',
-                    icon: <ExclamationCircleOutlined />,
-                    content: 'Bạn có chắc chắn muốn xóa tất cả món ăn khỏi giỏ hàng?',
-                    okText: 'Xóa tất cả',
-                    okType: 'danger',
-                    cancelText: 'Hủy',
-                    onOk() {
-                      clearCart();
-                    },
-                  });
-                }}
-              >
-                Xóa tất cả
-              </Button>
-            )}
-          </div>
-          
-          {items.length > 0 ? (
-            <>
-              <Table
-                dataSource={items}
-                columns={columns}
-                rowKey="dishId"
-                pagination={false}
-                className="mb-6"
-              />
-              
-              <Divider />
-              
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mt-4">
-                <div className="mb-4 md:mb-0">
-                  <Text className="text-lg">Tổng tiền:</Text>
-                  <Title level={3} className="m-0 text-red-500">
-                    {formatPrice(totalPrice)}
-                  </Title>
-                </div>
-                
-                <Button
-                  type="primary"
-                  icon={<ShoppingOutlined />}
-                  size="large"
-                  onClick={showCheckoutModal}
-                >
-                  Tiến hành đặt hàng
-                </Button>
-              </div>
-            </>
-          ) : (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_DEFAULT}
-              description="Giỏ hàng của bạn đang trống"
+    <div className="p-6">
+      <Card className="mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <Space>
+            <Link href="/customer/menu">
+              <Button icon={<ArrowLeftOutlined />}>Quay lại thực đơn</Button>
+            </Link>
+            <Title level={2} className="m-0">Giỏ hàng của tôi</Title>
+          </Space>
+          {items.length > 0 && (
+            <Button 
+              type="primary"
+              danger
+              onClick={() => {
+                confirm({
+                  title: 'Xác nhận xóa tất cả',
+                  icon: <ExclamationCircleOutlined />,
+                  content: 'Bạn có chắc chắn muốn xóa tất cả món ăn khỏi giỏ hàng?',
+                  okText: 'Xóa tất cả',
+                  okType: 'danger',
+                  cancelText: 'Hủy',
+                  onOk() {
+                    clearCart();
+                  },
+                });
+              }}
             >
-              <Link href="/customer/menu">
-                <Button type="primary">Đi đến thực đơn</Button>
-              </Link>
-            </Empty>
+              Xóa tất cả
+            </Button>
           )}
-        </Card>
-          <Modal
-          title={
-            <div className="flex items-center">
-              <ShoppingOutlined className="mr-2" />
-              <span>Xác nhận đặt hàng</span>
-            </div>
-          }
-          open={checkoutModalVisible}
-          onCancel={() => setCheckoutModalVisible(false)}
-          footer={null}
-          destroyOnHidden
-          centered
-        >
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={handleCheckout}
-            initialValues={{ tableId: cartTableId || undefined }}
-          >
-            {cartTableId ? (
-              <div className="mb-6">
-                <Card className="bg-blue-50 border border-blue-200">
-                  <div className="flex items-center">
-                    <div className="mr-4">
-                      <TableOutlined style={{ fontSize: '24px', color: '#1890ff' }}/>
-                    </div>
-                    <div>
-                      <div className="text-lg font-medium">
-                        {tables.find(t => t.id === cartTableId)?.name || `Bàn đã chọn`}
-                      </div>
-                      <Text type="secondary">
-                        Thông tin bàn đã lấy từ mã QR
-                      </Text>
-                      <Input type="hidden" name="tableId" value={cartTableId} />
-                    </div>
-                  </div>
-                </Card>
-              </div>
-            ) : (
-              <Form.Item
-                name="tableId"
-                label="Chọn bàn"
-                rules={[{ required: true, message: 'Vui lòng chọn bàn để đặt món' }]}
-              >
-                <Select 
-                  placeholder="Chọn bàn để đặt món"
-                  loading={tablesLoading}
-                  size="large"
-                  style={{ width: '100%' }}
-                >
-                  {tables.map(table => (
-                    <Option key={table.id} value={table.id}>
-                      {table.name} - {table.capacity} chỗ ngồi
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            )}
+        </div>
+        
+        {items.length > 0 ? (
+          <>
+            <Table
+              dataSource={items}
+              columns={columns}
+              rowKey="dishId"
+              pagination={false}
+              className="mb-6"
+            />
             
             <Divider />
             
-            <div className="mb-4">
-              <Title level={5}>Tổng quan đơn hàng</Title>
-              <div className="mb-2">
-                <Text>Số lượng món: {items.length}</Text>
-              </div>
-              <div className="mb-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mt-4">
+              <div className="mb-4 md:mb-0">
                 <Text className="text-lg">Tổng tiền:</Text>
                 <Title level={3} className="m-0 text-red-500">
                   {formatPrice(totalPrice)}
                 </Title>
               </div>
+              
+              <Button
+                type="primary"
+                icon={<ShoppingOutlined />}
+                size="large"
+                onClick={showCheckoutModal}
+              >
+                Tiến hành đặt hàng
+              </Button>
             </div>
-            
-            <Form.Item className="mb-0">
-              <div className="flex justify-end space-x-2">
-                <Button onClick={() => setCheckoutModalVisible(false)}>
-                  Hủy
-                </Button>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  loading={checkoutLoading}
-                  disabled={items.length === 0}
-                >
-                  Xác nhận đặt hàng
-                </Button>
-              </div>
+          </>
+        ) : (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_DEFAULT}
+            description="Giỏ hàng của bạn đang trống"
+          >
+            <Link href="/customer/menu">
+              <Button type="primary">Đi đến thực đơn</Button>
+            </Link>
+          </Empty>
+        )}
+      </Card>
+        <Modal
+        title={
+          <div className="flex items-center">
+            <ShoppingOutlined className="mr-2" />
+            <span>Xác nhận đặt hàng</span>
+          </div>
+        }
+        open={checkoutModalVisible}
+        onCancel={() => setCheckoutModalVisible(false)}
+        footer={null}
+        destroyOnHidden
+        centered
+      >
+        <Form
+          layout="vertical"
+          onFinish={handleCheckout}
+          form={form}
+          initialValues={{ tableId: cartTableId || undefined }}
+        >
+          {cartTableId ? (
+            <div className="mb-6">
+              <Card className="bg-blue-50 border border-blue-200">
+                <div className="flex items-center">
+                  <div className="mr-4">
+                    <TableOutlined style={{ fontSize: '24px', color: '#1890ff' }}/>
+                  </div>
+                  <div>
+                    <div className="text-lg font-medium">
+                      {tables.find(t => t.id === cartTableId)?.name || `Bàn đã chọn`}
+                    </div>
+                    <Text type="secondary">
+                      Thông tin bàn đã lấy từ mã QR
+                    </Text>
+                    <Input type="hidden" name="tableId" value={cartTableId} />
+                  </div>
+                </div>
+              </Card>
+            </div>
+          ) : (
+            <Form.Item
+              name="tableId"
+              label="Chọn bàn"
+              rules={[{ required: true, message: 'Vui lòng chọn bàn để đặt món' }]}
+            >
+              <Select 
+                placeholder="Chọn bàn để đặt món"
+                loading={tablesLoading}
+                size="large"
+                style={{ width: '100%' }}
+              >
+                {tables.map(table => (
+                  <Option key={table.id} value={table.id}>
+                    {table.name} - {table.capacity} chỗ ngồi
+                  </Option>
+                ))}
+              </Select>
             </Form.Item>
-          </Form>
-        </Modal>
-      </div>
-    </CustomerLayout>
+          )}
+          
+          <Divider />
+          
+          <div className="mb-4">
+            <Title level={5}>Tổng quan đơn hàng</Title>
+            <div className="mb-2">
+              <Text>Số lượng món: {items.length}</Text>
+            </div>
+            <div className="mb-4">
+              <Text className="text-lg">Tổng tiền:</Text>
+              <Title level={3} className="m-0 text-red-500">
+                {formatPrice(totalPrice)}
+              </Title>
+            </div>
+          </div>
+          
+          <Form.Item className="mb-0">
+            <div className="flex justify-end space-x-2">
+              <Button onClick={() => setCheckoutModalVisible(false)}>
+                Hủy
+              </Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={checkoutLoading}
+                disabled={items.length === 0}
+              >
+                Xác nhận đặt hàng
+              </Button>
+            </div>
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
   );
 }

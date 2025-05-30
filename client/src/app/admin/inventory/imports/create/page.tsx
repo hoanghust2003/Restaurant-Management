@@ -17,11 +17,12 @@ import {
   message,
   Spin,
   Alert,
+  InputNumber,
   Table
 } from 'antd';
 import { 
   MinusCircleOutlined, 
-  PlusOutlined 
+  PlusOutlined
 } from '@ant-design/icons';
 import moment from 'moment';
 import { SupplierModel } from '@/app/models/warehouse.model';
@@ -29,38 +30,13 @@ import { IngredientModel } from '@/app/models/ingredient.model';
 import { supplierService, importService } from '@/app/services/warehouse.service';
 import { ingredientService } from '@/app/services/ingredient.service';
 import { CreateImportDto } from '@/app/models/warehouse.model';
-import WarehouseLayout from '@/app/layouts/WarehouseLayout';
-import NumberInput from '@/app/components/NumberInput';
+import AdminLayout from '@/app/layouts/AdminLayout';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
 
-interface ImportFormValues {
-  supplier_id: string;
-  reference_number?: string;
-  import_date: moment.Moment;
-  notes?: string;
-  items: Array<{
-    ingredient_id: string;
-    quantity: number;
-    unit_price: number;
-    lot_number?: string;
-    production_date?: moment.Moment;
-    expiry_date: moment.Moment;
-  }>;
-}
-
-interface ImportItemFormValue {
-  ingredient_id: string;
-  quantity: number;
-  unit_price: number;
-  lot_number?: string;
-  production_date?: moment.Moment;
-  expiry_date: moment.Moment;
-}
-
-export default function CreateImportPage() {
+export default function AdminCreateImportPage() {
   const [form] = Form.useForm();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -74,11 +50,21 @@ export default function CreateImportPage() {
   const [error, setError] = useState<string | null>(null);
   const [totalAmount, setTotalAmount] = useState<number>(0);
 
+  // Fetch suppliers and ingredients on mount
   useEffect(() => {
     fetchSuppliers();
     fetchIngredients();
   }, []);
-  
+
+  // Khi form mở lại sau khi thêm nhà cung cấp mới, tự động reload danh sách
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchSuppliers();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
   useEffect(() => {
     // If ingredient ID is provided in URL, pre-select it
     if (initialIngredientId && ingredients.length > 0) {
@@ -106,21 +92,12 @@ export default function CreateImportPage() {
   const fetchSuppliers = async () => {
     try {
       setSuppliersLoading(true);
-      
       const data = await supplierService.getAll();
-      const activeSuppliers = data.filter(supplier => supplier.active);
-      setSuppliers(activeSuppliers);
-      
-      // Check for supplier in URL params
-      const supplierIdFromUrl = searchParams.get('supplier');
-      if (supplierIdFromUrl) {
-        const supplierExists = activeSuppliers.some(s => s.id === supplierIdFromUrl);
-        if (supplierExists) {
-          form.setFieldsValue({ supplier_id: supplierIdFromUrl });
-        }
-      }
+      setSuppliers(Array.isArray(data) ? data : []);
+      setError(null);
     } catch (err: any) {
-      console.error('Error fetching suppliers:', err);  
+      console.error('Error fetching suppliers:', err);
+      setSuppliers([]);
       setError('Không thể tải danh sách nhà cung cấp');
     } finally {
       setSuppliersLoading(false);
@@ -144,39 +121,55 @@ export default function CreateImportPage() {
   const handleSubmit = async (values: any) => {
     try {
       setSubmitting(true);
-
-      const validationError = validateFormData(values);
-      if (validationError) {
-        message.error(validationError);
-        return;
+      
+      // Validate items
+      for (const item of values.items) {
+        // Check if expiry date exists
+        if (!item.expiry_date) {
+          message.error('Vui lòng nhập hạn sử dụng cho tất cả các lô');
+          setSubmitting(false);
+          return;
+        }
+        
+        // If production date exists, make sure it's before expiry date
+        if (item.production_date && item.expiry_date && 
+            item.production_date.isAfter(item.expiry_date)) {
+          message.error('Ngày sản xuất không thể sau hạn sử dụng');
+          setSubmitting(false);
+          return;
+        }
       }
-
-      // Format data for API
+        // Format data
       const importData: CreateImportDto = {
         supplierId: values.supplier_id,
         note: values.notes,
+        reference: values.reference_number || undefined,
+        import_date: values.import_date.toDate().toISOString(),
         batches: values.items.map((item: any) => {
+          // Generate a meaningful lot identifier if not provided
           const lotId = item.lot_number || 
             `${item.ingredient_id.substring(0, 5)}-${moment().format('YYMMDD')}-${Math.floor(Math.random()*1000).toString().padStart(3, '0')}`;
           
           return {
             ingredientId: item.ingredient_id,
             name: `${lotId} ${moment().format('DDMMYYYY')}`,
-            quantity: Number(item.quantity),
-            price: Number(item.unit_price),
-            expiry_date: item.expiry_date.toISOString(),
-            production_date: item.production_date?.toISOString()
+            quantity: item.quantity,
+            price: item.unit_price,
+            expiry_date: item.expiry_date.toDate().toISOString(),
+            production_date: item.production_date ? item.production_date.toDate().toISOString() : undefined,
           };
-        })
+        }),
       };
-
+      
       // Create import
-      const result = await importService.create(importData);
+      await importService.create(importData);
       message.success('Tạo phiếu nhập kho thành công');
-      router.push(`/warehouse/imports/${result.id}`);
+      form.resetFields(); // Reset form after submit
+      fetchSuppliers(); // Reload suppliers in case new ones were added
+      router.push(`/admin/inventory/imports`);
     } catch (err: any) {
       console.error('Error creating import:', err);
-      message.error('Có lỗi xảy ra khi tạo phiếu nhập kho: ' + (err.response?.data?.message || err.message));
+      message.error(err.response?.data?.message || 'Không thể tạo phiếu nhập kho');
     } finally {
       setSubmitting(false);
     }
@@ -191,9 +184,9 @@ export default function CreateImportPage() {
       return sum + (quantity * unitPrice);
     }, 0);
   };
-
-  const onFormValuesChange = (changedValues: any, allValues: any) => {
-    const items = allValues.items || [];
+  // Set up a watcher for form changes using Ant Design Form's onValuesChange
+  const onFormValuesChange = () => {
+    const items = form.getFieldValue('items') || [];
     setTotalAmount(calculateTotal(items));
   };
   
@@ -203,54 +196,19 @@ export default function CreateImportPage() {
     setTotalAmount(calculateTotal(initialItems));
   }, [form]);
 
-  const validateFormData = (values: any): string | null => {
-    if (!values.supplier_id) {
-      return 'Vui lòng chọn nhà cung cấp';
-    }
-
-    if (!values.items || values.items.length === 0) {
-      return 'Vui lòng thêm ít nhất một nguyên liệu';
-    }
-
-    for (const item of values.items) {
-      if (!item.ingredient_id) {
-        return 'Vui lòng chọn nguyên liệu cho tất cả các lô';
-      }
-
-      if (!item.quantity || item.quantity <= 0) {
-        return 'Số lượng phải lớn hơn 0 cho tất cả các nguyên liệu';
-      }
-
-      if (!item.unit_price || item.unit_price < 0) {
-        return 'Đơn giá không được âm';
-      }
-
-      if (!item.expiry_date) {
-        return 'Vui lòng nhập hạn sử dụng cho tất cả các lô';
-      }
-
-      if (item.production_date && item.expiry_date && 
-          moment(item.production_date).isAfter(item.expiry_date)) {
-        return 'Ngày sản xuất không thể sau hạn sử dụng';
-      }
-    }
-
-    return null;
-  };
-
   if (suppliersLoading || ingredientsLoading) {
     return (
-      <WarehouseLayout title="Tạo phiếu nhập kho">
+      <AdminLayout title="Tạo phiếu nhập kho">
         <div className="flex justify-center items-center h-64">
           <Spin size="large" />
         </div>
-      </WarehouseLayout>
+      </AdminLayout>
     );
   }
 
   if (error) {
     return (
-      <WarehouseLayout title="Tạo phiếu nhập kho">
+      <AdminLayout title="Tạo phiếu nhập kho">
         <div className="p-6">
           <Alert
             message="Lỗi"
@@ -259,20 +217,18 @@ export default function CreateImportPage() {
             showIcon
           />
         </div>
-      </WarehouseLayout>
+      </AdminLayout>
     );
   }
 
   return (
-    <WarehouseLayout title="Tạo phiếu nhập kho">
+    <AdminLayout title="Tạo phiếu nhập kho">
       <div className="p-6">
         <Card>
           <div className="mb-6">
             <Title level={4}>Tạo phiếu nhập kho mới</Title>
             <Text type="secondary">Nhập thông tin để tạo phiếu nhập kho mới</Text>
-          </div>
-
-          <Form
+          </div>          <Form
             form={form}
             layout="vertical"
             onFinish={handleSubmit}
@@ -295,10 +251,27 @@ export default function CreateImportPage() {
                   rules={[{ required: true, message: 'Vui lòng chọn nhà cung cấp' }]}
                 >
                   <Select
-                    placeholder="Chọn nhà cung cấp"
                     showSearch
+                    placeholder={suppliersLoading ? 'Đang tải...' : (suppliers.length === 0 ? 'Không có nhà cung cấp, hãy thêm mới' : 'Chọn nhà cung cấp')}
                     optionFilterProp="children"
                     loading={suppliersLoading}
+                    notFoundContent={suppliersLoading ? <Spin size="small" /> : 'Không có nhà cung cấp'}
+                    disabled={suppliersLoading || suppliers.length === 0}
+                    style={{ width: '100%' }}
+                    dropdownRender={menu => (
+                      <>
+                        {menu}
+                        <div style={{ padding: 8, textAlign: 'center' }}>
+                          <Button
+                            type="link"
+                            onClick={() => router.push('/admin/inventory/suppliers/create')}
+                            style={{ padding: 0 }}
+                          >
+                            + Thêm nhà cung cấp mới
+                          </Button>
+                        </div>
+                      </>
+                    )}
                   >
                     {suppliers.map(supplier => (
                       <Option key={supplier.id} value={supplier.id}>
@@ -402,7 +375,8 @@ export default function CreateImportPage() {
                           dataIndex: 'quantity',
                           key: 'quantity',
                           width: '15%',
-                          render: (_, record) => (                              <Form.Item
+                          render: (_, record) => (
+                            <Form.Item
                               name={[record.name, 'quantity']}
                               rules={[
                                 { required: true, message: 'Vui lòng nhập số lượng' },
@@ -410,7 +384,11 @@ export default function CreateImportPage() {
                               ]}
                               style={{ margin: 0 }}
                             >
-                              <NumberInput placeholder="Nhập số lượng" allowDecimals={true} />
+                              <InputNumber
+                                placeholder="Nhập số lượng"
+                                style={{ width: '100%' }}
+                                min={0}
+                              />
                             </Form.Item>
                           ),
                         },
@@ -428,7 +406,10 @@ export default function CreateImportPage() {
                               ]}
                               style={{ margin: 0 }}
                             >
-                              <NumberInput placeholder="Nhập đơn giá" allowDecimals={true} />
+                              <InputNumber
+                                placeholder="Nhập đơn giá"                                style={{ width: '100%' }}
+                                min={0}
+                              />
                             </Form.Item>
                           ),
                         },
@@ -535,7 +516,7 @@ export default function CreateImportPage() {
                 <Button type="primary" htmlType="submit" loading={submitting}>
                   Tạo phiếu nhập
                 </Button>
-                <Button onClick={() => router.push('/warehouse/imports')}>
+                <Button onClick={() => router.push('/admin/inventory/imports')}>
                   Hủy
                 </Button>
               </Space>
@@ -543,6 +524,6 @@ export default function CreateImportPage() {
           </Form>
         </Card>
       </div>
-    </WarehouseLayout>
+    </AdminLayout>
   );
 }

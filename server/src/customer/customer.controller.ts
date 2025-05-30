@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, ParseUUIDPipe, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { OrdersService } from '../orders/orders.service';
 import { CreateCustomerOrderDto } from './dto/create-customer-order.dto';
@@ -15,8 +15,21 @@ export class CustomerController {
   @Post('orders')
   @ApiOperation({ summary: 'Create a new order from customer' })
   @ApiResponse({ status: 201, description: 'The order has been successfully created.' })
-  createOrder(@Body() createOrderDto: CreateCustomerOrderDto) {
-    return this.ordersService.createCustomerOrder(createOrderDto);
+  @ApiResponse({ status: 400, description: 'Invalid order data' })
+  @ApiResponse({ status: 404, description: 'Table or dish not found' })
+  async createOrder(@Body() createOrderDto: CreateCustomerOrderDto) {
+    try {
+      const result = await this.ordersService.createCustomerOrder(createOrderDto);
+      return result;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('Could not create order: ' + error.message);
+    }
   }
 
   @Get('tables/:id')

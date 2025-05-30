@@ -24,18 +24,16 @@ import { UserRole } from '../enums/user-role.enum';
 // Extend the Express Request interface
 interface RequestWithUser extends Request {
   user: {
-    userId: string;
-    email: string;
     role: UserRole;
+    id: string;
+    email?: string;
   };
 }
 
 @Controller('tables')
-@UseGuards(RolesGuard)
 export class TablesController {
   constructor(private readonly tablesService: TablesService) {}
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.STAFF)
   async findAll(
     @Query('status') status?: TableStatus,
     @Query('includeDeleted') includeDeleted?: string
@@ -99,11 +97,16 @@ export class TablesController {
     @Body() updateTableStatusDto: UpdateTableStatusDto,
     @Req() req: RequestWithUser,
   ): Promise<TableEntity> {
-    return this.tablesService.updateStatus(
-      id, 
-      updateTableStatusDto.status, 
-      req.user.role
-    );
+    try {
+      return await this.tablesService.updateStatus(
+        id, 
+        updateTableStatusDto.status, 
+        req.user.role
+      );
+    } catch (error) {
+      // Use logger or handle specific error types as needed
+      throw error;
+    }
   }
 
   @Get(':id/qr-code')

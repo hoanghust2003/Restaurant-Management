@@ -129,17 +129,15 @@ export interface UpdateSupplierDto {
  * DTO for creating an import
  */
 export interface CreateImportDto {
-  supplier_id: string;
-  reference_number?: string;
-  import_date: Date;
-  notes?: string;
-  items: {
-    ingredient_id: string;
+  supplierId: string;
+  note?: string;
+  batches: {
+    ingredientId: string;
+    name: string;
     quantity: number;
-    unit_price: number;
-    production_date?: Date;
-    expiry_date?: Date;
-    lot_number?: string;
+    price: number;
+    expiry_date: string;
+    production_date?: string;
   }[];
 }
 

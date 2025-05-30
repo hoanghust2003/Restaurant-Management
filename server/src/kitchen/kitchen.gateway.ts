@@ -9,35 +9,67 @@ import {
   WsException
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { UseGuards } from '@nestjs/common';
+import { UseGuards, Logger, Injectable, Inject } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import { OrderStatus, OrderItemStatus } from '../enums/order-status.enum';
 
+@Injectable()
 @WebSocketGateway({
   cors: {
     origin: process.env.CLIENT_URL || 'http://localhost:3000',
     credentials: true
-  }
+  },
+  namespace: '/kitchen'
 })
 @UseGuards(JwtAuthGuard)
 export class KitchenGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
+  private readonly logger = new Logger(KitchenGateway.name);
+  
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) {}
+
   private kitchenClients: Set<Socket> = new Set();
 
   async handleConnection(@ConnectedSocket() client: Socket) {
-    // Handle authentication
     try {
-      const token = client.handshake.auth.token;
+      const token = client.handshake?.auth?.token;
       if (!token) {
-        throw new WsException('Authentication failed - no token');
+        this.logger.error('Authentication failed - no token provided');
+        client.disconnect();
+        return;
       }
-      // TODO: Get user from token and verify role (chef)
 
-      this.kitchenClients.add(client);
-      console.log(`Client connected: ${client.id}`);
+      // Validate user role
+      try {
+        const payload = this.jwtService.verify(token);
+        if (!payload || !['admin', 'chef'].includes(payload.role)) {
+          this.logger.error(`Unauthorized role: ${payload?.role}`);
+          client.disconnect();
+          return;
+        }
+        
+        // Store user info in socket data
+        client.data.user = {
+          userId: payload.sub,
+          role: payload.role,
+          email: payload.email
+        };
+
+        this.kitchenClients.add(client);
+        this.logger.log(`Kitchen client connected: ${client.id} (${payload.role})`);
+      } catch (error) {
+        this.logger.error(`Token verification failed: ${error.message}`);
+        client.disconnect();
+      }
     } catch (error) {
+      this.logger.error(`Connection error: ${error.message}`);
       client.disconnect();
     }
   }

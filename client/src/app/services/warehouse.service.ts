@@ -20,11 +20,22 @@ const IMPORT_API_URL = '/inventory/imports';
 const EXPORT_API_URL = '/inventory/exports';
 
 /**
+ * Validates whether a user is authenticated
+ */
+const validateAuth = () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('Bạn cần đăng nhập để thực hiện chức năng này');
+  }
+  return token;
+};
+
+/**
  * Service for supplier management
  */
 export const supplierService = {
   async getAll(includeInactive = false): Promise<SupplierModel[]> {
-    const url = includeInactive ? `${SUPPLIERS_API_URL}?includeInactive=true` : SUPPLIERS_API_URL;
+    const url = SUPPLIERS_API_URL;
     
     const cachedResult = requestCache.get(url);
     if (cachedResult) {
@@ -34,10 +45,8 @@ export const supplierService = {
     const response = await axios.get(url);
     const data = response.data;
     
-    const filteredData = includeInactive ? data : data.filter((item: SupplierModel) => item.active);
-    
-    requestCache.set(url, filteredData);
-    return filteredData;
+    requestCache.set(url, data);
+    return data;
   },
 
   async getById(id: string): Promise<SupplierModel> {
@@ -149,17 +158,16 @@ export const importService = {
     startDate?: Date, 
     endDate?: Date 
   }): Promise<ImportModel[]> {
-    let queryParams = '';
-    if (filters) {
-      const params = new URLSearchParams();
-      if (filters.supplier_id) params.append('supplier_id', filters.supplier_id);
-      if (filters.status) params.append('status', filters.status);
-      if (filters.startDate) params.append('startDate', filters.startDate.toISOString());
-      if (filters.endDate) params.append('endDate', filters.endDate.toISOString());
-      queryParams = `?${params.toString()}`;
-    }
+    let url = IMPORT_API_URL;
     
-    const url = `${IMPORT_API_URL}${queryParams}`;
+    if (filters) {
+      const urlParams = new URLSearchParams();
+      if (filters.supplier_id) urlParams.append('supplier_id', filters.supplier_id);
+      if (filters.status) urlParams.append('status', filters.status);
+      if (filters.startDate) urlParams.append('startDate', filters.startDate.toISOString());
+      if (filters.endDate) urlParams.append('endDate', filters.endDate.toISOString());
+      url += `?${urlParams.toString()}`;
+    }
     
     const cachedResult = requestCache.get(url);
     if (cachedResult) {
@@ -184,7 +192,26 @@ export const importService = {
   },
 
   async create(importData: CreateImportDto): Promise<ImportModel> {
-    const response = await axios.post(IMPORT_API_URL, importData);
+    const token = validateAuth();
+    const config = {
+      headers: { Authorization: `Bearer ${token}` }
+    };
+
+    // Map the data according to the server's expected format
+    const data = {
+      supplierId: importData.supplierId,
+      note: importData.note,
+      batches: importData.batches.map(batch => ({
+        ingredient_id: batch.ingredientId,
+        name: batch.name,
+        quantity: Number(batch.quantity),
+        price: Number(batch.price),
+        expiry_date: batch.expiry_date,
+        production_date: batch.production_date
+      }))
+    };
+
+    const response = await axios.post(IMPORT_API_URL, data, config);
     requestCache.invalidateByPrefix(IMPORT_API_URL);
     requestCache.invalidateByPrefix(BATCH_API_URL);
     return response.data;
@@ -241,7 +268,12 @@ export const exportService = {
   },
 
   async create(exportData: CreateExportDto): Promise<ExportModel> {
-    const response = await axios.post(EXPORT_API_URL, exportData);
+    const token = validateAuth();
+    const config = {
+      headers: { Authorization: `Bearer ${token}` }
+    };
+
+    const response = await axios.post(EXPORT_API_URL, exportData, config);
     requestCache.invalidateByPrefix(EXPORT_API_URL);
     requestCache.invalidateByPrefix(BATCH_API_URL);
     return response.data;

@@ -94,6 +94,11 @@ const adminMenuSections = [
             showIfRoles: ["admin"],
           },
           {
+            href: "/admin/inventory/suppliers",
+            title: "Nhà cung cấp",
+            showIfRoles: ["admin"],
+          },
+          {
             href: "/admin/inventory/imports",
             title: "Nhập kho",
             showIfRoles: ["admin"],

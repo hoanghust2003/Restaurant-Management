@@ -1,5 +1,7 @@
-import axios from 'axios';
+import axios, { AxiosError, AxiosHeaders } from 'axios';
 import { requestCache } from './requestCache';
+
+import { message } from 'antd';
 
 // Create a custom axios instance with optimized configs
 const axiosInstance = axios.create({
@@ -7,20 +9,31 @@ const axiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 5000, // Giảm timeout xuống 5 giây để nhanh hơn
-  // Tối ưu hiệu năng
-  withCredentials: false, // Không gửi cookies trừ khi cần
+  timeout: 5000,
+  withCredentials: false,
   responseType: 'json',
-  maxRedirects: 2, // Giảm số lần chuyển hướng
+  maxRedirects: 2,
 });
 
 // Add a request interceptor to include auth token if available
-// Tạo một Map để lưu trữ thời gian request trước đó để tránh hiển thị loading quá nhiều lần
 const requestTimestamps = new Map();
 
-axiosInstance.interceptors.request.use(  (config) => {
+axiosInstance.interceptors.request.use((config) => {
     const url = config.url || '';
     const isPrefetch = config.headers?.['X-Prefetch'] === 'true';
+
+    // Initialize headers if undefined
+    if (!config.headers) {
+      config.headers = new AxiosHeaders();
+    }
+
+    // Add auth token to all requests if available
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (token && !config.headers['Authorization']) {
+        config.headers['Authorization'] = `Bearer ${token}`;
+      }
+    }
     
     // Check cache for GET requests when not forced to skip cache
     if (config.method?.toLowerCase() === 'get' && !config.headers?.['x-skip-cache']) {
@@ -30,8 +43,6 @@ axiosInstance.interceptors.request.use(  (config) => {
       
       // If data is in cache and this is not a prefetch request, return cached data
       if (cachedData && !isPrefetch) {
-        // Return cached data by converting this request to a "canceled" one
-        // and resolving with cached data
         const source = axios.CancelToken.source();
         config.cancelToken = source.token;
         setTimeout(() => {
@@ -39,7 +50,7 @@ axiosInstance.interceptors.request.use(  (config) => {
         }, 0);
       }
     } else {
-      // For non-GET requests or forced fetch, add timestamp to avoid any browser caching
+      // For non-GET requests or forced fetch, add timestamp to avoid browser caching
       config.params = {
         ...config.params,
         _t: Date.now() 
@@ -48,24 +59,13 @@ axiosInstance.interceptors.request.use(  (config) => {
     
     // For prefetch requests, apply lower priority and longer timeout
     if (isPrefetch) {
-      // Lower priority for prefetch requests to not interfere with user actions
-      config.timeout = 10000; // Longer timeout
+      config.timeout = 10000;
     }
     
-    // Lưu trữ thời gian request để tính toán thời gian phản hồi sau này
     requestTimestamps.set(url, Date.now());
-
-    // Get token from localStorage if we're in a browser environment
-    if (typeof window !== 'undefined') {
-      // Use 'token' instead of 'auth_token' to match AuthContext
-      const token = localStorage.getItem('token');
-      if (token && config.headers) {
-        config.headers['Authorization'] = `Bearer ${token}`;
-      }
-    }
     return config;
   },
-  (error) => {
+  (error: AxiosError) => {
     return Promise.reject(error);
   }
 );
@@ -78,26 +78,25 @@ axiosInstance.interceptors.response.use(
       const url = response.config.url || '';
       const params = response.config.params ? JSON.stringify(response.config.params) : '';
       const cacheKey = `${url}${params}`;
-        // Cache the successful response data
-      // Use longer expiry and higher priority for important routes
+
+      // Cache the successful response data with priority
       const isImportantRoute = url.includes('/tables') || url.includes('/orders');
-      const expiry = isImportantRoute ? 60 * 1000 : 30 * 1000; // 60s for important routes, 30s for others
-      const priority = isImportantRoute ? 2 : 1; // Higher priority for important routes
+      const expiry = isImportantRoute ? 60 * 1000 : 30 * 1000;
+      const priority = isImportantRoute ? 2 : 1;
       
       requestCache.set(cacheKey, response.data, expiry, priority);
-          // Measure and log response time for performance monitoring
+
+      // Measure and log response time for performance monitoring
       const startTime = requestTimestamps.get(url);
       if (startTime) {
         const responseTime = Date.now() - startTime;
         const isPrefetch = response.config.headers?.['X-Prefetch'] === 'true';
         
-        // Only log non-prefetch requests to reduce console noise
         if (!isPrefetch) {
           console.debug(`Response time for ${url}: ${responseTime}ms`);
         }
         
-        // Log slow responses regardless of prefetch status
-        if (responseTime > 1000) { // More than 1 second is slow
+        if (responseTime > 1000) {
           console.warn(`Slow response: ${url} took ${responseTime.toFixed(2)}ms`);
         }
         
@@ -107,40 +106,33 @@ axiosInstance.interceptors.response.use(
     
     return response;
   },  
-  (error) => {
+  async (error: AxiosError) => {
     // Check if this is our "fake" cancellation with cached data
     if (axios.isCancel(error) && error.message) {
       try {
         const { cachedData } = JSON.parse(error.message);
         if (cachedData) {
-          // Return the cached data as if it came from the network
-          return Promise.resolve({ 
-            data: cachedData, 
-            status: 200, 
+          return {
+            data: cachedData,
+            status: 200,
             statusText: 'OK',
             headers: {},
             cached: true
-          });
+          };
         }
       } catch (e) {
-        // If error parsing, continue with normal error handling
         console.error('Error handling cached response:', e);
       }
     }
-    
-    // Check if the error is a network error
+
+    // Handle different error scenarios
     if (!error.response) {
-      // Network error (server unreachable, etc.)
+      // Network error
       console.error('Network error detected:', error.message);
-      if (typeof window !== 'undefined') {
-        // Use dynamic import for message to avoid SSR issues
-        import('antd').then(({ message }) => {
-          message.error('Kết nối đến máy chủ thất bại. Vui lòng kiểm tra kết nối mạng.');
-        });
-      }
+      message.error('Kết nối đến máy chủ thất bại. Vui lòng kiểm tra kết nối mạng.');
     } 
-    // Handle session expiration (401 Unauthorized) 
-    else if (error.response?.status === 401 && typeof window !== 'undefined') {
+    // Handle session expiration (401 Unauthorized)
+    else if (error.response?.status === 401) {
       // Don't redirect on API operations that might reasonably return 401
       const isApiOperation = error.config?.url && (
         error.config.url.includes('/delete') ||
@@ -150,13 +142,9 @@ axiosInstance.interceptors.response.use(
         error.config.method === 'put'
       );
       
-      if (!isApiOperation) {
-        // Only clear token and redirect for non-API operations
+      if (!isApiOperation && typeof window !== 'undefined') {
         localStorage.removeItem('token');
-        // Use dynamic import for message to avoid SSR issues
-        import('antd').then(({ message }) => {
-          message.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-        });
+        message.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
         
         // Use a small timeout to allow the message to be displayed before redirecting
         setTimeout(() => {
@@ -164,13 +152,15 @@ axiosInstance.interceptors.response.use(
         }, 1000);
       }
     }
-    // Handle Forbidden (403) - display message but don't redirect
-    else if (error.response?.status === 403 && typeof window !== 'undefined') {
-      // Use dynamic import for message to avoid SSR issues
-      import('antd').then(({ message }) => {
-        message.error('Bạn không có quyền thực hiện thao tác này.');
-      });
+    // Handle Forbidden (403)
+    else if (error.response?.status === 403) {
+      message.error('Bạn không có quyền thực hiện thao tác này.');
     }
+    // Handle other error cases
+    else {
+      message.error(error.response?.data?.message || 'Có lỗi xảy ra. Vui lòng thử lại sau.');
+    }
+
     return Promise.reject(error);
   }
 );

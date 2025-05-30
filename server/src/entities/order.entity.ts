@@ -15,10 +15,10 @@ export class Order {
   @JoinColumn({ name: 'table_id' })
   table: TableEntity;
 
-  @Column({ name: 'user_id' })
+  @Column({ name: 'user_id', nullable: true })
   userId: string;
 
-  @ManyToOne(() => User, user => user.id)
+  @ManyToOne(() => User, user => user.id, { nullable: true })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
