@@ -42,7 +42,7 @@ const { Option } = Select;
 // Giả lập dữ liệu cấu hình hệ thống
 const initialSettings = {
   general: {
-    restaurantName: 'Nhà hàng Việt Cuisine',
+    restaurantName: 'Việt Cuisine',
     address: '123 Đường Lê Lợi, Quận 1, TP Hồ Chí Minh',
     phone: '0987654321',
     email: 'contact@vietcuisine.com',
