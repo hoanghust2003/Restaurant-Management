@@ -131,11 +131,7 @@ const adminMenuSections = [
             title: "Báo cáo kho",
             showIfRoles: ["admin"],
           },
-          {
-            href: "/admin/reports/staff",
-            title: "Báo cáo nhân viên",
-            showIfRoles: ["admin"],
-          },
+    
         ],
       },
     ],
