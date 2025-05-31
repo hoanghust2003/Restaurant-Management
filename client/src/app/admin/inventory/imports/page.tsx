@@ -117,7 +117,7 @@ const AdminImportsList: React.FC = () => {
   };
 
   const filteredImports = imports.filter(item => 
-    item.reference_number.toLowerCase().includes(searchText.toLowerCase()) ||
+    (item.reference_number?.toLowerCase() || '').includes(searchText.toLowerCase()) ||
     (item.supplier?.name || '').toLowerCase().includes(searchText.toLowerCase()) ||
     (item.notes || '').toLowerCase().includes(searchText.toLowerCase())
   );
@@ -150,8 +150,8 @@ const AdminImportsList: React.FC = () => {
       title: 'Tổng tiền',
       dataIndex: 'total_amount',
       key: 'total_amount',
-      render: (amount: number) => amount.toLocaleString('vi-VN') + ' VND',
-      sorter: (a: ImportModel, b: ImportModel) => a.total_amount - b.total_amount,
+      render: (amount: number | undefined) => (amount ? amount.toLocaleString('vi-VN') + ' VND' : '0 VND'),
+      sorter: (a: ImportModel, b: ImportModel) => (a.total_amount || 0) - (b.total_amount || 0),
     },
     {
       title: 'Trạng thái',
@@ -162,7 +162,7 @@ const AdminImportsList: React.FC = () => {
         let text = 'Đang xử lý';
         
         switch (status) {
-          case 'completed':
+          case 'available':
             color = 'green';
             text = 'Hoàn thành';
             break;
