@@ -83,8 +83,8 @@ const UserList = () => {
       dataIndex: 'isActive',
       key: 'isActive',
       render: (isActive: boolean) => (
-        <Tag color={isActive ? 'success' : 'error'}>
-          {isActive ? 'Hoạt động' : 'Đã khóa'}
+        <Tag color={isActive ? 'error' : 'success'}>
+          {isActive ? 'Đã khóa' : 'Hoạt động'}
         </Tag>
       ),
     },
