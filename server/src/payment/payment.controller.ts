@@ -1,12 +1,22 @@
-import { Controller, Post, Body, Req, Get, Query, HttpException, HttpStatus, UseGuards } from '@nestjs/common';
-import { VnpayService } from './vnpay.service';
+import {
+  Controller,
+  Post,
+  Body,
+  Req,
+  Get,
+  Query,
+  HttpException,
+  HttpStatus,
+  UseGuards,
+} from '@nestjs/common';
+import { VnpayService } from './services/vnpay.service';
 import { OrdersService } from '../orders/orders.service';
 import { PaymentService } from './payment.service';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { OrderStatus } from '../enums/order-status.enum';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../roles/roles.guard';
-import { Roles } from '../roles/roles.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../enums/user-role.enum';
 import { PrintReceiptDto } from './dto/print-receipt.dto';
 
@@ -22,10 +32,7 @@ export class PaymentController {
   @Post('create-payment')
   @ApiOperation({ summary: 'Create payment URL for an order' })
   @ApiResponse({ status: 200, description: 'Returns payment URL' })
-  async createPayment(
-    @Body() body: { orderId: string },
-    @Req() req: any,
-  ) {
+  async createPayment(@Body() body: { orderId: string }, @Req() req: any) {
     const order = await this.ordersService.findOne(body.orderId);
     if (!order) {
       throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
@@ -43,7 +50,7 @@ export class PaymentController {
       orderId: order.id,
       amount: order.total_price,
       status: 'pending',
-      paymentMethod: 'vnpay'
+      paymentMethod: 'vnpay',
     });
 
     return { paymentUrl };
@@ -54,7 +61,7 @@ export class PaymentController {
   @ApiResponse({ status: 200, description: 'Payment verification result' })
   async handleReturn(@Query() query: any) {
     const isValidSignature = this.vnpayService.verifyReturnUrl(query);
-    
+
     if (!isValidSignature) {
       throw new HttpException('Invalid signature', HttpStatus.BAD_REQUEST);
     }
@@ -75,20 +82,20 @@ export class PaymentController {
         status: 'completed',
         transactionId,
         paidAt: new Date(),
-        paymentMethod: 'vnpay'
+        paymentMethod: 'vnpay',
       });
 
       // Move order to completed status if not already completed
       if (order.status !== OrderStatus.COMPLETED) {
         await this.ordersService.updateStatus(orderId, OrderStatus.COMPLETED);
       }
-      
+
       return {
         status: 'success',
         message: 'Payment successful',
         orderId,
         amount,
-        transactionId
+        transactionId,
       };
     }
 
@@ -96,14 +103,14 @@ export class PaymentController {
     await this.paymentService.updatePayment(orderId, {
       status: 'failed',
       transactionId,
-      paymentMethod: 'vnpay'
+      paymentMethod: 'vnpay',
     });
 
     return {
       status: 'error',
       message: 'Payment failed',
       responseCode: query['vnp_ResponseCode'],
-      orderId
+      orderId,
     };
   }
   @Post('print-receipt')

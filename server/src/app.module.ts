@@ -29,6 +29,7 @@ import { StaticAssetsController } from './common/controllers/static-assets.contr
 import * as path from 'path';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PaymentModule } from './payment/payment.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { PaymentModule } from './payment/payment.module';
       cache: false, // Disable cache to make sure we always read the latest values
       expandVariables: true, // Allow variable expansion in .env file
     }),
+    EventEmitterModule.forRoot(),
     TypeOrmModule.forRootAsync(typeOrmAsyncConfig),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'uploads'),
@@ -54,7 +56,7 @@ import { PaymentModule } from './payment/payment.module';
     KitchenModule,
     CustomerModule,
     BatchesModule,
-    SuppliersModule,    
+    SuppliersModule,
     InventoryModule,
     FinancialModule,
     ReportsModule,
@@ -70,8 +72,6 @@ import { PaymentModule } from './payment/payment.module';
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     // Apply the StaticFilesMiddleware to all routes
-    consumer
-      .apply(StaticFilesMiddleware)
-      .forRoutes('*');
+    consumer.apply(StaticFilesMiddleware).forRoutes('*');
   }
 }
