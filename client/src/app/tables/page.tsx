@@ -29,6 +29,12 @@ interface TableData {
   status: TableStatus;
 }
 
+interface TableFormData {
+  name: string;
+  capacity: number;
+  status: TableStatus;
+}
+
 const statusOptions = [
   { value: TableStatus.AVAILABLE, label: 'Trống' },
   { value: TableStatus.OCCUPIED, label: 'Đang sử dụng' },
@@ -49,7 +55,8 @@ export default function TablesPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [currentTable, setCurrentTable] = useState<TableData | null>(null);
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [qrCodeModalVisible, setQrCodeModalVisible] = useState<boolean>(false);
   const [selectedQrTable, setSelectedQrTable] = useState<TableData | null>(null);
   const { user, hasRole, loading: authLoading } = useAuth();
@@ -62,6 +69,7 @@ export default function TablesPage() {
       message.error('Bạn không có quyền truy cập trang này');
     }
   }, [user, authLoading, hasRole, router]);
+
   // Load tables data on component mount and when filter changes
   useEffect(() => {
     if (user) {
@@ -81,7 +89,6 @@ export default function TablesPage() {
         } catch (error: any) {
           console.error('Error fetching tables:', error);
           
-          // More detailed error handling
           if (error.response?.status === 403) {
             message.error('Bạn không có quyền xem danh sách bàn');
           } else if (!error.response) {
@@ -101,6 +108,7 @@ export default function TablesPage() {
   // Handle modal visibility
   const showModal = (table?: TableData) => {
     if (table) {
+      // Editing existing table
       setCurrentTable(table);
       setIsEditing(true);
       form.setFieldsValue({
@@ -109,6 +117,7 @@ export default function TablesPage() {
         status: table.status,
       });
     } else {
+      // Creating new table
       setCurrentTable(null);
       setIsEditing(false);
       form.resetFields();
@@ -124,36 +133,50 @@ export default function TablesPage() {
     setIsModalVisible(false);
     form.resetFields();
   };
-    // Handle form submission
-  const handleSubmit = async (values: Record<string, unknown>) => {
+
+  // Handle form submission
+  const handleSubmit = async (values: TableFormData) => {
     try {
-      console.log('Submitting form with values:', values);
+      setLoading(true);
       
       if (isEditing && currentTable) {
         // Update existing table
-        const response = await axios.put(`/tables/${currentTable.id}`, values);
-        console.log('Update response:', response.data);
+        await axios.put(`/tables/${currentTable.id}`, values);
         message.success('Cập nhật bàn thành công');
       } else {
         // Create new table
-        const response = await axios.post('/tables', values);
-        console.log('Create response:', response.data);
+        await axios.post('/tables', values);
         message.success('Tạo bàn mới thành công');
       }
+
+      // Close modal and reset form
       setIsModalVisible(false);
+      form.resetFields();
       
-      // Fetch updated table list
-      const url = statusFilter 
-        ? `/tables?status=${statusFilter}` 
-        : '/tables';
+      // Refresh table list
+      const url = statusFilter ? `/tables?status=${statusFilter}` : '/tables';
       const response = await axios.get(url);
-      setTables(response.data);
+      const updatedTables: TableData[] = response.data.map((table: any) => ({
+        id: table.id,
+        name: table.name,
+        capacity: table.capacity,
+        status: table.status as TableStatus
+      }));
+      setTables(updatedTables);
     } catch (error: any) {
-      console.error('Error saving table:', error);
-      message.error(error.response?.data?.message || 'Không thể lưu thông tin bàn');
+      let errorMessage = 'Không thể lưu thông tin bàn';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      message.error(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
-    // Handle table deletion
+
+  // Handle table deletion
   const handleDelete = async (id: string) => {
     try {
       setLoading(true);
@@ -165,10 +188,13 @@ export default function TablesPage() {
         ? `/tables?status=${statusFilter}` 
         : '/tables';
       const response = await axios.get(url);
-      setTables(response.data.map((table: any) => ({
-        ...table,
+      const updatedTables: TableData[] = response.data.map((table: any) => ({
+        id: table.id,
+        name: table.name,
+        capacity: table.capacity,
         status: table.status as TableStatus
-      })));
+      }));
+      setTables(updatedTables);
     } catch (error: any) {
       console.error('Error deleting table:', error);
       message.error(error.response?.data?.message || 'Không thể xóa bàn');
@@ -181,41 +207,32 @@ export default function TablesPage() {
   const handleStatusFilterChange = (value: string | null) => {
     setStatusFilter(value);
   };
-    // Define column type using Ant Design's ColumnType
-  interface TableColumnType {
-    title: string;
-    dataIndex?: string;
-    key: string;
-    render?: (value: unknown, record: TableData, index: number) => React.ReactNode;
-  }
 
-  const columns: TableColumnType[] = [
+  const columns = [
     {
       title: 'Tên bàn',
       dataIndex: 'name',
       key: 'name',
-    },    {
+    },
+    {
       title: 'Sức chứa',
       dataIndex: 'capacity',
       key: 'capacity',
-      render: (value: unknown) => {
-        const capacity = value as number;
-        return `${capacity} người`;
-      },
+      render: (capacity: number) => `${capacity} người`,
     },
     {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
-      render: (value: unknown) => {
-        const status = value as string;
+      render: (status: TableStatus) => {
         const statusLabel = statusOptions.find(option => option.value === status)?.label || status;
-        return <Tag color={statusColors[status as TableStatus] || 'default'}>{statusLabel}</Tag>;
+        return <Tag color={statusColors[status]}>{statusLabel}</Tag>;
       },
     },
     {
       title: 'Thao tác',
-      key: 'action',      render: (_: unknown, record: TableData) => (
+      key: 'action',
+      render: (_: unknown, record: TableData) => (
         <div className="flex space-x-2">
           {hasRole(['admin']) ? (
             <>
@@ -280,183 +297,123 @@ export default function TablesPage() {
       ),
     },
   ];
+
   // Handle showing QR code
   const handleShowQrCode = (table: TableData) => {
     setSelectedQrTable(table);
     setQrCodeModalVisible(true);
   };
 
-  // Handle hiding QR code with cleanup
+  // Handle hiding QR code
   const handleCloseQrCode = () => {
     setQrCodeModalVisible(false);
-    // Use a short timeout to allow modal close animation to complete
     setTimeout(() => {
       setSelectedQrTable(null);
     }, 200);
-  };
-
-  // Handle status change with optimistic updates and proper error handling
-  const handleStatusChange = async (id: string, newStatus: string) => {
-    const tableToUpdate = tables.find(t => t.id === id);
-    if (!tableToUpdate) {
-      message.error('Không tìm thấy bàn cần cập nhật');
-      return;
-    }
-
-    const originalStatus = tableToUpdate.status;
-
-    try {
-      // Start loading state
-      setLoading(true);
-      
-      // Optimistic update
-      setTables(prevTables =>
-        prevTables.map(t =>
-          t.id === id ? { ...t, status: newStatus } : t
-        )
-      );
-      
-      // Make the API call
-      await axios.patch(`/tables/${id}/status`, { status: newStatus });
-      message.success('Cập nhật trạng thái bàn thành công');
-      
-      // Refresh the table list in the background
-      const url = statusFilter 
-        ? `/tables?status=${statusFilter}` 
-        : '/tables';
-      const response = await axios.get(url);
-      setTables(response.data.map((table: any) => ({
-        ...table,
-        status: table.status as TableStatus
-      })));
-
-    } catch (error: any) {
-      // Revert optimistic update on error
-      setTables(prevTables =>
-        prevTables.map(t =>
-          t.id === id ? { ...t, status: originalStatus } : t
-        )
-      );
-      
-      // Show appropriate error message
-      if (error.response?.status === 403) {
-        message.error('Bạn không có quyền thay đổi trạng thái bàn');
-      } else if (!error.response) {
-        message.error('Mất kết nối tới máy chủ. Vui lòng kiểm tra mạng.');
-      } else {
-        message.error(error.response?.data?.message || 'Không thể cập nhật trạng thái bàn');
-      }
-      console.error('Error updating table status:', error);
-    } finally {
-      setLoading(false);
-    }
   };
   
   return (
     <AuthGuard allowedRoles={['admin', 'staff']}>
       <LayoutProvider title="Quản lý bàn">
         <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <div className="text-2xl font-bold">Danh sách bàn</div>
-          <div className="flex space-x-4">
-            <Select
-              placeholder="Lọc theo trạng thái"
-              style={{ width: 200 }}
-              allowClear
-              onChange={handleStatusFilterChange}
-              options={[
-                ...statusOptions.map(option => ({
+          <div className="flex justify-between items-center mb-6">
+            <div className="text-2xl font-bold">Danh sách bàn</div>
+            <div className="flex space-x-4">
+              <Select
+                placeholder="Lọc theo trạng thái"
+                style={{ width: 200 }}
+                allowClear
+                onChange={handleStatusFilterChange}
+                options={statusOptions.map(option => ({
                   value: option.value,
                   label: option.label,
-                })),
-              ]}            />
-            {hasRole(['admin']) && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => showModal()}
-              >
-                Thêm bàn mới
-              </Button>
-            )}
+                }))}
+              />
+              {hasRole(['admin']) && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => showModal()}
+                >
+                  Thêm bàn mới
+                </Button>
+              )}
+            </div>
           </div>
+          
+          <Table
+            columns={columns}
+            dataSource={tables}
+            rowKey="id"
+            loading={loading}
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50'],
+            }}
+          />
         </div>
         
-        <Table
-          columns={columns}
-          dataSource={tables}
-          rowKey="id"
-          loading={loading}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            pageSizeOptions: ['10', '20', '50'],
-          }}
-        />
-      </div>
-      
-      <Modal
-        title={isEditing ? "Sửa thông tin bàn" : "Thêm bàn mới"}
-        open={isModalVisible}
-        onCancel={handleCancel}
-        footer={null}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSubmit}
-        >          {hasRole(['admin']) ? (
-            <>
-              <Form.Item
-                name="name"
-                label="Tên bàn"
-                rules={[{ required: true, message: 'Vui lòng nhập tên bàn' }]}
-              >
-                <Input placeholder="Nhập tên bàn" />
-              </Form.Item>
-              
-              <Form.Item
-                name="capacity"
-                label="Sức chứa"
-                rules={[{ required: true, message: 'Vui lòng nhập sức chứa' }]}
-              >
-                <InputNumber
-                  min={1}
-                  max={50}
-                  placeholder="Nhập sức chứa"
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
-            </>
-          ) : null}
-          
-          <Form.Item
-            name="status"
-            label="Trạng thái"
-            rules={[{ required: true, message: 'Vui lòng chọn trạng thái' }]}
+        <Modal
+          title={isEditing ? "Sửa thông tin bàn" : "Thêm bàn mới"}
+          open={isModalVisible}
+          onCancel={handleCancel}
+          footer={null}
+        >
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleSubmit}
           >
-            <Select 
-              options={statusOptions.map(status => ({
-                value: status.value,
-                label: status.label
-              }))}
-              placeholder="Chọn trạng thái"
-            />
-          </Form.Item>
-          
-          <div className="flex justify-end space-x-2">
-            <Button onClick={handleCancel}>Hủy</Button>
-            <Button type="primary" htmlType="submit">
-              {isEditing ? "Cập nhật" : "Tạo mới"}
-            </Button>          </div>
-        </Form>
-      </Modal>
-      
-      {/* QR Code Modal */}        <QrCodeModal
+            {hasRole(['admin']) ? (
+              <>
+                <Form.Item
+                  name="name"
+                  label="Tên bàn"
+                  rules={[{ required: true, message: 'Vui lòng nhập tên bàn' }]}
+                >
+                  <Input placeholder="Nhập tên bàn" />
+                </Form.Item>
+                
+                <Form.Item
+                  name="capacity"
+                  label="Sức chứa"
+                  rules={[{ required: true, message: 'Vui lòng nhập sức chứa' }]}
+                >
+                  <InputNumber
+                    min={1}
+                    max={50}
+                    placeholder="Nhập sức chứa"
+                    style={{ width: '100%' }}
+                  />
+                </Form.Item>
+              </>
+            ) : null}
+            
+            <Form.Item
+              name="status"
+              label="Trạng thái"
+              rules={[{ required: true, message: 'Vui lòng chọn trạng thái' }]}
+            >
+              <Select 
+                options={statusOptions}
+                placeholder="Chọn trạng thái"
+              />
+            </Form.Item>
+            
+            <div className="flex justify-end space-x-2">
+              <Button onClick={handleCancel}>Hủy</Button>
+              <Button type="primary" htmlType="submit" loading={loading}>
+                {isEditing ? "Cập nhật" : "Tạo mới"}
+              </Button>
+            </div>
+          </Form>
+        </Modal>
+        
+        <QrCodeModal
           open={qrCodeModalVisible}
           table={selectedQrTable}
           onClose={handleCloseQrCode}
-          destroyOnHidden
         />
       </LayoutProvider>
     </AuthGuard>

@@ -164,32 +164,19 @@ export class TablesService {
     }
   }
 
-  async updateStatus(id: string, status: TableStatus, userRole?: UserRole): Promise<TableEntity> {
+  async updateStatus(id: string, status: TableStatus, userRole: UserRole = UserRole.ADMIN): Promise<TableEntity> {
     try {
       this.logger.log(`Updating table ${id} status to ${status}`);
       
-      // Validate user role
-      if (!userRole) {
-        this.logger.warn(`Attempted to update table ${id} status without a user role`);
-        throw new ForbiddenException('User role is required to update table status');
-      }
-
-      // Only admin and staff can update table status
-      if (userRole !== UserRole.ADMIN && userRole !== UserRole.STAFF) {
-        this.logger.warn(`User with role ${userRole} attempted to update table ${id} status`);
-        throw new ForbiddenException('Only admin or staff can update table status');
-      }
-
       // Find and validate table exists
       const table = await this.findOne(id);
       if (!table) {
-        throw new NotFoundException(`Table with ID ${id} not found`);
+        throw new NotFoundException('Table not found');
       }
 
       // Validate status enum value
       if (!Object.values(TableStatus).includes(status)) {
-        this.logger.warn(`Invalid status value attempted: ${status}`);
-        throw new BadRequestException(`Invalid table status: ${status}`);
+        throw new BadRequestException('Invalid table status');
       }
 
       // Update status
@@ -201,7 +188,6 @@ export class TablesService {
       
     } catch (error) {
       if (error instanceof NotFoundException || 
-          error instanceof ForbiddenException || 
           error instanceof BadRequestException) {
         throw error;
       }

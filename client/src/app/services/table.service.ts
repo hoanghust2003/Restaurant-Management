@@ -31,10 +31,15 @@ class TableService extends BaseService<TableModel> {
    * Tạo mới bàn
    */
   async create(table: CreateTableDto): Promise<TableModel> {
-    const response = await axios.post(this.apiUrl, table);
-    // Cập nhật cache sau khi tạo mới
-    requestCache.invalidateByPrefix(this.apiUrl);
-    return response.data;
+    try {
+      const response = await axios.post(this.apiUrl, table);
+      // Cập nhật cache sau khi tạo mới
+      requestCache.invalidateByPrefix(this.apiUrl);
+      return response.data;
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || 'Không thể tạo bàn mới. Vui lòng thử lại.';
+      throw new Error(errorMsg);
+    }
   }
   /**
    * Cập nhật bàn
@@ -66,9 +71,6 @@ class TableService extends BaseService<TableModel> {
       requestCache.invalidate(`${this.apiUrl}/${id}`);
       return response.data;
     } catch (error: any) {
-      if (error.response?.status === 403) {
-        throw new Error('Bạn không có quyền thực hiện thao tác này');
-      }
       if (error.response?.status === 400) {
         throw new Error('Không thể chuyển trạng thái bàn này');
       }

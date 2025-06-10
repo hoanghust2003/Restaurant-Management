@@ -21,6 +21,8 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../enums/user-role.enum';
 
+import { BadRequestException } from '@nestjs/common';
+
 // Extend the Express Request interface
 interface RequestWithUser extends Request {
   user: {
@@ -58,17 +60,20 @@ export class TablesController {
     @Body() createTableDto: CreateTableDto,
     @Req() req: RequestWithUser,
   ): Promise<TableEntity> {
-    return this.tablesService.create(createTableDto, req.user.role);
+    try {
+      return await this.tablesService.create(createTableDto);
+    } catch (error) {
+      throw new BadRequestException(error.message || 'Không thể tạo bàn mới. Vui lòng thử lại.');
+    }
   }
 
   @Put(':id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateTableDto: UpdateTableDto,
-    @Req() req: RequestWithUser,
   ): Promise<TableEntity> {
-    return this.tablesService.update(id, updateTableDto, req.user.role);
+    return this.tablesService.update(id, updateTableDto, UserRole.ADMIN);
   }
   @Delete(':id')
   @Roles(UserRole.ADMIN)

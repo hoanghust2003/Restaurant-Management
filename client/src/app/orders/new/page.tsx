@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { 
   Typography, 
   Button, 
@@ -20,7 +20,7 @@ import { TableModel } from '@/app/models/table.model';
 
 const { Title } = Typography;
 
-export default function NewOrderPage() {
+function OrderPageContent() {
   const [table, setTable] = useState<TableModel | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const router = useRouter();
@@ -92,5 +92,13 @@ export default function NewOrderPage() {
         )}
       </Card>
     </div>
+  );
+}
+
+export default function NewOrderPage() {
+  return (
+    <Suspense fallback={<div className="p-4"><Spin size="large" tip="Loading..." /></div>}>
+      <OrderPageContent />
+    </Suspense>
   );
 }

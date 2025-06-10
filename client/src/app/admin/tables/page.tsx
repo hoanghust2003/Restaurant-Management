@@ -22,13 +22,6 @@ const TableManagementPage = () => {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const { refreshSpecificData } = useRefresh();
 
-  // Show modal for creating/editing
-  const showModal = () => {
-    form.resetFields();
-    form.setFieldsValue({ status: TableStatus.AVAILABLE });
-    setIsModalVisible(true);
-  };
-
   // Handle status change
   const handleStatusChange = async (tableId: string, newStatus: string) => {
     setUpdatingStatus(tableId);
@@ -132,113 +125,113 @@ const TableManagementPage = () => {
 
   return (
     <AdminLayout>
-      <BaseCrudTable
-        service={tableService}
-        title="Quản lý bàn"
-        columns={[
-          {
-            title: 'Tên bàn',
-            dataIndex: 'name',
-            key: 'name',
-            sorter: (a: TableModel, b: TableModel) => a.name.localeCompare(b.name),
-          },
-          {
-            title: 'Sức chứa',
-            dataIndex: 'capacity',
-            key: 'capacity',
-            render: (capacity: number) => `${capacity} người`,
-          },
-          {
-            title: 'Trạng thái',
-            dataIndex: 'status',
-            key: 'status',
-            render: (status: string, record: TableModel) => (
-              <Select
-                value={status}
-                onChange={(newStatus: string) => handleStatusChange(record.id, newStatus)} 
-                style={{ width: 120 }}
-                disabled={updatingStatus === record.id}
-              >
-                {Object.values(TableStatus).map((status) => (
-                  <Option key={status} value={status}>
-                    <Tag color={getTableStatusColor(status)} style={{ border: 'none', marginRight: 4 }}>
-                      {tableStatusText[status]}
-                    </Tag>
+      <>
+        <BaseCrudTable
+          service={tableService}
+          title="Quản lý bàn"
+          columns={[
+            {
+              title: 'Tên bàn',
+              dataIndex: 'name',
+              key: 'name',
+              sorter: (a: TableModel, b: TableModel) => a.name.localeCompare(b.name),
+            },
+            {
+              title: 'Sức chứa',
+              dataIndex: 'capacity',
+              key: 'capacity',
+              render: (capacity: number) => `${capacity} người`,
+            },
+            {
+              title: 'Trạng thái',
+              dataIndex: 'status',
+              key: 'status',
+              render: (status: string, record: TableModel) => (
+                <Select
+                  value={status}
+                  onChange={(newStatus: string) => handleStatusChange(record.id, newStatus)} 
+                  style={{ width: 120 }}
+                  disabled={updatingStatus === record.id}
+                >
+                  {Object.values(TableStatus).map((status) => (
+                    <Option key={status} value={status}>
+                      <Tag color={getTableStatusColor(status)} style={{ border: 'none', marginRight: 4 }}>
+                        {tableStatusText[status]}
+                      </Tag>
+                    </Option>
+                  ))}
+                </Select>
+              ),
+            }
+          ]}
+          addButtonText="Thêm bàn mới"
+          onCreate={() => {
+            form.resetFields();
+            form.setFieldsValue({ status: TableStatus.AVAILABLE });
+            setEditingTable(null);
+            setIsModalVisible(true);
+          }}
+          onEdit={handleEdit}
+          fetchDataConfig={{ includeDeleted: false }}
+          dataType="tables"
+          showActions={true}
+        />
+
+        <Modal
+          title={editingTable ? 'Chỉnh sửa bàn' : 'Thêm bàn mới'}
+          open={isModalVisible}
+          onOk={handleModalOk}
+          onCancel={handleModalCancel}
+          confirmLoading={false}
+        >
+          <Form
+            form={form}
+            layout="vertical"
+            initialValues={{ status: TableStatus.AVAILABLE }}
+          >
+            <Form.Item
+              label="Tên bàn"
+              name="name"
+              rules={[{ required: true, message: 'Vui lòng nhập tên bàn!' }]}
+            >
+              <Input placeholder="Nhập tên bàn" />
+            </Form.Item>
+
+            <Form.Item
+              label="Sức chứa"
+              name="capacity"
+              rules={[{ required: true, message: 'Vui lòng nhập sức chứa!' }]}
+            >
+              <InputNumber
+                min={1}
+                max={50}
+                placeholder="Nhập số người có thể ngồi"
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+
+            <Form.Item
+              label="Trạng thái"
+              name="status"
+              rules={[{ required: true, message: 'Vui lòng chọn trạng thái!' }]}
+            >
+              <Select>
+                {Object.entries(tableStatusText).map(([key, text]) => (
+                  <Option key={key} value={key}>
+                    {text}
                   </Option>
                 ))}
               </Select>
-            ),
-          }
-        ]}
-        addButtonText="Thêm bàn mới"
-        onCreate={() => {
-          form.resetFields();
-          setEditingTable(null);
-          setIsModalVisible(true);
-        }}
-        onEdit={handleEdit}
-        fetchDataConfig={{ includeDeleted: false }}
-        dataType="tables"
-        showActions={true}
-      />
+            </Form.Item>
+          </Form>
+        </Modal>
 
-      {/* Edit/Create Modal */}
-      <Modal
-        title={editingTable ? "Sửa thông tin bàn" : "Thêm bàn mới"}
-        open={isModalVisible}
-        onOk={handleModalOk}
-        onCancel={handleModalCancel}
-        okText={editingTable ? "Cập nhật" : "Tạo mới"}
-        cancelText="Hủy"
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          initialValues={editingTable || { status: TableStatus.AVAILABLE }}
-        >
-          <Form.Item
-            name="name"
-            label="Tên bàn"
-            rules={[{ required: true, message: 'Vui lòng nhập tên bàn!' }]}
-          >
-            <Input placeholder="Nhập tên bàn" />
-          </Form.Item>
-          
-          <Form.Item
-            name="capacity"
-            label="Sức chứa"
-            rules={[
-              { required: true, message: 'Vui lòng nhập sức chứa!' },
-              { type: 'number', min: 1, message: 'Sức chứa phải lớn hơn 0' }
-            ]}
-          >
-            <InputNumber 
-              style={{ width: '100%' }} 
-              placeholder="Nhập số chỗ ngồi" 
-              min={1} 
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="status"
-            label="Trạng thái"
-            rules={[{ required: true, message: 'Vui lòng chọn trạng thái!' }]}
-          >
-            <Select>
-              {Object.entries(tableStatusText).map(([value, label]) => (
-                <Option key={value} value={value}>{label}</Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* QR Code Modal */}
-      <QrCodeModal
-        open={qrModalVisible}
-        table={selectedTableForQr}
-        onClose={handleQrModalClose}
-      />
+        <QrCodeModal
+          open={qrModalVisible}
+          onClose={handleQrModalClose}
+          table={selectedTableForQr}
+        />
+      </>
     </AdminLayout>
   );
 };

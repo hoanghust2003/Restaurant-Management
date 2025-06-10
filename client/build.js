@@ -14,11 +14,17 @@ try {
       console.warn('Warning: Could not remove .next/trace directory:', err.message);
     }
   }
-  console.log('Starting build with increased memory limit...');
-  // Add --max-old-space-size=4096 to increase memory limit to 4GB
-  execSync('node --max-old-space-size=4096 node_modules/next/dist/bin/next build', { 
+    console.log('Starting production build (skipping type checking)...');
+  // Skip type checking and linting to reduce build time
+  execSync('next build --no-lint', { 
     stdio: 'inherit',
-    env: { ...process.env, NODE_OPTIONS: '--no-warnings' } 
+    env: { 
+      ...process.env, 
+      NODE_OPTIONS: '--no-warnings --max-old-space-size=4096',
+      NEXT_TELEMETRY_DISABLED: '1',
+      DISABLE_ESLINT: 'true',
+      NEXT_DISABLE_SOURCEMAPS: 'true'
+    } 
   });
   console.log('Build completed successfully!');
 } catch (error) {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Form, 
@@ -36,7 +36,21 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
 
+// Main component wrapped in Suspense for client-side data fetching
 export default function AdminCreateImportPage() {
+  return (
+    <Suspense fallback={<AdminLayout title="Tạo phiếu nhập kho">
+      <div className="flex justify-center items-center h-64">
+        <Spin size="large" tip="Đang tải..." />
+      </div>
+    </AdminLayout>}>
+      <ImportPageContent />
+    </Suspense>
+  );
+}
+
+// Actual content component that uses client-side data
+function ImportPageContent() {
   const [form] = Form.useForm();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -405,7 +419,8 @@ export default function AdminCreateImportPage() {
                               style={{ margin: 0 }}
                             >
                               <InputNumber
-                                placeholder="Nhập đơn giá"                                style={{ width: '100%' }}
+                                placeholder="Nhập đơn giá"
+                                style={{ width: '100%' }}
                                 min={0}
                               />
                             </Form.Item>
