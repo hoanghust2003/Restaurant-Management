@@ -67,13 +67,13 @@ const ImportForm: React.FC<ImportFormProps> = ({
       setLoading(true);
       
       const importData: CreateImportDto = {
-        import_date: values.import_date.toDate(),
-        supplier_id: values.supplier_id,
-        items: values.items.map((item: any) => ({
-          ingredient_id: item.ingredient_id,
+        importDate: values.import_date.toDate(),
+        supplierId: values.supplier_id,
+        batches: values.items.map((item: any) => ({
+          ingredientId: item.ingredient_id,
           quantity: item.quantity,
-          unit_price: item.unit_price,
-          expiry_date: item.expiry_date?.toDate()
+          unitPrice: item.unit_price,
+          expiryDate: item.expiry_date?.toDate()
         }))
       };
       
@@ -194,7 +194,7 @@ const ImportForm: React.FC<ImportFormProps> = ({
                           placeholder="Đơn giá"
                           style={{ width: '100%' }}
                           formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
-                          parser={(value) => value ? parseFloat(value.replace(/[^\d.]/g, '')) : 0}
+                          // parser={(value) => value ? parseFloat(value.replace(/\$\s?|(,*)/g, '')) || 0 : 0}
                         />
                       </Form.Item>
                     ),

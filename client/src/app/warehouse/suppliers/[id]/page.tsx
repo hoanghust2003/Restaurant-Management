@@ -34,26 +34,40 @@ const { Title, Text } = Typography;
 const { TabPane } = Tabs;
 const { confirm } = Modal;
 
-const SupplierDetail: React.FC = () => {
-  const params = useParams<{ id: string }>();
+interface SupplierDetailProps {
+  params: Promise<{ id: string }>;
+}
+
+const SupplierDetail: React.FC<SupplierDetailProps> = ({ params }) => {
   const router = useRouter();
   const [supplier, setSupplier] = useState<SupplierModel | null>(null);
   const [imports, setImports] = useState<ImportModel[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [importsLoading, setImportsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [supplierId, setSupplierId] = useState<string>('');
 
   useEffect(() => {
-    fetchSupplier();
-  }, [params.id]);
+    const initializeParams = async () => {
+      const resolvedParams = await params;
+      setSupplierId(resolvedParams.id);
+    };
+    initializeParams();
+  }, [params]);
+
+  useEffect(() => {
+    if (supplierId) {
+      fetchSupplier();
+    }
+  }, [supplierId]);
 
   const fetchSupplier = async () => {
     try {
       setLoading(true);
-      const data = await supplierService.getById(params.id);
+      const data = await supplierService.getById(supplierId);
       setSupplier(data);
       setError(null);
-      fetchImports(params.id);
+      fetchImports(supplierId);
     } catch (err: any) {
       console.error('Error fetching supplier:', err);
       setError(err.message || 'Không thể tải thông tin nhà cung cấp');
@@ -77,7 +91,7 @@ const SupplierDetail: React.FC = () => {
 
   const handleDelete = async () => {
     try {
-      await supplierService.delete(params.id);
+      await supplierService.delete(supplierId);
       message.success('Đã xóa nhà cung cấp thành công');
       router.push('/warehouse/suppliers');
     } catch (err: any) {

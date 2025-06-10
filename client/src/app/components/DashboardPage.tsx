@@ -251,7 +251,6 @@ export default function DashboardPage() {
             {user?.role === 'admin' && 'Quản trị viên'}
             {user?.role === 'staff' && 'Nhân viên phục vụ'}
             {user?.role === 'chef' && 'Đầu bếp'}
-            {user?.role === 'cashier' && 'Thu ngân'}
             {user?.role === 'warehouse' && 'Nhân viên kho'}
             {user?.role === 'customer' && 'Khách hàng'}
           </span>

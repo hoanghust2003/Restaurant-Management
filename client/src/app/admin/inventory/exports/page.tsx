@@ -25,7 +25,7 @@ import {
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import moment from 'moment';
+import dayjs, { Dayjs } from 'dayjs';
 import { exportService } from '@/app/services/warehouse.service';
 import { ExportModel } from '@/app/models/warehouse.model';
 import { useState } from 'react';
@@ -43,7 +43,7 @@ const AdminExportsList: React.FC = () => {
   // Filter states
   const [searchText, setSearchText] = useState<string>('');
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
-  const [dateRange, setDateRange] = useState<[moment.Moment | null, moment.Moment | null] | null>(null);
+  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
 
   React.useEffect(() => {
     fetchData();
@@ -77,7 +77,7 @@ const AdminExportsList: React.FC = () => {
     setSearchText(e.target.value);
   };
 
-  const handleDateRangeChange = (dates: any) => {
+  const handleDateRangeChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
     setDateRange(dates);
   };
 
@@ -126,8 +126,8 @@ const AdminExportsList: React.FC = () => {
       title: 'Ngày xuất',
       dataIndex: 'export_date',
       key: 'export_date',
-      render: (date: string) => moment(date).format('DD/MM/YYYY'),
-      sorter: (a: ExportModel, b: ExportModel) => moment(a.export_date).unix() - moment(b.export_date).unix(),
+      render: (date: string) => dayjs(date).format('DD/MM/YYYY'),
+      sorter: (a: ExportModel, b: ExportModel) => dayjs(a.export_date).unix() - dayjs(b.export_date).unix(),
     },
     {
       title: 'Tổng số lượng',

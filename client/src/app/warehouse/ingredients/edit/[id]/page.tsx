@@ -9,18 +9,30 @@ import { IngredientModel } from '@/app/models/ingredient.model';
 
 const { Title, Text } = Typography;
 
-const EditIngredientPage: React.FC = () => {
-  const params = useParams<{ id: string }>();
+interface EditIngredientPageProps {
+  params: Promise<{ id: string }>;
+}
+
+const EditIngredientPage: React.FC<EditIngredientPageProps> = ({ params }) => {
   const router = useRouter();
   const [ingredient, setIngredient] = useState<IngredientModel | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [ingredientId, setIngredientId] = useState<string>('');
+
+  useEffect(() => {
+    const initializeParams = async () => {
+      const resolvedParams = await params;
+      setIngredientId(resolvedParams.id);
+    };
+    initializeParams();
+  }, [params]);
 
   useEffect(() => {
     const fetchIngredient = async () => {
       try {
         setLoading(true);
-        const data = await ingredientService.getById(params.id);
+        const data = await ingredientService.getById(ingredientId);
         setIngredient(data);
         setError(null);
       } catch (err: any) {
@@ -31,10 +43,10 @@ const EditIngredientPage: React.FC = () => {
       }
     };
 
-    if (params.id) {
+    if (ingredientId) {
       fetchIngredient();
     }
-  }, [params.id]);
+  }, [ingredientId]);
 
   const handleSuccess = () => {
     router.refresh();

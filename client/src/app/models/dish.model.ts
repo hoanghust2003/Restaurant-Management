@@ -18,9 +18,14 @@ export interface DishModel {
   description?: string;
   price: number;
   image_url?: string; // URL to dish image
-  category?: string;  // Category name
+  category?: string | CategoryModel;  // Can be either a category name string or a CategoryModel object
+  categoryId?: string;  // Category ID
   created_at: Date;
   updated_at: Date;
+  preparation_time?: number; // Time in minutes to prepare the dish
+  available?: boolean; // Whether the dish is available
+  is_preparable?: boolean; // Whether the dish needs preparation
+  dishIngredients?: DishIngredientModel[]; // List of ingredients used in the dish
 }
 
 /**

@@ -216,7 +216,7 @@ export default function BatchQrCodeModal({ open, tables, onClose }: BatchQrCodeM
           Quản lý mã QR cho các bàn
         </Space>
       }
-      open={visible}
+      open={open}
       onCancel={onClose}
       footer={null}
       width={800}

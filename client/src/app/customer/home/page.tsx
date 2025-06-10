@@ -33,7 +33,7 @@ import { useShoppingCart } from '@/app/contexts/ShoppingCartContext';
 import { OrderModel } from '@/app/models/order.model';
 import { DishModel } from '@/app/models/dish.model';
 import { MenuModel } from '@/app/models/menu.model';
-import { OrderStatus } from '@/app/utils/enums';
+import { OrderStatus, orderStatusText, orderStatusColors } from '@/app/utils/enums';
 import { formatPrice } from '@/app/utils/format';
 import ImageWithFallback from '@/app/components/ImageWithFallback';
 
@@ -53,13 +53,12 @@ export default function CustomerHomePage() {
         setLoading(true);
         
         // Get active orders
-        const filters = {
-          status: `${OrderStatus.PENDING},${OrderStatus.IN_PROGRESS},${OrderStatus.READY},${OrderStatus.SERVED}`
-        };
+        // Using the getActive method which is designed for fetching active orders
+        // instead of trying to create a custom filter with comma-separated status values
         
         // Fetch data in parallel
         const [ordersData, dishesData, menusData] = await Promise.all([
-          orderService.getAll(filters),
+          orderService.getActive(), // This method already filters for active orders
           dishService.getAll(),
           menuService.getAll()
         ]);
@@ -69,7 +68,7 @@ export default function CustomerHomePage() {
         // Sort dishes by some popularity metric (here we assume preparation time as a proxy)
         // In a real application, you would have a popularity metric based on orders
         const available = dishesData.filter(dish => dish.available);
-        available.sort((a, b) => a.preparation_time - b.preparation_time);
+        available.sort((a, b) => (a.preparation_time || 0) - (b.preparation_time || 0));
         setPopularDishes(available.slice(0, 6)); // Take top 6
         
         setMenus(menusData);
@@ -217,8 +216,8 @@ export default function CustomerHomePage() {
                         }
                         description={
                           <Space>
-                            <Tag color="orange">
-                              {OrderStatus[order.status]}
+                            <Tag color={orderStatusColors[order.status]}>
+                              {orderStatusText[order.status]}
                             </Tag>
                             <Badge 
                               count={`${order.items?.length || 0} món`}
@@ -274,7 +273,11 @@ export default function CustomerHomePage() {
                       <div className="flex justify-between items-center">
                         <div>
                           <Title level={5} className="m-0">{dish.name}</Title>
-                          <Text type="secondary">{dish.category?.name}</Text>
+                          <Text type="secondary">
+                            {typeof dish.category === 'string' 
+                              ? dish.category 
+                              : dish.category?.name}
+                          </Text>
                         </div>
                         <Text className="text-red-500 font-bold">{formatPrice(dish.price)}</Text>
                       </div>

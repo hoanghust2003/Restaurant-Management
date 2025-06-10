@@ -25,19 +25,31 @@ import { ExportModel, ExportItemModel } from '@/app/models/warehouse.model';
 
 const { Title, Text } = Typography;
 
-const ExportDetailPage: React.FC = () => {
-  const params = useParams<{ id: string }>();
+interface ExportDetailPageProps {
+  params: Promise<{ id: string }>;
+}
+
+const ExportDetailPage: React.FC<ExportDetailPageProps> = ({ params }) => {
   const router = useRouter();
   const [exportData, setExportData] = useState<ExportModel | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [printMode, setPrintMode] = useState<boolean>(false);
+  const [exportId, setExportId] = useState<string>('');
 
   useEffect(() => {
-    if (params.id) {
+    const initializeParams = async () => {
+      const resolvedParams = await params;
+      setExportId(resolvedParams.id);
+    };
+    initializeParams();
+  }, [params]);
+
+  useEffect(() => {
+    if (exportId) {
       fetchExport();
     }
-  }, [params.id]);
+  }, [exportId]);
 
   useEffect(() => {
     // Add event listeners for print
@@ -56,7 +68,7 @@ const ExportDetailPage: React.FC = () => {
   const fetchExport = async () => {
     try {
       setLoading(true);
-      const data = await exportService.getById(params.id);
+      const data = await exportService.getById(exportId);
       setExportData(data);
       setError(null);
     } catch (err: any) {

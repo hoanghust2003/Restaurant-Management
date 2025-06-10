@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Button, Card, Typography, message } from 'antd';
 import { menuService } from '@/app/services/menu.service';
 import { dishService } from '@/app/services/dish.service';
+import { CreateMenuDto } from '@/app/models/menu.model';
 
 const { Text, Title } = Typography;
 
@@ -22,10 +23,10 @@ const MenuDebugTools = () => {
       // 1. Test creating a new menu
       addTestResult('1. Testing menu creation...', 'success', 'Attempting to create menu');
       
-      const testMenu = {
+      const testMenu: CreateMenuDto = {
         name: 'Test Menu ' + new Date().toISOString(),
         description: 'This is a test menu created via debug tools',
-        dishIds: [] // We'll add dishes later if any are available
+        dishIds: [] as string[] // We'll add dishes later if any are available
       };
       
       // Get some dishes to add to the menu
@@ -99,8 +100,8 @@ const MenuDebugTools = () => {
       
       addTestResult('MENU CRUD TEST COMPLETED', 'success', 'All tests completed successfully');
       message.success('Menu CRUD test completed successfully!');
-    } catch (error) {
-      addTestResult('TEST FAILED', 'error', `Error: ${error.message}`);
+    } catch (error: any) {
+      addTestResult('TEST FAILED', 'error', `Error: ${error.message || 'Unknown error'}`);
       message.error('Menu CRUD test failed. Check console for details.');
       console.error('MENU CRUD TEST ERROR:', error);
     } finally {

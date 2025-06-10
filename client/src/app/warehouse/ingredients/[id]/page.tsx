@@ -14,7 +14,9 @@ import {
   Table, 
   Tag, 
   Space, 
-  Divider 
+  Divider,
+  Modal,
+  message
 } from 'antd';
 import { 
   EditOutlined, 
@@ -33,20 +35,32 @@ import moment from 'moment';
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
 
-const IngredientDetail: React.FC = () => {
-  const params = useParams<{ id: string }>();
+interface IngredientDetailProps {
+  params: Promise<{ id: string }>;
+}
+
+const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
   const router = useRouter();
   const [ingredient, setIngredient] = useState<IngredientModel | null>(null);
   const [batches, setBatches] = useState<BatchModel[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [batchesLoading, setBatchesLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [ingredientId, setIngredientId] = useState<string>('');
+
+  useEffect(() => {
+    const initializeParams = async () => {
+      const resolvedParams = await params;
+      setIngredientId(resolvedParams.id);
+    };
+    initializeParams();
+  }, [params]);
 
   useEffect(() => {
     const fetchIngredient = async () => {
       try {
         setLoading(true);
-        const data = await ingredientService.getById(params.id);
+        const data = await ingredientService.getById(ingredientId);
         setIngredient(data);
         setError(null);
         
@@ -60,10 +74,10 @@ const IngredientDetail: React.FC = () => {
       }
     };
 
-    if (params.id) {
+    if (ingredientId) {
       fetchIngredient();
     }
-  }, [params.id]);
+  }, [ingredientId]);
 
   const fetchBatches = async (ingredientId: string) => {
     try {
@@ -79,7 +93,7 @@ const IngredientDetail: React.FC = () => {
   };
 
   const handleEdit = () => {
-    router.push(`/warehouse/ingredients/edit/${params.id}`);
+    router.push(`/warehouse/ingredients/edit/${ingredientId}`);
   };
 
   const handleDelete = () => {
@@ -91,7 +105,7 @@ const IngredientDetail: React.FC = () => {
       cancelText: 'Hủy',
       onOk: async () => {
         try {
-          await ingredientService.delete(params.id);
+          await ingredientService.delete(ingredientId);
           message.success('Đã xóa nguyên liệu thành công');
           router.push('/warehouse/ingredients');
         } catch (err: any) {
@@ -102,11 +116,11 @@ const IngredientDetail: React.FC = () => {
   };
 
   const handleImport = () => {
-    router.push(`/warehouse/imports/create?ingredient=${params.id}`);
+    router.push(`/warehouse/imports/create?ingredient=${ingredientId}`);
   };
 
   const handleExport = () => {
-    router.push(`/warehouse/exports/create?ingredient=${params.id}`);
+    router.push(`/warehouse/exports/create?ingredient=${ingredientId}`);
   };
 
   const batchesColumns = [

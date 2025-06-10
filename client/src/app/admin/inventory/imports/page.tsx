@@ -29,6 +29,7 @@ import {
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import moment from 'moment';
+import dayjs, { Dayjs } from 'dayjs';
 import { importService, supplierService } from '@/app/services/warehouse.service';
 import { ImportModel, SupplierModel } from '@/app/models/warehouse.model';
 import { useState } from 'react';
@@ -48,7 +49,7 @@ const AdminImportsList: React.FC = () => {
   const [searchText, setSearchText] = useState<string>('');
   const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
-  const [dateRange, setDateRange] = useState<[moment.Moment | null, moment.Moment | null] | null>(null);
+  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
 
   React.useEffect(() => {
     fetchData();
@@ -87,7 +88,7 @@ const AdminImportsList: React.FC = () => {
     setSearchText(e.target.value);
   };
 
-  const handleDateRangeChange = (dates: any) => {
+  const handleDateRangeChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
     setDateRange(dates);
   };
 

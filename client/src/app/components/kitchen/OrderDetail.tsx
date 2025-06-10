@@ -58,15 +58,15 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ order, onBack }) => {
 
   const getStatusStep = (status: OrderStatus) => {
     switch (status) {
-      case 'pending':
+      case OrderStatus.PENDING:
         return 0;
-      case 'preparing':
+      case OrderStatus.IN_PROGRESS:
         return 1;
-      case 'ready':
+      case OrderStatus.READY:
         return 2;
-      case 'completed':
+      case OrderStatus.COMPLETED:
         return 3;
-      case 'cancelled':
+      case OrderStatus.CANCELED:
         return -1;
       default:
         return 0;
@@ -75,15 +75,13 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ order, onBack }) => {
 
   const getItemStatusColor = (status: OrderItemStatus) => {
     switch (status) {
-      case 'pending':
+      case OrderItemStatus.WAITING:
         return 'gold';
-      case 'preparing':
+      case OrderItemStatus.PREPARING:
         return 'processing';
-      case 'ready':
+      case OrderItemStatus.DONE:
         return 'success';
-      case 'completed':
-        return 'green';
-      case 'cancelled':
+      case OrderItemStatus.FAILED:
         return 'red';
       default:
         return 'default';
@@ -131,7 +129,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ order, onBack }) => {
                 <div className="flex-shrink-0 mr-4">
                   <ImageWithFallback
                     src={item.dish?.image_url}
-                    alt={item.dish?.name}
+                    alt={item.dish?.name || 'Món ăn'}
                     width={80}
                     height={80}
                     type="dishes"
@@ -153,27 +151,26 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ order, onBack }) => {
                     </div>
                     <Space>
                       <Tag color={getItemStatusColor(item.status)}>
-                        {item.status === 'pending' && 'Chờ xử lý'}
-                        {item.status === 'preparing' && 'Đang chuẩn bị'}
-                        {item.status === 'ready' && 'Sẵn sàng'}
-                        {item.status === 'completed' && 'Hoàn thành'}
-                        {item.status === 'cancelled' && 'Đã hủy'}
+                        {item.status === OrderItemStatus.WAITING && 'Chờ xử lý'}
+                        {item.status === OrderItemStatus.PREPARING && 'Đang chuẩn bị'}
+                        {item.status === OrderItemStatus.DONE && 'Hoàn thành'}
+                        {item.status === OrderItemStatus.FAILED && 'Không thể thực hiện'}
                       </Tag>
-                      {item.status === 'pending' && (
+                      {item.status === OrderItemStatus.WAITING && (
                         <Button
                           type="primary"
                           size="small"
-                          onClick={() => handleUpdateItemStatus(item.id, 'preparing')}
+                          onClick={() => handleUpdateItemStatus(item.id, OrderItemStatus.PREPARING)}
                           loading={loading}
                         >
                           Bắt đầu chuẩn bị
                         </Button>
                       )}
-                      {item.status === 'preparing' && (
+                      {item.status === OrderItemStatus.PREPARING && (
                         <Button
                           type="primary"
                           size="small"
-                          onClick={() => handleUpdateItemStatus(item.id, 'ready')}
+                          onClick={() => handleUpdateItemStatus(item.id, OrderItemStatus.DONE)}
                           loading={loading}
                         >
                           Đánh dấu sẵn sàng
@@ -191,28 +188,28 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ order, onBack }) => {
 
         <div className="flex justify-end">
           <Space>
-            {order.status === 'pending' && (
+            {order.status === OrderStatus.PENDING && (
               <Button
                 type="primary"
-                onClick={() => handleUpdateOrderStatus('preparing')}
+                onClick={() => handleUpdateOrderStatus(OrderStatus.IN_PROGRESS)}
                 loading={loading}
               >
                 Bắt đầu chuẩn bị
               </Button>
             )}
-            {order.status === 'preparing' && (
+            {order.status === OrderStatus.IN_PROGRESS && (
               <Button
                 type="primary"
-                onClick={() => handleUpdateOrderStatus('ready')}
+                onClick={() => handleUpdateOrderStatus(OrderStatus.READY)}
                 loading={loading}
               >
                 Đánh dấu sẵn sàng phục vụ
               </Button>
             )}
-            {order.status === 'ready' && (
+            {order.status === OrderStatus.READY && (
               <Button
                 type="primary"
-                onClick={() => handleUpdateOrderStatus('completed')}
+                onClick={() => handleUpdateOrderStatus(OrderStatus.COMPLETED)}
                 loading={loading}
               >
                 Hoàn thành đơn

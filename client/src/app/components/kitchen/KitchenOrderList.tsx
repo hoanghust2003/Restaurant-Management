@@ -71,15 +71,15 @@ const KitchenOrderList: React.FC<KitchenOrderListProps> = ({ onSelectOrder }) =>
 
   const getOrderStatusColor = (status: OrderStatus) => {
     switch (status) {
-      case 'pending':
+      case OrderStatus.PENDING:
         return 'gold';
-      case 'preparing':
+      case OrderStatus.IN_PROGRESS:
         return 'processing';
-      case 'ready':
+      case OrderStatus.READY:
         return 'success';
-      case 'completed':
+      case OrderStatus.COMPLETED:
         return 'green';
-      case 'cancelled':
+      case OrderStatus.CANCELED:
         return 'red';
       default:
         return 'default';
@@ -103,23 +103,23 @@ const KitchenOrderList: React.FC<KitchenOrderListProps> = ({ onSelectOrder }) =>
       key: 'status',
       render: (status: OrderStatus) => (
         <Tag color={getOrderStatusColor(status)}>
-          {status === 'pending' && 'Chờ xử lý'}
-          {status === 'preparing' && 'Đang chuẩn bị'}
-          {status === 'ready' && 'Sẵn sàng'}
-          {status === 'completed' && 'Hoàn thành'}
-          {status === 'cancelled' && 'Đã hủy'}
+          {status === OrderStatus.PENDING && 'Chờ xử lý'}
+          {status === OrderStatus.IN_PROGRESS && 'Đang chuẩn bị'}
+          {status === OrderStatus.READY && 'Sẵn sàng'}
+          {status === OrderStatus.COMPLETED && 'Hoàn thành'}
+          {status === OrderStatus.CANCELED && 'Đã hủy'}
         </Tag>
       ),
     },
     {
       title: 'Số món',
       key: 'itemCount',
-      render: (_, record: OrderModel) => record.items?.length || 0,
+      render: (_: unknown, record: OrderModel) => record.items?.length || 0,
     },
     {
       title: 'Thời gian',
       key: 'time',
-      render: (_, record: OrderModel) => {
+      render: (_: unknown, record: OrderModel) => {
         const time = new Date(record.created_at);
         return time.toLocaleTimeString('vi-VN');
       },
@@ -127,7 +127,7 @@ const KitchenOrderList: React.FC<KitchenOrderListProps> = ({ onSelectOrder }) =>
     {
       title: 'Thao tác',
       key: 'action',
-      render: (_: any, record: OrderModel) => (
+      render: (_: unknown, record: OrderModel) => (
         <Button 
           type="primary"
           onClick={() => onSelectOrder(record)}

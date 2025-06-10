@@ -8,7 +8,10 @@ import {
   UpdateSupplierDto,
   CreateImportDto,
   CreateExportDto,
-  WarehouseStats
+  WarehouseStats,
+  LocationModel,
+  CreateLocationDto,
+  UpdateLocationDto
 } from '../models/warehouse.model';
 import { requestCache } from '../utils/requestCache';
 
@@ -507,6 +510,133 @@ export const warehouseService = {
           total_export_value: 3700000
         }
       };
+    }
+  }
+};
+
+/**
+ * Service for location management
+ */
+export const locationService = {
+  async getAll(): Promise<LocationModel[]> {
+    const url = '/warehouse/locations';
+    
+    const cachedResult = requestCache.get(url);
+    if (cachedResult) {
+      return cachedResult;
+    }
+
+    try {
+      const response = await axios.get(url);
+      const data = response.data;
+      
+      requestCache.set(url, data);
+      return data;
+    } catch (error) {
+      // Return mock data for development
+      console.warn('Using mock location data');
+      const mockData: LocationModel[] = [
+        {
+          id: '1',
+          name: 'Kho lạnh A',
+          code: 'COOLER-A',
+          description: 'Kho lạnh chính để bảo quản thực phẩm tươi',
+          type: 'cooler',
+          capacity: 100,
+          current_usage: 65,
+          temperature_min: 2,
+          temperature_max: 8,
+          active: true,
+          created_at: new Date()
+        },
+        {
+          id: '2',
+          name: 'Kệ khô B',
+          code: 'SHELF-B',
+          description: 'Kệ bảo quản đồ khô',
+          type: 'dry_storage',
+          capacity: 200,
+          current_usage: 120,
+          active: true,
+          created_at: new Date()
+        },
+        {
+          id: '3',
+          name: 'Tủ đông C',
+          code: 'FREEZER-C',
+          description: 'Tủ đông bảo quản thực phẩm đông lạnh',
+          type: 'freezer',
+          capacity: 50,
+          current_usage: 30,
+          temperature_min: -18,
+          temperature_max: -12,
+          active: true,
+          created_at: new Date()
+        }
+      ];
+      
+      requestCache.set(url, mockData);
+      return mockData;
+    }
+  },
+
+  async getById(id: string): Promise<LocationModel> {
+    const url = `/warehouse/locations/${id}`;
+    
+    try {
+      const response = await axios.get(url);
+      return response.data;
+    } catch (error) {
+      // Return mock data for development
+      const mockData: LocationModel = {
+        id,
+        name: 'Kho lạnh A',
+        code: 'COOLER-A',
+        description: 'Kho lạnh chính để bảo quản thực phẩm tươi',
+        type: 'cooler',
+        capacity: 100,
+        current_usage: 65,
+        temperature_min: 2,
+        temperature_max: 8,
+        active: true,
+        created_at: new Date()
+      };
+      return mockData;
+    }
+  },
+
+  async create(data: CreateLocationDto): Promise<LocationModel> {
+    validateAuth();
+    
+    try {
+      const response = await axios.post('/warehouse/locations', data);
+      requestCache.invalidate('/warehouse/locations');
+      return response.data;
+    } catch (error) {
+      throw new Error('Không thể tạo vị trí mới');
+    }
+  },
+
+  async update(id: string, data: UpdateLocationDto): Promise<LocationModel> {
+    validateAuth();
+    
+    try {
+      const response = await axios.put(`/warehouse/locations/${id}`, data);
+      requestCache.invalidate('/warehouse/locations');
+      return response.data;
+    } catch (error) {
+      throw new Error('Không thể cập nhật vị trí');
+    }
+  },
+
+  async delete(id: string): Promise<void> {
+    validateAuth();
+    
+    try {
+      await axios.delete(`/warehouse/locations/${id}`);
+      requestCache.invalidate('/warehouse/locations');
+    } catch (error) {
+      throw new Error('Không thể xóa vị trí');
     }
   }
 };

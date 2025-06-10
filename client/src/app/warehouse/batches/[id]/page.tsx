@@ -30,8 +30,11 @@ import moment from 'moment';
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
 
-const BatchDetail: React.FC = () => {
-  const params = useParams<{ id: string }>();
+interface BatchDetailProps {
+  params: Promise<{ id: string }>;
+}
+
+const BatchDetail: React.FC<BatchDetailProps> = ({ params }) => {
   const router = useRouter();
   const [batch, setBatch] = useState<BatchModel | null>(null);
   const [exports, setExports] = useState<ExportModel[]>([]);
@@ -39,18 +42,29 @@ const BatchDetail: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [exportsLoading, setExportsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [batchId, setBatchId] = useState<string>('');
 
   useEffect(() => {
-    fetchBatch();
-  }, [params.id]);
+    const initializeParams = async () => {
+      const resolvedParams = await params;
+      setBatchId(resolvedParams.id);
+    };
+    initializeParams();
+  }, [params]);
+
+  useEffect(() => {
+    if (batchId) {
+      fetchBatch();
+    }
+  }, [batchId]);
 
   const fetchBatch = async () => {
     try {
       setLoading(true);
-      const data = await batchService.getById(params.id);
+      const data = await batchService.getById(batchId);
       setBatch(data);
       setError(null);
-      fetchExportItems(params.id);
+      fetchExportItems(batchId);
     } catch (err: any) {
       console.error('Error fetching batch:', err);
       setError(err.message || 'Không thể tải thông tin lô hàng');

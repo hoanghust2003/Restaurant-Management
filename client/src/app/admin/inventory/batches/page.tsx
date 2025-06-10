@@ -254,7 +254,7 @@ const AdminBatchesList: React.FC = () => {
         { text: 'Hết hạn', value: 'expired' },
         { text: 'Hư hỏng', value: 'damaged' },
       ],
-      onFilter: (value, record) => record.status === value,
+      onFilter: (value: any, record: BatchModel) => record.status === value,
     },
     {
       title: 'Ngày nhập',

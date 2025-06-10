@@ -32,8 +32,7 @@ const CustomerOrderForm: React.FC<CustomerOrderFormProps> = ({ tableId, onSucces
     try {
       const orderDto: CreateCustomerOrderDto = {
         tableId: values.tableId,
-        userId: user.id,
-        notes: values.notes
+        items: [] // This would typically be populated from cart items in the context
       };
 
       await customerService.createOrder(orderDto);

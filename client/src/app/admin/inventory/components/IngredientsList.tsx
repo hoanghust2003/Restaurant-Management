@@ -30,8 +30,7 @@ const IngredientsList: React.FC = () => {
     if (ingredients) {
       setFilteredData(
         ingredients.filter(item =>
-          item.name.toLowerCase().includes(searchText.toLowerCase()) ||
-          item.code?.toLowerCase().includes(searchText.toLowerCase())
+          item.name.toLowerCase().includes(searchText.toLowerCase())
         )
       );
     }

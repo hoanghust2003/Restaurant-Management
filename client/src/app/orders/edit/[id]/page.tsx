@@ -18,7 +18,7 @@ import { orderService } from '@/app/services/order.service';
 import { OrderModel, UpdateOrderDto, OrderItemModel } from '@/app/models/order.model';
 import { DishModel } from '@/app/models/dish.model';
 import { dishService } from '@/app/services/dish.service';
-import { OrderStatus, OrderItemStatus } from '@/app/utils/enums';
+import { OrderStatus, OrderItemStatus, orderStatusText } from '@/app/utils/enums';
 import { Form, Select, InputNumber, Table, Input, Divider } from 'antd';
 import { formatPrice } from '@/app/utils/format';
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
@@ -29,13 +29,12 @@ const { Option } = Select;
 const { TextArea } = Input;
 
 interface OrderEditPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function OrderEditPage({ params }: OrderEditPageProps) {
-  const { id } = params;
   const [form] = Form.useForm();
   const [order, setOrder] = useState<OrderModel | null>(null);
   const [dishes, setDishes] = useState<DishModel[]>([]);
@@ -44,22 +43,36 @@ export default function OrderEditPage({ params }: OrderEditPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItemModel[]>([]);
   const [removedItems, setRemovedItems] = useState<string[]>([]);
+  const [orderId, setOrderId] = useState<string>('');
   const router = useRouter();
 
   // Load order and dishes data when page loads
   useEffect(() => {
-    fetchData();
-  }, [id]);
+    const initializeData = async () => {
+      const resolvedParams = await params;
+      setOrderId(resolvedParams.id);
+    };
+    initializeData();
+  }, [params]);
+
+  // Fetch data when orderId is available
+  useEffect(() => {
+    if (orderId) {
+      fetchData();
+    }
+  }, [orderId]);
 
   // Function to fetch all necessary data
   const fetchData = async () => {
+    if (!orderId) return; // Don't fetch if orderId is not set yet
+    
     try {
       setLoading(true);
       setError(null);
       
       // Fetch order details and available dishes in parallel
       const [orderData, dishesData] = await Promise.all([
-        orderService.getById(id),
+        orderService.getById(orderId),
         dishService.getAll()
       ]);
       
@@ -88,7 +101,7 @@ export default function OrderEditPage({ params }: OrderEditPageProps) {
   const handleAddItem = () => {
     const newItem: OrderItemModel = {
       id: `temp-${Date.now()}`,
-      orderId: id,
+      orderId: orderId,
       dishId: '',
       quantity: 1,
       status: OrderItemStatus.WAITING

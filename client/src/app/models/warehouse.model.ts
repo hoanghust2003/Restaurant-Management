@@ -129,6 +129,7 @@ export interface UpdateSupplierDto {
  * DTO for creating an import
  */
 export interface CreateImportDto {
+  importDate: Date;
   supplierId: string;
   note?: string;
   batches: {
@@ -154,6 +155,48 @@ export interface CreateExportDto {
     ingredient_id: string;
     quantity: number;
   }[];
+}
+
+/**
+ * Location model for warehouse storage locations
+ */
+export interface LocationModel {
+  id: string;
+  name: string;
+  code: string;
+  description?: string;
+  type: 'shelf' | 'cooler' | 'freezer' | 'dry_storage' | 'other';
+  capacity?: number;
+  current_usage?: number;
+  temperature_min?: number;
+  temperature_max?: number;
+  humidity_min?: number;
+  humidity_max?: number;
+  active: boolean;
+  created_at: Date;
+  updated_at?: Date;
+}
+
+/**
+ * DTO for creating locations
+ */
+export interface CreateLocationDto {
+  name: string;
+  code: string;
+  description?: string;
+  type: 'shelf' | 'cooler' | 'freezer' | 'dry_storage' | 'other';
+  capacity?: number;
+  temperature_min?: number;
+  temperature_max?: number;
+  humidity_min?: number;
+  humidity_max?: number;
+}
+
+/**
+ * DTO for updating locations
+ */
+export interface UpdateLocationDto extends Partial<CreateLocationDto> {
+  active?: boolean;
 }
 
 /**

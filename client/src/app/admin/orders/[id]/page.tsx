@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import AdminLayout from '@/app/layouts/AdminLayout';
 import { orderService } from '@/app/services/order.service';
 import { OrderModel, OrderItemModel } from '@/app/models/order.model';
-import { OrderStatus, OrderItemStatus, orderStatusText, orderStatusColors, orderItemStatusText } from '@/app/utils/enums';
+import { OrderStatus, OrderItemStatus, orderStatusText, orderStatusColors, orderItemStatusText, orderItemStatusColors } from '@/app/utils/enums';
 
 const OrderDetailPage = () => {
   const { id } = useParams() as { id: string };
@@ -83,7 +83,7 @@ const OrderDetailPage = () => {
     {
       title: 'Thành tiền',
       key: 'total',
-      render: (_, record: OrderItemModel) => 
+      render: (_: any, record: OrderItemModel) => 
         `${(record.quantity * (record.dish?.price || 0)).toLocaleString('vi-VN')}₫`,
     },
     {
@@ -196,8 +196,7 @@ const OrderDetailPage = () => {
                 {orderStatusText[order.status]}
               </Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="Bàn">{order.table ? `Bàn ${order.table.name}` : '-'}</Descriptions.Item>
-            <Descriptions.Item label="Nhân viên phục vụ">{order.user?.fullName || '-'}</Descriptions.Item>
+            <Descriptions.Item label="Bàn">{order.table ? `Bàn ${order.table.name}` : '-'}</Descriptions.Item>                <Descriptions.Item label="Nhân viên phục vụ">{order.user?.name || '-'}</Descriptions.Item>
             <Descriptions.Item label="Tổng tiền">{order.total_price.toLocaleString('vi-VN')}₫</Descriptions.Item>
           </Descriptions>
 

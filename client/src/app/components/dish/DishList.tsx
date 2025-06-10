@@ -112,11 +112,14 @@ const DishList: React.FC = () => {
       key: 'category',
       render: (_: any, record: DishModel) => (
         record.category ? 
-        <Tag color="blue">{record.category.name}</Tag> : 
+        <Tag color="blue">{typeof record.category === 'string' ? record.category : record.category.name}</Tag> : 
         <Tag color="default">Chưa phân loại</Tag>
       ),
-      sorter: (a: DishModel, b: DishModel) => 
-        (a.category?.name || '').localeCompare(b.category?.name || ''),
+      sorter: (a: DishModel, b: DishModel) => {
+        const catNameA = typeof a.category === 'string' ? a.category : (a.category?.name || '');
+        const catNameB = typeof b.category === 'string' ? b.category : (b.category?.name || '');
+        return catNameA.localeCompare(catNameB);
+      },
     },
     {
       title: 'Giá',
@@ -148,7 +151,7 @@ const DishList: React.FC = () => {
       dataIndex: 'preparation_time',
       key: 'preparation_time',
       render: (time: number) => `${time} phút`,
-      sorter: (a: DishModel, b: DishModel) => a.preparation_time - b.preparation_time,
+      sorter: (a: DishModel, b: DishModel) => (a.preparation_time || 0) - (b.preparation_time || 0),
     },
     {
       title: 'Thao tác',
@@ -262,8 +265,10 @@ const DishList: React.FC = () => {
     return dishes.filter(dish => {
       const matchesSearch = 
         dish.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        dish.description.toLowerCase().includes(searchText.toLowerCase()) ||
-        (dish.category?.name && dish.category.name.toLowerCase().includes(searchText.toLowerCase()));
+        (dish.description?.toLowerCase().includes(searchText.toLowerCase()) || false) ||
+        (typeof dish.category === 'string' 
+          ? dish.category.toLowerCase().includes(searchText.toLowerCase())
+          : dish.category?.name?.toLowerCase().includes(searchText.toLowerCase()) || false);
       
       const matchesCategory = !selectedCategory || dish.categoryId === selectedCategory;
       

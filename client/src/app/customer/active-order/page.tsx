@@ -1,21 +1,27 @@
+"use client";
+
 import { useEffect, useState } from 'react';
-import { useSocketService } from '@/app/services/socket.service';
-import { OrderStatus, OrderItemStatus } from '@/app/models/order.model';
-import { Card, CardContent, Typography, Box, Chip, LinearProgress } from '@mui/material';
+import { socketService } from '@/app/services/socket.service';
+import { OrderStatus, OrderItemStatus } from '@/app/utils/enums';
+import { OrderModel, OrderItemModel } from '@/app/models/order.model';
+import { Card, Typography, Space, Tag, Progress, Flex } from 'antd';
+
+const { Title, Text } = Typography;
 
 export default function ActiveOrderPage() {
-  const [activeOrder, setActiveOrder] = useState(null);
-  const socketService = useSocketService();
+  const [activeOrder, setActiveOrder] = useState<OrderModel | null>(null);
 
   useEffect(() => {
-    socketService.initializeSocket();
+    // Initialize socket with a user ID (you might need to get this from auth context)
+    const userId = 'current-user-id'; // Replace with actual user ID
+    socketService.initializeSocket(userId);
     
     // Subscribe to order status changes
-    socketService.onOrderStatusChange((updatedOrder) => {
+    socketService.onOrderStatusChange((updatedOrder: OrderModel) => {
       setActiveOrder(updatedOrder);
     });
 
-    socketService.onOrderItemStatusChange((updatedOrder) => {
+    socketService.onOrderItemStatusChange((updatedOrder: OrderModel) => {
       setActiveOrder(updatedOrder);
     });
 
@@ -30,24 +36,24 @@ export default function ActiveOrderPage() {
       case OrderStatus.PENDING:
         return 'default';
       case OrderStatus.IN_PROGRESS:
-        return 'info';
+        return 'blue';
       case OrderStatus.READY:
-        return 'success';
+        return 'green';
       case OrderStatus.SERVED:
-        return 'primary';
+        return 'purple';
       case OrderStatus.COMPLETED:
-        return 'secondary';
+        return 'cyan';
       default:
         return 'default';
     }
   };
 
-  const getItemStatusColor = (status: OrderItemStatus) => {
+  const getItemStatusColor = (status: OrderItemStatus): "default" | "processing" | "success" | "error" | "warning" => {
     switch (status) {
       case OrderItemStatus.WAITING:
         return 'default';
       case OrderItemStatus.PREPARING:
-        return 'warning';
+        return 'processing';
       case OrderItemStatus.DONE:
         return 'success';
       case OrderItemStatus.FAILED:
@@ -57,71 +63,66 @@ export default function ActiveOrderPage() {
     }
   };
 
-  const calculateProgress = (order) => {
+  const calculateProgress = (order: OrderModel | null) => {
     if (!order || !order.items || order.items.length === 0) return 0;
-    const doneItems = order.items.filter(item => item.status === OrderItemStatus.DONE).length;
+    const doneItems = order.items.filter((item: OrderItemModel) => item.status === OrderItemStatus.DONE).length;
     return (doneItems / order.items.length) * 100;
   };
 
   if (!activeOrder) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h6">Không có đơn hàng đang hoạt động</Typography>
-      </Box>
+      <div style={{ padding: 24 }}>
+        <Title level={4}>Không có đơn hàng đang hoạt động</Title>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
+    <div style={{ padding: 24 }}>
+      <Title level={2}>
         Đơn hàng của bạn
-      </Typography>
+      </Title>
       
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6">
-              Đơn hàng #{activeOrder.id}
-            </Typography>
-            <Chip 
-              label={activeOrder.status}
-              color={getStatusColor(activeOrder.status)}
-              variant="outlined"
-            />
-          </Box>
-          
-          <LinearProgress 
-            variant="determinate" 
-            value={calculateProgress(activeOrder)} 
-            sx={{ mb: 2 }}
-          />
+      <Card style={{ marginBottom: 24 }}>
+        <Flex justify="space-between" align="center" style={{ marginBottom: 16 }}>
+          <Title level={4} style={{ margin: 0 }}>
+            Đơn hàng #{activeOrder.id}
+          </Title>
+          <Tag 
+            color={getStatusColor(activeOrder.status)}
+          >
+            {activeOrder.status}
+          </Tag>
+        </Flex>
+        
+        <Progress 
+          percent={Math.round(calculateProgress(activeOrder))} 
+          style={{ marginBottom: 16 }}
+        />
 
-          <Typography variant="subtitle1" gutterBottom>
-            Các món ăn:
-          </Typography>
-          
-          {activeOrder.items.map((item) => (
-            <Box 
+        <Title level={5}>
+          Các món ăn:
+        </Title>
+        
+        <Space direction="vertical" style={{ width: '100%' }}>
+          {activeOrder.items && activeOrder.items.map((item: OrderItemModel) => (
+            <Flex 
               key={item.id} 
-              sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                mb: 1 
-              }}
+              justify="space-between" 
+              align="center"
             >
-              <Typography>
-                {item.quantity}x {item.dishName}
-              </Typography>
-              <Chip 
-                label={item.status}
+              <Text>
+                {item.quantity}x {item.dish?.name || 'Món ăn'}
+              </Text>
+              <Tag 
                 color={getItemStatusColor(item.status)}
-                size="small"
-              />
-            </Box>
+              >
+                {item.status}
+              </Tag>
+            </Flex>
           ))}
-        </CardContent>
+        </Space>
       </Card>
-    </Box>
+    </div>
   );
 }

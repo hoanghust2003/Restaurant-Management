@@ -13,31 +13,41 @@ interface Params {
   id: string;
 }
 
-const EditMenuPage = ({ params }: { params: Params }) => {
+const EditMenuPage = ({ params }: { params: Promise<Params> }) => {
   const { user, loading: authLoading, hasRole } = useAuth();
   const [menu, setMenu] = useState<MenuModel | null>(null);
   const [loading, setLoading] = useState(true);
+  const [menuId, setMenuId] = useState<string>('');
   const router = useRouter();
+
+  // Initialize menu ID from params
+  useEffect(() => {
+    const initializeData = async () => {
+      const resolvedParams = await params;
+      setMenuId(resolvedParams.id);
+    };
+    initializeData();
+  }, [params]);
 
   // Load menu data when component mounts
   useEffect(() => {
-    const fetchMenu = async () => {
-      try {
-        const data = await menuService.getById(params.id);
-        setMenu(data);
-      } catch (error) {
-        console.error('Error loading menu:', error);
-        message.error('Không thể tải thông tin thực đơn');
-        router.push('/admin/menus');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (!authLoading && user) {
+    if (menuId && !authLoading && user) {
       fetchMenu();
     }
-  }, [params.id, authLoading, user, router]);
+  }, [menuId, authLoading, user]);
+
+  const fetchMenu = async () => {
+    try {
+      const data = await menuService.getById(menuId);
+      setMenu(data);
+    } catch (error) {
+      console.error('Error loading menu:', error);
+      message.error('Không thể tải thông tin thực đơn');
+      router.push('/admin/menus');
+    } finally {
+      setLoading(false);
+    }
+  };
   
   // Check access permission
   if (authLoading || loading) {

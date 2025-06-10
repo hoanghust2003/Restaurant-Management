@@ -138,27 +138,25 @@ export default function AdminCreateImportPage() {
           setSubmitting(false);
           return;
         }
-      }
-        // Format data
-      const importData: CreateImportDto = {
-        supplierId: values.supplier_id,
-        note: values.notes,
-        reference: values.reference_number || undefined,
-        import_date: values.import_date.toDate().toISOString(),
-        batches: values.items.map((item: any) => {
-          // Generate a meaningful lot identifier if not provided
-          const lotId = item.lot_number || 
-            `${item.ingredient_id.substring(0, 5)}-${moment().format('YYMMDD')}-${Math.floor(Math.random()*1000).toString().padStart(3, '0')}`;
-          
-          return {
-            ingredientId: item.ingredient_id,
-            name: `${lotId} ${moment().format('DDMMYYYY')}`,
-            quantity: item.quantity,
-            price: item.unit_price,
-            expiry_date: item.expiry_date.toDate().toISOString(),
-            production_date: item.production_date ? item.production_date.toDate().toISOString() : undefined,
-          };
-        }),
+      }        // Format data
+        const importData: CreateImportDto = {
+          importDate: values.import_date.toDate(),
+          supplierId: values.supplier_id,
+          note: values.notes,
+          batches: values.items.map((item: any) => {
+            // Generate a meaningful lot identifier if not provided
+            const lotId = item.lot_number || 
+              `${item.ingredient_id.substring(0, 5)}-${moment().format('YYMMDD')}-${Math.floor(Math.random()*1000).toString().padStart(3, '0')}`;
+            
+            return {
+              ingredientId: item.ingredient_id,
+              name: `${lotId} ${moment().format('DDMMYYYY')}`,
+              quantity: item.quantity,
+              price: item.unit_price,
+              expiry_date: item.expiry_date.toDate().toISOString(),
+              production_date: item.production_date ? item.production_date.toDate().toISOString() : undefined,
+            };
+          }),
       };
       
       // Create import

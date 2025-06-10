@@ -106,7 +106,7 @@ export default function QrCodeManagementPage() {
     {
       title: 'Thao tác',
       key: 'action',
-      render: (_, record: TableModel) => (
+      render: (_: any, record: TableModel) => (
         <Space size="small">
           <Button 
             icon={<QrcodeOutlined />}
@@ -290,7 +290,7 @@ export default function QrCodeManagementPage() {
       
       {/* Batch QR Code Modal */}
       <BatchQrCodeModal 
-        visible={batchQrModalVisible} 
+        open={batchQrModalVisible} 
         tables={tables}
         onClose={() => setBatchQrModalVisible(false)}
       />

@@ -57,13 +57,15 @@ export default function CustomerOrderHistoryPage() {
       
       // Only get completed and cancelled orders
       const filters = {
-        status: `${OrderStatus.COMPLETED},${OrderStatus.CANCELED}`
+        status: `${OrderStatus.COMPLETED},${OrderStatus.CANCELED}`,
+        startDate: undefined as string | undefined,
+        endDate: undefined as string | undefined
       };
       
       // Add date range filter if selected
       if (dateRange) {
-        filters['startDate'] = dateRange[0].toISOString();
-        filters['endDate'] = dateRange[1].toISOString();
+        filters.startDate = dateRange[0].toISOString();
+        filters.endDate = dateRange[1].toISOString();
       }
       
       const data = await orderService.getAll(filters);

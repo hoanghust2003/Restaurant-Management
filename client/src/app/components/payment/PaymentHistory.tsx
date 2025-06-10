@@ -94,7 +94,7 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({
         { text: 'VNPay', value: 'vnpay' },
         { text: 'Tiền mặt', value: 'cash' },
       ],
-      onFilter: (value: string, record: PaymentModel) => record.method === value,
+      onFilter: (value: boolean | React.Key, record: PaymentModel) => record.method === value,
     },
     {
       title: 'Số tiền',
@@ -164,7 +164,7 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({
           
           <RangePicker
             onChange={(dates) => {
-              if (dates) {
+              if (dates && dates[0] && dates[1]) {
                 onDateRangeChange([dates[0].toDate(), dates[1].toDate()]);
               } else {
                 onDateRangeChange(null);

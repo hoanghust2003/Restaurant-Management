@@ -1,19 +1,28 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/app/layouts/AdminLayout';
 import MenuDetail from '@/app/components/menu/MenuDetail';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Spin, Result, Button } from 'antd';
 
-interface Params {
-  id: string;
+interface ViewMenuPageProps {
+  params: Promise<{ id: string }>;
 }
 
-const ViewMenuPage = ({ params }: { params: Params }) => {
+const ViewMenuPage = ({ params }: ViewMenuPageProps) => {
   const { user, loading, hasRole } = useAuth();
   const router = useRouter();
+  const [menuId, setMenuId] = useState<string>('');
+
+  useEffect(() => {
+    const initializeParams = async () => {
+      const resolvedParams = await params;
+      setMenuId(resolvedParams.id);
+    };
+    initializeParams();
+  }, [params]);
   
   // Check access permission
   if (loading) {
@@ -42,7 +51,7 @@ const ViewMenuPage = ({ params }: { params: Params }) => {
   
   return (
     <AdminLayout title="Chi tiết thực đơn">
-      <MenuDetail menuId={params.id} />
+      {menuId ? <MenuDetail menuId={menuId} /> : <Spin />}
     </AdminLayout>
   );
 };

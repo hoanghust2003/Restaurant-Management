@@ -41,7 +41,7 @@ const CustomerMenu: React.FC = () => {
   // Group dishes by category
   const groupDishesByCategory = (dishes: DishModel[]) => {
     return dishes.reduce((acc, dish) => {
-      const categoryName = dish.category?.name || 'Khác';
+      const categoryName = typeof dish.category === 'object' && dish.category?.name ? dish.category.name : 'Khác';
       if (!acc[categoryName]) {
         acc[categoryName] = [];
       }
@@ -99,9 +99,8 @@ const CustomerMenu: React.FC = () => {
                       src={dish.image_url}
                       type="dishes"
                       alt={dish.name}
-                      width="100%"
                       height={200}
-                      style={{ objectFit: 'cover' }}
+                      style={{ objectFit: 'cover', width: '100%' }}
                     />
                   }
                 >

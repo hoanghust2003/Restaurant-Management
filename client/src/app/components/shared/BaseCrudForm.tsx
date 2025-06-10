@@ -64,7 +64,7 @@ export function BaseCrudForm<T>({
         form={form}
         layout="vertical"
         onFinish={handleSubmit}
-        initialValues={initialData}
+        initialValues={initialData as any}
       >
         {children}
 

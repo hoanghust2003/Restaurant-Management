@@ -13,31 +13,41 @@ interface Params {
   id: string;
 }
 
-const EditIngredientPage = ({ params }: { params: Params }) => {
+const EditIngredientPage = ({ params }: { params: Promise<Params> }) => {
   const { user, loading: authLoading, hasRole } = useAuth();
   const [ingredient, setIngredient] = useState<IngredientModel | null>(null);
   const [loading, setLoading] = useState(true);
+  const [ingredientId, setIngredientId] = useState<string>('');
   const router = useRouter();
 
   // Tải thông tin nguyên liệu khi component được tạo
   useEffect(() => {
-    const fetchIngredient = async () => {
-      try {
-        const data = await ingredientService.getById(params.id);
-        setIngredient(data);
-      } catch (error) {
-        console.error('Error fetching ingredient:', error);
-        message.error('Không thể tải thông tin nguyên liệu');
-        router.push('/admin/ingredients');
-      } finally {
-        setLoading(false);
-      }
+    const initializeData = async () => {
+      const resolvedParams = await params;
+      setIngredientId(resolvedParams.id);
     };
+    initializeData();
+  }, [params]);
 
-    if (!authLoading && user) {
+  // Fetch data when ingredientId is available
+  useEffect(() => {
+    if (ingredientId && !authLoading && user) {
       fetchIngredient();
     }
-  }, [params.id, authLoading, user, router]);
+  }, [ingredientId, authLoading, user]);
+
+  const fetchIngredient = async () => {
+    try {
+      const data = await ingredientService.getById(ingredientId);
+      setIngredient(data);
+    } catch (error) {
+      console.error('Error fetching ingredient:', error);
+      message.error('Không thể tải thông tin nguyên liệu');
+      router.push('/admin/ingredients');
+    } finally {
+      setLoading(false);
+    }
+  };
     // Kiểm tra quyền truy cập
   if (authLoading || loading) {
     return (

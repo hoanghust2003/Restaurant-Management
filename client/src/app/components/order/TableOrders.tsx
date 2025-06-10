@@ -19,7 +19,7 @@ import { orderService } from '@/app/services/order.service';
 import { TableModel } from '@/app/models/table.model';
 import { OrderModel } from '@/app/models/order.model';
 import { formatPrice, formatDateTime } from '@/app/utils/format';
-import { TableStatus, OrderStatus, tableStatusColors, orderStatusColors, orderStatusText } from '@/app/utils/enums';
+import { TableStatus, orderStatusColors, orderStatusText } from '@/app/utils/enums';
 
 const { Title, Text } = Typography;
 
@@ -133,7 +133,7 @@ const TableOrders: React.FC<TableOrdersProps> = ({ table, onCreateOrder }) => {
 
   return (
     <div>
-      {table.status === TableStatus.IN_USE ? (
+      {table.status === TableStatus.OCCUPIED ? (
         <Popover 
           content={popoverContent} 
           title={`Đơn hàng - ${table.name}`}

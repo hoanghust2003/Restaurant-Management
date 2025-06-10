@@ -3,6 +3,7 @@
 import React from 'react';
 import { Card, Descriptions, Tag, Typography, Divider, Table } from 'antd';
 import { DishModel } from '@/app/models/dish.model';
+import { CategoryModel } from '@/app/models/category.model';
 import ImageWithFallback from '@/app/components/ImageWithFallback';
 
 const { Title } = Typography;
@@ -55,7 +56,9 @@ const DishDetail: React.FC<DishDetailProps> = ({ dish }) => {
               <Descriptions.Item label="Danh mục">
                 {dish.category ? (
                   <Tag color="blue" style={{ fontSize: '14px', padding: '4px 8px' }}>
-                    {dish.category.name}
+                    {typeof dish.category === 'string' 
+                      ? dish.category 
+                      : (dish.category as CategoryModel).name}
                   </Tag>
                 ) : (
                   'Chưa phân loại'

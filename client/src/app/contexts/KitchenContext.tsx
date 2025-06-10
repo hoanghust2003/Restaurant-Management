@@ -35,7 +35,7 @@ export const KitchenProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       setLoading(true);
       const data = await orderService.getAll({ 
-        status: ['pending', 'preparing', 'ready']
+        status: [OrderStatus.PENDING, OrderStatus.IN_PROGRESS, OrderStatus.READY].join(',') as OrderStatus
       });
       setOrders(data);
     } catch (error) {

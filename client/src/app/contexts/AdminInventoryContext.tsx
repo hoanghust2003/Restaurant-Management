@@ -39,7 +39,9 @@ export function AdminInventoryProvider({ children }: { children: React.ReactNode
       setLoading(true);
       const [ingredientsData, importsData, exportsData, suppliersData] = await Promise.all([
         ingredientService.getAll(),
-        // Add other service calls here
+        fetch('/api/imports').then(res => res.json()),
+        fetch('/api/exports').then(res => res.json()),
+        fetch('/api/suppliers').then(res => res.json())
       ]);
 
       setIngredients(ingredientsData);

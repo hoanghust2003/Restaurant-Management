@@ -4,17 +4,18 @@ import React from 'react';
 import { Card, Row, Col, Statistic } from 'antd';
 import { ClockCircleOutlined, CheckCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { useKitchen } from '@/app/contexts/KitchenContext';
+import { OrderStatus } from '@/app/utils/enums';
 
 const KitchenStats: React.FC = () => {
   const { orders } = useKitchen();
 
-  const pendingOrders = orders.filter(o => o.status === 'pending').length;
-  const preparingOrders = orders.filter(o => o.status === 'preparing').length;
-  const readyOrders = orders.filter(o => o.status === 'ready').length;
+  const pendingOrders = orders.filter(o => o.status === OrderStatus.PENDING).length;
+  const preparingOrders = orders.filter(o => o.status === OrderStatus.IN_PROGRESS).length;
+  const readyOrders = orders.filter(o => o.status === OrderStatus.READY).length;
   
   // Calculate average waiting time for pending orders
   const getAverageWaitTime = () => {
-    const pendingOrdersList = orders.filter(o => o.status === 'pending');
+    const pendingOrdersList = orders.filter(o => o.status === OrderStatus.PENDING);
     if (pendingOrdersList.length === 0) return 0;
     
     const totalWaitTime = pendingOrdersList.reduce((acc, order) => {

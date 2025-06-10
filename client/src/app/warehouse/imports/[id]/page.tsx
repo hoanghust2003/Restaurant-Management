@@ -13,7 +13,8 @@ import {
   Alert, 
   Badge, 
   Divider, 
-  Modal 
+  Modal,
+  message
 } from 'antd';
 import { 
   ArrowLeftOutlined, 
@@ -28,24 +29,36 @@ import { ImportModel, ImportItemModel } from '@/app/models/warehouse.model';
 
 const { Title, Text } = Typography;
 
-const ImportDetailPage: React.FC = () => {
-  const params = useParams<{ id: string }>();
+interface ImportDetailPageProps {
+  params: Promise<{ id: string }>;
+}
+
+const ImportDetailPage: React.FC<ImportDetailPageProps> = ({ params }) => {
   const router = useRouter();
   const [importData, setImportData] = useState<ImportModel | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [statusUpdateLoading, setStatusUpdateLoading] = useState<boolean>(false);
+  const [importId, setImportId] = useState<string>('');
 
   useEffect(() => {
-    if (params.id) {
+    const initializeParams = async () => {
+      const resolvedParams = await params;
+      setImportId(resolvedParams.id);
+    };
+    initializeParams();
+  }, [params]);
+
+  useEffect(() => {
+    if (importId) {
       fetchImport();
     }
-  }, [params.id]);
+  }, [importId]);
 
   const fetchImport = async () => {
     try {
       setLoading(true);
-      const data = await importService.getById(params.id);
+      const data = await importService.getById(importId);
       setImportData(data);
       setError(null);
     } catch (err: any) {
@@ -59,7 +72,7 @@ const ImportDetailPage: React.FC = () => {
   const handleUpdateStatus = async (status: string) => {
     try {
       setStatusUpdateLoading(true);
-      await importService.updateStatus(params.id, status);
+      await importService.updateStatus(importId, status);
       message.success('Cập nhật trạng thái thành công');
       fetchImport();
     } catch (err: any) {

@@ -20,29 +20,40 @@ import { OrderModel } from '@/app/models/order.model';
 const { Title } = Typography;
 
 interface OrderDetailPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function OrderDetailPage({ params }: OrderDetailPageProps) {
-  const { id } = params;
   const [order, setOrder] = useState<OrderModel | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [orderId, setOrderId] = useState<string>('');
   const router = useRouter();
 
   // Load order data when page loads
   useEffect(() => {
-    fetchOrderDetails();
-  }, [id]);
+    const initializeData = async () => {
+      const resolvedParams = await params;
+      setOrderId(resolvedParams.id);
+    };
+    initializeData();
+  }, [params]);
+
+  // Fetch data when orderId is available
+  useEffect(() => {
+    if (orderId) {
+      fetchOrderDetails();
+    }
+  }, [orderId]);
 
   // Function to fetch order details
   const fetchOrderDetails = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await orderService.getById(id);
+      const data = await orderService.getById(orderId);
       setOrder(data);
     } catch (error) {
       console.error('Error fetching order details:', error);
@@ -93,7 +104,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
       <Breadcrumb items={[
         { title: 'Trang chủ', href: '/' },
         { title: 'Đơn hàng', href: '/orders' },
-        { title: `Đơn hàng ${order.code || id.substring(0, 8)}` }
+        { title: `Đơn hàng ${order.code || orderId.substring(0, 8)}` }
       ]} className="mb-4" />
 
       <div className="mb-4 flex items-center justify-between">
@@ -112,7 +123,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
           </Button>
         </Space>
         <Title level={3} className="mb-0">
-          Chi tiết đơn hàng {order.code || id.substring(0, 8)}
+          Chi tiết đơn hàng {order.code || orderId.substring(0, 8)}
         </Title>
       </div>
 

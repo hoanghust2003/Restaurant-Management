@@ -10,9 +10,9 @@ import { categoryService } from '@/app/services/category.service';
 import { CategoryModel } from '@/app/models/category.model';
 
 interface EditCategoryPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 const EditCategoryPage = ({ params }: EditCategoryPageProps) => {
@@ -20,11 +20,14 @@ const EditCategoryPage = ({ params }: EditCategoryPageProps) => {
   const router = useRouter();
   const [category, setCategory] = useState<CategoryModel | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(true);
+  const [categoryId, setCategoryId] = useState<string>('');
   
   useEffect(() => {
     const fetchCategory = async () => {
       try {
-        const data = await categoryService.getById(params.id);
+        const resolvedParams = await params;
+        setCategoryId(resolvedParams.id);
+        const data = await categoryService.getById(resolvedParams.id);
         setCategory(data);
       } catch (error) {
         console.error('Lỗi khi tải thông tin danh mục:', error);
@@ -38,7 +41,7 @@ const EditCategoryPage = ({ params }: EditCategoryPageProps) => {
     if (!authLoading && user) {
       fetchCategory();
     }
-  }, [params.id, authLoading, user, router]);
+  }, [params, authLoading, user, router]);
     // Kiểm tra quyền truy cập
   if (authLoading || loading) {
     return (

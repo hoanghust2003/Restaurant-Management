@@ -13,7 +13,7 @@ import {
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { OrderList } from '@/app/components/order/OrderList';
+import OrderList from '@/app/components/order/OrderList';
 import { orderService } from '@/app/services/order.service';
 import { OrderModel } from '@/app/models/order.model';
 

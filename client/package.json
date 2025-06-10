@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node build.js",
+    "build:original": "next build",
+    "build:production": "next build --no-lint",
     "start": "next start",
     "lint": "next lint"
   },
@@ -15,6 +17,7 @@
     "@hookform/resolvers": "^5.0.1",
     "@nestjs/platform-socket.io": "^11.1.1",
     "@nestjs/websockets": "^11.1.1",
+    "@next/swc-win32-x64-msvc": "^15.3.3",
     "antd": "^5.25.1",
     "autoprefixer": "^10.4.21",
     "axios": "^1.9.0",

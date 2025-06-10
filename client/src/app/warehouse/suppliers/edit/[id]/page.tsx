@@ -21,23 +21,37 @@ import { SupplierModel, UpdateSupplierDto } from '@/app/models/warehouse.model';
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
-const EditSupplierPage: React.FC = () => {
-  const params = useParams<{ id: string }>();
+interface EditSupplierPageProps {
+  params: Promise<{ id: string }>;
+}
+
+const EditSupplierPage: React.FC<EditSupplierPageProps> = ({ params }) => {
   const router = useRouter();
   const [form] = Form.useForm();
   const [supplier, setSupplier] = useState<SupplierModel | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [supplierId, setSupplierId] = useState<string>('');
 
   useEffect(() => {
-    fetchSupplier();
-  }, [params.id]);
+    const initializeParams = async () => {
+      const resolvedParams = await params;
+      setSupplierId(resolvedParams.id);
+    };
+    initializeParams();
+  }, [params]);
+
+  useEffect(() => {
+    if (supplierId) {
+      fetchSupplier();
+    }
+  }, [supplierId]);
 
   const fetchSupplier = async () => {
     try {
       setLoading(true);
-      const data = await supplierService.getById(params.id);
+      const data = await supplierService.getById(supplierId);
       setSupplier(data);
       form.setFieldsValue({
         name: data.name,
@@ -60,9 +74,9 @@ const EditSupplierPage: React.FC = () => {
   const handleSubmit = async (values: UpdateSupplierDto) => {
     try {
       setSaving(true);
-      await supplierService.update(params.id, values);
+      await supplierService.update(supplierId, values);
       message.success('Đã cập nhật nhà cung cấp thành công');
-      router.push(`/warehouse/suppliers/${params.id}`);
+      router.push(`/warehouse/suppliers/${supplierId}`);
     } catch (err: any) {
       console.error('Error updating supplier:', err);
       message.error(`Lỗi: ${err.message || 'Không thể cập nhật nhà cung cấp'}`);

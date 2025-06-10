@@ -13,31 +13,41 @@ interface Params {
   id: string;
 }
 
-const EditSupplierPage = ({ params }: { params: Params }) => {
+const EditSupplierPage = ({ params }: { params: Promise<Params> }) => {
   const { user, loading: authLoading, hasRole } = useAuth();
   const [supplier, setSupplier] = useState<SupplierModel | null>(null);
   const [loading, setLoading] = useState(true);
+  const [supplierId, setSupplierId] = useState<string>('');
   const router = useRouter();
+
+  // Initialize supplier ID from params
+  useEffect(() => {
+    const initializeData = async () => {
+      const resolvedParams = await params;
+      setSupplierId(resolvedParams.id);
+    };
+    initializeData();
+  }, [params]);
 
   // Load supplier data when component mounts
   useEffect(() => {
-    const fetchSupplier = async () => {
-      try {
-        const data = await supplierService.getById(params.id, true); // true to include deleted suppliers
-        setSupplier(data);
-      } catch (error) {
-        console.error('Error fetching supplier:', error);
-        message.error('Không thể tải thông tin nhà cung cấp');
-        router.push('/admin/inventory/suppliers');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (!authLoading && user) {
+    if (supplierId && !authLoading && user) {
       fetchSupplier();
     }
-  }, [params.id, authLoading, user, router]);
+  }, [supplierId, authLoading, user]);
+
+  const fetchSupplier = async () => {
+    try {
+      const data = await supplierService.getById(supplierId, true); // true to include deleted suppliers
+      setSupplier(data);
+    } catch (error) {
+      console.error('Error fetching supplier:', error);
+      message.error('Không thể tải thông tin nhà cung cấp');
+      router.push('/admin/inventory/suppliers');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Check access permissions
   if (authLoading || loading) {

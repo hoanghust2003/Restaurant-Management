@@ -3,12 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import { Form, Input, Button, Card, message, InputNumber, Select, Upload, Space, Switch, Spin } from 'antd';
 import { SaveOutlined, UploadOutlined, PlusOutlined, MinusCircleOutlined, LoadingOutlined } from '@ant-design/icons';
-import { dishService } from '@/app/services/dish.service';
-import { categoryService } from '@/app/services/category.service';
-import { ingredientService } from '@/app/services/ingredient.service';
-import { DishModel, CreateDishDto, UpdateDishDto } from '@/app/models/dish.model';
-import { CategoryModel } from '@/app/models/category.model';
-import { IngredientModel } from '@/app/models/ingredient.model';
+import { dishService } from '../../../services/dish.service';
+import { categoryService } from '../../../services/category.service';
+import { ingredientService } from '../../../services/ingredient.service';
+import { DishModel, CreateDishDto, UpdateDishDto } from '../../../models/dish.model';
+import { CategoryModel } from '../../../models/category.model';
+import { IngredientModel } from '../../../models/ingredient.model';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -27,6 +27,7 @@ interface DishFormProps {
 /**
  * Form thêm mới và chỉnh sửa món ăn
  */
+// @ts-ignore - This is a backup file
 const DishForm: React.FC<DishFormProps> = ({ 
   dish, 
   isEdit = false,
@@ -74,10 +75,13 @@ const DishForm: React.FC<DishFormProps> = ({
   // Thiết lập dữ liệu ban đầu nếu là form chỉnh sửa
   useEffect(() => {
     if (isEdit && dish) {
-      // Chuẩn bị dữ liệu ingredients cho form      const formIngredients = dish.dishIngredients ? dish.dishIngredients.map(item => ({
-        ingredientId: item.ingredientId,
-        quantity: item.quantity
-      })) : [];
+      // Chuẩn bị dữ liệu ingredients cho form
+      const formIngredients = dish.dishIngredients
+        ? dish.dishIngredients.map((item) => ({
+            ingredientId: item.ingredientId,
+            quantity: item.quantity,
+          }))
+        : [];
       
       form.setFieldsValue({
         name: dish.name,

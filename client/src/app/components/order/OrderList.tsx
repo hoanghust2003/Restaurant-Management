@@ -204,6 +204,7 @@ const OrderList: React.FC<OrderListProps> = ({
   if (canManageOrders) {
     columns.push({
       title: 'Thao tác',
+      dataIndex: 'actions',
       key: 'actions',
       render: (_: any, record: OrderModel) => (
         <Space>          <CustomLink href={`/orders/${record.id}`} passHref>
@@ -235,7 +236,7 @@ const OrderList: React.FC<OrderListProps> = ({
           )}
         </Space>
       ),
-    });
+    } as any);
   }
 
   return (
