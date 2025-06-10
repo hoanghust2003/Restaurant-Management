@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Form, Select, message, Modal, Input, InputNumber, Button, Space, Popconfirm, Tag } from 'antd';
+import { Form, Select, message, Modal, Input, InputNumber, Space, Tag } from 'antd';
 import { EditOutlined, QrcodeOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { TableModel } from '@/app/models/table.model';
 import { TableStatus, tableStatusText } from '@/app/utils/enums';
@@ -18,28 +18,14 @@ const TableManagementPage = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingTable, setEditingTable] = useState<TableModel | null>(null);
   const [qrModalVisible, setQrModalVisible] = useState(false);
+  
+  // Initialize form with default values
+  React.useEffect(() => {
+    form.setFieldsValue({ status: TableStatus.AVAILABLE });
+  }, [form]);
   const [selectedTableForQr, setSelectedTableForQr] = useState<TableModel | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const { refreshSpecificData } = useRefresh();
-
-  // Handle status change
-  const handleStatusChange = async (tableId: string, newStatus: string) => {
-    setUpdatingStatus(tableId);
-    try {
-      if (!Object.values(TableStatus).includes(newStatus as TableStatus)) {
-        throw new Error(`Invalid status value: ${newStatus}`);
-      }
-      await tableService.updateStatus(tableId, newStatus);
-      message.success('Cập nhật trạng thái bàn thành công!');
-      refreshSpecificData('tables');
-    } catch (error: any) {
-      console.error('Failed to update table status:', error);
-      const errorMessage = error.message || 'Lỗi khi cập nhật trạng thái bàn.';
-      message.error(errorMessage);
-    } finally {
-      setUpdatingStatus(null);
-    }
-  };
 
   // Handle showing QR code
   const handleShowQrCode = (table: TableModel) => {
@@ -55,18 +41,6 @@ const TableManagementPage = () => {
     }, 200);
   };
 
-  // Handle delete
-  const handleDelete = async (id: string) => {
-    try {
-      await tableService.delete(id);
-      message.success('Xóa bàn thành công!');
-      refreshSpecificData('tables');
-    } catch (error) {
-      message.error('Có lỗi xảy ra khi xóa bàn.');
-      console.error('Error deleting table:', error);
-    }
-  };
-
   // Handle editing table
   const handleEdit = (table: TableModel) => {
     setEditingTable(table);
@@ -78,7 +52,33 @@ const TableManagementPage = () => {
     setIsModalVisible(true);
   };
 
-  // Handle modal form submission 
+  // Handle modal cancel
+  const handleModalCancel = () => {
+    setIsModalVisible(false);
+    setEditingTable(null);
+    form.resetFields();
+  };
+
+  // Handle status change
+  const handleStatusChange = async (tableId: string, newStatus: string) => {
+    try {
+      setUpdatingStatus(tableId);
+      if (!Object.values(TableStatus).includes(newStatus as TableStatus)) {
+        throw new Error(`Invalid status value: ${newStatus}`);
+      }
+      await tableService.updateStatus(tableId, newStatus);
+      message.success('Cập nhật trạng thái bàn thành công!');
+      refreshSpecificData('tables');
+    } catch (error: any) {
+      console.error('Failed to update table status:', error);
+      const errorMessage = error.message || 'Lỗi khi cập nhật trạng thái bàn.';
+      message.error(errorMessage);
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
+
+  // Handle form submission
   const handleModalOk = async () => {
     try {
       const values = await form.validateFields();
@@ -101,13 +101,7 @@ const TableManagementPage = () => {
     }
   };
 
-  // Handle modal cancel
-  const handleModalCancel = () => {
-    setIsModalVisible(false);
-    setEditingTable(null);
-    form.resetFields();
-  };
-
+  // Get status color
   const getTableStatusColor = (status: string) => {
     switch (status) {
       case TableStatus.AVAILABLE:
@@ -141,6 +135,7 @@ const TableManagementPage = () => {
               dataIndex: 'capacity',
               key: 'capacity',
               render: (capacity: number) => `${capacity} người`,
+              sorter: (a: TableModel, b: TableModel) => a.capacity - b.capacity,
             },
             {
               title: 'Trạng thái',
@@ -172,6 +167,11 @@ const TableManagementPage = () => {
             setIsModalVisible(true);
           }}
           onEdit={handleEdit}
+          additionalButtons={
+            <Space>
+              {/* Add additional buttons here if needed */}
+            </Space>
+          }
           fetchDataConfig={{ includeDeleted: false }}
           dataType="tables"
           showActions={true}
@@ -180,14 +180,16 @@ const TableManagementPage = () => {
         <Modal
           title={editingTable ? 'Chỉnh sửa bàn' : 'Thêm bàn mới'}
           open={isModalVisible}
-          onOk={handleModalOk}
+          onOk={form.submit}
           onCancel={handleModalCancel}
           confirmLoading={false}
+          destroyOnClose={true}
         >
           <Form
             form={form}
             layout="vertical"
-            initialValues={{ status: TableStatus.AVAILABLE }}
+            preserve={false}
+            onFinish={handleModalOk}
           >
             <Form.Item
               label="Tên bàn"
@@ -213,12 +215,15 @@ const TableManagementPage = () => {
             <Form.Item
               label="Trạng thái"
               name="status"
+              initialValue={TableStatus.AVAILABLE}
               rules={[{ required: true, message: 'Vui lòng chọn trạng thái!' }]}
             >
               <Select>
                 {Object.entries(tableStatusText).map(([key, text]) => (
                   <Option key={key} value={key}>
-                    {text}
+                    <Tag color={getTableStatusColor(key)} style={{ border: 'none', marginRight: 4 }}>
+                      {text}
+                    </Tag>
                   </Option>
                 ))}
               </Select>
