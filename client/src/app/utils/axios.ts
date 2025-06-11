@@ -1,6 +1,5 @@
 import axios, { AxiosError, AxiosHeaders } from 'axios';
 import { requestCache } from './requestCache';
-
 import { message } from 'antd';
 
 // Create a custom axios instance with optimized configs
@@ -18,7 +17,8 @@ const axiosInstance = axios.create({
 // Add a request interceptor to include auth token if available
 const requestTimestamps = new Map();
 
-axiosInstance.interceptors.request.use((config) => {
+axiosInstance.interceptors.request.use(
+  (config) => {
     const url = config.url || '';
     const isPrefetch = config.headers?.['X-Prefetch'] === 'true';
 
@@ -34,7 +34,7 @@ axiosInstance.interceptors.request.use((config) => {
         config.headers['Authorization'] = `Bearer ${token}`;
       }
     }
-    
+
     // Check cache for GET requests when not forced to skip cache
     if (config.method?.toLowerCase() === 'get' && !config.headers?.['x-skip-cache']) {
       const params = config.params ? JSON.stringify(config.params) : '';
@@ -65,12 +65,12 @@ axiosInstance.interceptors.request.use((config) => {
     requestTimestamps.set(url, Date.now());
     return config;
   },
-  (error: AxiosError) => {
+  (error) => {
     return Promise.reject(error);
   }
 );
 
-// Add a response interceptor for error handling and caching
+// Add response interceptor
 axiosInstance.interceptors.response.use(
   (response) => {
     // Only cache GET requests
@@ -106,61 +106,16 @@ axiosInstance.interceptors.response.use(
     
     return response;
   },  
-  async (error: AxiosError) => {
-    // Check if this is our "fake" cancellation with cached data
-    if (axios.isCancel(error) && error.message) {
-      try {
-        const { cachedData } = JSON.parse(error.message);
-        if (cachedData) {
-          return {
-            data: cachedData,
-            status: 200,
-            statusText: 'OK',
-            headers: {},
-            cached: true
-          };
-        }
-      } catch (e) {
-        console.error('Error handling cached response:', e);
-      }
-    }
-
-    // Handle different error scenarios
-    if (!error.response) {
-      // Network error
-      console.error('Network error detected:', error.message);
-      message.error('Kết nối đến máy chủ thất bại. Vui lòng kiểm tra kết nối mạng.');
-    } 
-    // Handle session expiration (401 Unauthorized)
-    else if (error.response?.status === 401) {
-      // Don't redirect on API operations that might reasonably return 401
-      const isApiOperation = error.config?.url && (
-        error.config.url.includes('/delete') ||
-        error.config.url.includes('/update') ||
-        error.config.method === 'delete' ||
-        error.config.method === 'patch' ||
-        error.config.method === 'put'
-      );
-      
-      if (!isApiOperation && typeof window !== 'undefined') {
+  (error: AxiosError) => {
+    if (error.response?.status === 401) {
+      // Unauthorized error - clear token and redirect to login
+      if (typeof window !== 'undefined') {
         localStorage.removeItem('token');
-        message.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-        
-        // Use a small timeout to allow the message to be displayed before redirecting
-        setTimeout(() => {
+        if (!window.location.pathname.startsWith('/auth/')) {
           window.location.href = '/auth/login';
-        }, 1000);
+        }
       }
     }
-    // Handle Forbidden (403)
-    else if (error.response?.status === 403) {
-      message.error('Bạn không có quyền thực hiện thao tác này.');
-    }
-    // Handle other error cases
-    else {
-      message.error(error.response?.data?.message || 'Có lỗi xảy ra. Vui lòng thử lại sau.');
-    }
-
     return Promise.reject(error);
   }
 );

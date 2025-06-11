@@ -41,32 +41,26 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // TEMPORARY FIX: Allow all routes to bypass authentication while debugging
-  // This will let us see if the issue is caused by middleware
-  console.log('⚠️ WARNING: Authentication checks temporarily disabled for debugging');
-  return NextResponse.next();
-
-  /* The code below is temporarily disabled while debugging login loop issue
-
   // Cho phép truy cập các route công khai
   if (publicRoutes.some(route => pathname.startsWith(route))) {
     console.log('Public route detected, proceeding without token check');
     return NextResponse.next();
   }
 
-  // Lấy token từ cookie hoặc localStorage (phụ thuộc vào cách lưu trữ token)
+  // Lấy token từ cookie hoặc localStorage
   const token = request.cookies.get('token')?.value || 
     request.headers.get('authorization')?.split(' ')[1];
   
   console.log('Token from cookies/headers:', token ? 'Found' : 'Not found');
 
+  // Nếu đang ở trang login/register, cho phép truy cập không cần token
+  if (pathname.startsWith('/auth/')) {
+    console.log('Auth route detected, proceeding without token check');
+    return NextResponse.next();
+  }
+
   // Nếu không có token và đang truy cập vào route cần xác thực
   if (!token) {
-    // Chuyển hướng đến trang đăng nhập, nhưng tránh vòng lặp redirect
-    if (pathname === '/auth/login') {
-      console.log('On login page, proceeding without token');
-      return NextResponse.next();
-    }
     console.log('No token, redirecting to login');
     return NextResponse.redirect(new URL('/auth/login', request.url));
   }
@@ -78,8 +72,10 @@ export function middleware(request: NextRequest) {
     // Kiểm tra token hết hạn
     const currentTime = Math.floor(Date.now() / 1000);
     if (decoded.exp < currentTime) {
-      // Token hết hạn, chuyển hướng đến trang đăng nhập
-      return NextResponse.redirect(new URL('/auth/login', request.url));
+      // Token hết hạn, xóa token và chuyển hướng đến trang đăng nhập
+      const response = NextResponse.redirect(new URL('/auth/login', request.url));
+      response.cookies.delete('token');
+      return response;
     }
 
     // Kiểm tra quyền truy cập dựa trên vai trò
@@ -110,14 +106,15 @@ export function middleware(request: NextRequest) {
 
     return NextResponse.next();
   } catch (error) {
-    // Lỗi giải mã token, chuyển hướng đến trang đăng nhập
-    // Tránh vòng lặp redirect tại trang đăng nhập
-    if (pathname === '/auth/login') {
+    console.error('Token verification error:', error);
+    // Lỗi giải mã token, xóa token và chuyển hướng đến trang đăng nhập
+    if (pathname.startsWith('/auth/')) {
       return NextResponse.next();
     }
-    return NextResponse.redirect(new URL('/auth/login', request.url));
+    const response = NextResponse.redirect(new URL('/auth/login', request.url));
+    response.cookies.delete('token');
+    return response;
   }
-  */
 }
 
 // Cấu hình middleware chỉ áp dụng cho các routes cụ thể

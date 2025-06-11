@@ -52,9 +52,11 @@ export default function BaseLayout({ children, title, sidebarSections, userRole 
 
   const handleLogout = () => {
     logout();
+    router.push('/auth/login');
     toast.info('Đã đăng xuất khỏi hệ thống');
   };
 
+  // Chỉ hiển thị loading khi đang kiểm tra authentication
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -63,7 +65,8 @@ export default function BaseLayout({ children, title, sidebarSections, userRole 
     );
   }
 
-  if (!isAuthenticated) {
+  // Chỉ chuyển hướng nếu không phải đang ở trang auth
+  if (!isAuthenticated && !window.location.pathname.startsWith('/auth/')) {
     router.push('/auth/login');
     return null;
   }
