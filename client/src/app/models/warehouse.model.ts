@@ -129,7 +129,6 @@ export interface UpdateSupplierDto {
  * DTO for creating an import
  */
 export interface CreateImportDto {
-  importDate: Date;
   supplierId: string;
   note?: string;
   batches: {
@@ -138,7 +137,6 @@ export interface CreateImportDto {
     quantity: number;
     price: number;
     expiry_date: string;
-    production_date?: string;
   }[];
 }
 

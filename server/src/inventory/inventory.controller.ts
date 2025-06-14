@@ -61,7 +61,7 @@ export class InventoryController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async createImport(@Body() createImportDto: CreateImportDto, @Request() req) {
-    return this.inventoryService.createImport(createImportDto, req.user.id);
+    return this.inventoryService.createImport(createImportDto, req.user.userId);
   }
 
   @Delete('imports/:id')

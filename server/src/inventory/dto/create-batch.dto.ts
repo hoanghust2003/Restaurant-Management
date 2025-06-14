@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsUUID, IsNumber, IsDate, Min, IsISO8601 } from 'class-validator';
+import { IsNotEmpty, IsString, IsUUID, IsNumber, IsDate, Min } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class CreateBatchDto {
@@ -16,8 +16,9 @@ export class CreateBatchDto {
   quantity: number;
 
   @IsNotEmpty({ message: 'Ngày hết hạn không được để trống' })
-  @IsISO8601({}, { message: 'Ngày hết hạn không hợp lệ' })
-  expiry_date: string;
+  @Transform(({ value }) => new Date(value))
+  @IsDate({ message: 'Ngày hết hạn không hợp lệ' })
+  expiry_date: Date;
   
   @IsNotEmpty({ message: 'Giá không được để trống' })
   @IsNumber({}, { message: 'Giá phải là số' })

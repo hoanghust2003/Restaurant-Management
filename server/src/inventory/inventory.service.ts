@@ -291,8 +291,10 @@ export class InventoryService {
    */
   async createImport(createImportDto: CreateImportDto, userId: string) {
     try {
-      // Use default admin user ID if no user ID is provided
-      const createdById = userId || '00000000-0000-0000-0000-000000000001';
+      // userId should come from JWT token and not be null
+      if (!userId) {
+        throw new BadRequestException('User ID is required');
+      }
       
       // Check if supplier exists
       const supplier = await this.supplierRepository.findOne({
@@ -302,14 +304,13 @@ export class InventoryService {
       if (!supplier) {
         throw new NotFoundException(`Supplier with ID ${createImportDto.supplierId} not found`);
       }
-      
-      // Create the import
+       // Create the import
       const importData = this.importRepository.create({
         supplierId: createImportDto.supplierId,
-        createdById: createdById,
+        createdById: userId,
         note: createImportDto.note
       });
-      
+
       const savedImport = await this.importRepository.save(importData);
       
       // Create batches

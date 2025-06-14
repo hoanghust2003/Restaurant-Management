@@ -154,7 +154,6 @@ function ImportPageContent() {
         }
       }        // Format data
         const importData: CreateImportDto = {
-          importDate: values.import_date.toDate(),
           supplierId: values.supplier_id,
           note: values.notes,
           batches: values.items.map((item: any) => {
@@ -165,10 +164,9 @@ function ImportPageContent() {
             return {
               ingredientId: item.ingredient_id,
               name: `${lotId} ${moment().format('DDMMYYYY')}`,
-              quantity: item.quantity,
-              price: item.unit_price,
-              expiry_date: item.expiry_date.toDate().toISOString(),
-              production_date: item.production_date ? item.production_date.toDate().toISOString() : undefined,
+              quantity: Number(item.quantity),
+              price: Number(item.unit_price),
+              expiry_date: item.expiry_date.toISOString(),
             };
           }),
       };

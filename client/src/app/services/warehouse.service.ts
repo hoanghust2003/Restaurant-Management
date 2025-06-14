@@ -205,12 +205,11 @@ export const importService = {
       supplierId: importData.supplierId,
       note: importData.note,
       batches: importData.batches.map(batch => ({
-        ingredient_id: batch.ingredientId,
+        ingredientId: batch.ingredientId,
         name: batch.name,
         quantity: Number(batch.quantity),
         price: Number(batch.price),
-        expiry_date: batch.expiry_date,
-        production_date: batch.production_date
+        expiry_date: batch.expiry_date
       }))
     };
 
