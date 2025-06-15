@@ -1,11 +1,20 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Input, Space, Card, Typography, Tag, message } from 'antd';
-import { SearchOutlined, PlusOutlined, ExportOutlined, ImportOutlined } from '@ant-design/icons';
+import { Table, Button, Input, Space, Card, Typography, Tag, message, Modal, Popconfirm } from 'antd';
+import { 
+  SearchOutlined, 
+  PlusOutlined, 
+  ExportOutlined, 
+  ImportOutlined, 
+  EditOutlined, 
+  DeleteOutlined,
+  ExclamationCircleOutlined
+} from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { IngredientModel } from '@/app/models/ingredient.model';
 import { ingredientService } from '@/app/services/ingredient.service';
+import { batchService } from '@/app/services/warehouse.service';
 import ImageWithFallback from '@/app/components/ImageWithFallback';
 
 const { Title } = Typography;
@@ -24,7 +33,30 @@ const IngredientList = () => {
     try {
       setLoading(true);
       const data = await ingredientService.getAll();
-      setIngredients(data);
+      
+      // Fetch batch data for each ingredient to calculate current quantity
+      const ingredientsWithStock = await Promise.all(
+        data.map(async (ingredient) => {
+          try {
+            const batches = await batchService.getAll({ ingredient_id: ingredient.id });
+            // Calculate total remaining quantity from all batches
+            const totalQuantity = batches.reduce(
+              (sum, batch) => sum + (batch.remaining_quantity || 0), 
+              0
+            );
+            
+            return {
+              ...ingredient,
+              current_quantity: totalQuantity
+            };
+          } catch (error) {
+            console.error(`Error fetching batches for ingredient ${ingredient.id}:`, error);
+            return ingredient;
+          }
+        })
+      );
+      
+      setIngredients(ingredientsWithStock);
     } catch (error) {
       message.error('Không thể tải danh sách nguyên liệu');
     } finally {
@@ -106,26 +138,59 @@ const IngredientList = () => {
     {
       title: 'Thao tác',
       key: 'action',
-      width: 200,
+      width: 300,
       render: (_: any, record: IngredientModel) => (
         <Space>
           <Button 
             type="primary"
             icon={<ImportOutlined />}
-            onClick={() => router.push(`/warehouse/imports/create?ingredient=${record.id}`)}
+            onClick={() => router.push(`/admin/inventory/imports/create?ingredient=${record.id}`)}
           >
             Nhập kho
           </Button>
           <Button
             icon={<ExportOutlined />}
-            onClick={() => router.push(`/warehouse/exports/create?ingredient=${record.id}`)}
+            onClick={() => router.push(`/admin/inventory/exports/create?ingredient=${record.id}`)}
           >
             Xuất kho
           </Button>
+          <Button
+            icon={<EditOutlined />}
+            onClick={() => router.push(`/admin/inventory/ingredients/edit/${record.id}`)}
+          >
+            Sửa
+          </Button>
+          <Popconfirm
+            title="Xóa nguyên liệu này?"
+            description="Bạn có chắc chắn muốn xóa nguyên liệu này không?"
+            onConfirm={() => handleDeleteIngredient(record.id)}
+            okText="Có"
+            cancelText="Không"
+            icon={<ExclamationCircleOutlined style={{ color: 'red' }} />}
+          >
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+            >
+              Xóa
+            </Button>
+          </Popconfirm>
         </Space>
       ),
     },
   ];
+
+  // Xử lý sự kiện xóa nguyên liệu
+  const handleDeleteIngredient = async (id: string) => {
+    try {
+      await ingredientService.delete(id);
+      message.success('Xóa nguyên liệu thành công');
+      fetchIngredients(); // Refresh danh sách sau khi xóa
+    } catch (error) {
+      console.error('Error deleting ingredient:', error);
+      message.error('Không thể xóa nguyên liệu');
+    }
+  };
 
   return (
     <Card>
@@ -142,7 +207,7 @@ const IngredientList = () => {
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={() => router.push('/warehouse/ingredients/create')}
+            onClick={() => router.push('/admin/inventory/ingredients/create')}
           >
             Thêm nguyên liệu
           </Button>

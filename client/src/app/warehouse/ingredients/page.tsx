@@ -13,6 +13,8 @@ import {
   Typography,
   Badge,
   Spin,
+  Tooltip,
+  Modal
 } from 'antd';
 import { 
   PlusOutlined, 
@@ -21,12 +23,15 @@ import {
   SearchOutlined, 
   WarningOutlined,
   ImportOutlined,
-  ExportOutlined
+  ExportOutlined,
+  InfoCircleOutlined,
+  ReloadOutlined
 } from '@ant-design/icons';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { IngredientModel } from '@/app/models/ingredient.model';
 import { ingredientService } from '@/app/services/ingredient.service';
+import { batchService } from '@/app/services/warehouse.service';
 import ImageWithFallback from '@/app/components/ImageWithFallback';
 
 const { Title, Text } = Typography;
@@ -34,6 +39,7 @@ const { Title, Text } = Typography;
 const IngredientList: React.FC = () => {
   const [ingredients, setIngredients] = useState<IngredientModel[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
   const [searchText, setSearchText] = useState('');
   const router = useRouter();
 
@@ -45,13 +51,45 @@ const IngredientList: React.FC = () => {
     try {
       setLoading(true);
       const data = await ingredientService.getAll();
-      setIngredients(data);
+      
+      // Tải thông tin chi tiết về lô hàng cho mỗi nguyên liệu để có dữ liệu chính xác
+      const ingredientsWithDetails = await Promise.all(
+        data.map(async (ingredient) => {
+          try {
+            // Lấy tất cả các lô còn available cho nguyên liệu
+            const batches = await batchService.getAll({ 
+              ingredient_id: ingredient.id,
+              status: 'available' 
+            });
+            
+            // Tính tổng số lượng từ các lô còn available
+            const totalQuantity = batches.reduce((sum, batch) => sum + batch.remaining_quantity, 0);
+            
+            return {
+              ...ingredient,
+              current_quantity: totalQuantity,
+              batches_count: batches.length
+            };
+          } catch (error) {
+            console.error(`Error fetching batches for ingredient ${ingredient.id}:`, error);
+            return ingredient;
+          }
+        })
+      );
+      
+      setIngredients(ingredientsWithDetails);
     } catch (error) {
       message.error('Không thể tải danh sách nguyên liệu');
       console.error('Error fetching ingredients:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchIngredients();
+    setRefreshing(false);
   };
 
   const handleDelete = async (id: string) => {
@@ -63,6 +101,27 @@ const IngredientList: React.FC = () => {
       message.error('Không thể xóa nguyên liệu');
       console.error('Error deleting ingredient:', error);
     }
+  };
+
+  // Hàm xác nhận xóa để hiện cảnh báo trước khi xóa
+  const confirmDelete = (ingredient: IngredientModel) => {
+    Modal.confirm({
+      title: 'Xác nhận xóa nguyên liệu',
+      content: (
+        <div>
+          <p>Bạn có chắc chắn muốn xóa nguyên liệu <strong>{ingredient.name}</strong>?</p>
+          {(ingredient.current_quantity || 0) > 0 && (
+            <p className="text-red-600">
+              <WarningOutlined /> Cảnh báo: Nguyên liệu này hiện có {ingredient.current_quantity} {ingredient.unit} trong kho. Xóa nguyên liệu sẽ ảnh hưởng đến việc quản lý kho.
+            </p>
+          )}
+        </div>
+      ),
+      okText: 'Xóa',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: () => handleDelete(ingredient.id),
+    });
   };
 
   const getFilteredIngredients = () => {
@@ -96,7 +155,7 @@ const IngredientList: React.FC = () => {
       width: 80,
       render: (imageUrl: string | null) => (
         <ImageWithFallback
-          src={imageUrl || '/images/ingredient-placeholder.png'}
+          src={imageUrl || '/images/default-ingredient.png'}
           alt="Ingredient"
           width={40}
           height={40}
@@ -122,10 +181,17 @@ const IngredientList: React.FC = () => {
       width: 100,
     },
     {
-      title: 'Số lượng hiện tại',
+      title: (
+        <span>
+          Số lượng hiện tại
+          <Tooltip title="Tổng số lượng từ các lô hàng còn khả dụng">
+            <InfoCircleOutlined className="ml-1" />
+          </Tooltip>
+        </span>
+      ),
       dataIndex: 'current_quantity',
       key: 'current_quantity',
-      width: 150,
+      width: 180,
       sorter: (a: IngredientModel, b: IngredientModel) => {
         const qtyA = a.current_quantity || 0;
         const qtyB = b.current_quantity || 0;
@@ -144,6 +210,14 @@ const IngredientList: React.FC = () => {
                 {text}
               </Tag>
             )}
+            <Tooltip title="Xem chi tiết lô hàng">
+              <Button 
+                type="link" 
+                icon={<InfoCircleOutlined />} 
+                onClick={() => router.push(`/warehouse/ingredients/${record.id}`)}
+                size="small"
+              />
+            </Tooltip>
           </Space>
         );
       },
@@ -186,6 +260,7 @@ const IngredientList: React.FC = () => {
           </Button>
           <Button
             icon={<ExportOutlined />}
+            disabled={(record.current_quantity || 0) <= 0}
             onClick={() => router.push(`/warehouse/exports/create?ingredient=${record.id}`)}
           >
             Xuất kho
@@ -196,16 +271,13 @@ const IngredientList: React.FC = () => {
           >
             Sửa
           </Button>
-          <Popconfirm
-            title="Xác nhận xóa nguyên liệu?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Xóa"
-            cancelText="Hủy"
+          <Button 
+            danger 
+            icon={<DeleteOutlined />}
+            onClick={() => confirmDelete(record)}
           >
-            <Button danger icon={<DeleteOutlined />}>
-              Xóa
-            </Button>
-          </Popconfirm>
+            Xóa
+          </Button>
         </Space>
       ),
     },
@@ -232,7 +304,14 @@ const IngredientList: React.FC = () => {
             <Title level={4}>Quản lý nguyên liệu</Title>
             <Text type="secondary">Danh sách các nguyên liệu trong kho</Text>
           </div>
-          <div className="mt-2 sm:mt-0">
+          <div className="mt-2 sm:mt-0 flex space-x-2">
+            <Button 
+              icon={<ReloadOutlined spin={refreshing} />} 
+              onClick={handleRefresh}
+              disabled={refreshing}
+            >
+              Làm mới
+            </Button>
             <Button 
               type="primary" 
               icon={<PlusOutlined />} 
@@ -257,7 +336,7 @@ const IngredientList: React.FC = () => {
           columns={columns} 
           dataSource={getFilteredIngredients()} 
           rowKey="id"
-          loading={loading}
+          loading={loading || refreshing}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,

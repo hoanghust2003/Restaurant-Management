@@ -16,14 +16,20 @@ import {
   Space, 
   Divider,
   Modal,
-  message
+  message,
+  Statistic,
+  Progress,
+  Tooltip
 } from 'antd';
 import { 
   EditOutlined, 
   DeleteOutlined, 
   ArrowLeftOutlined, 
   ShoppingCartOutlined, 
-  ExportOutlined 
+  ExportOutlined,
+  InfoCircleOutlined,
+  ReloadOutlined,
+  WarningOutlined
 } from '@ant-design/icons';
 import { ingredientService } from '@/app/services/ingredient.service';
 import { batchService } from '@/app/services/warehouse.service';
@@ -45,8 +51,12 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
   const [batches, setBatches] = useState<BatchModel[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [batchesLoading, setBatchesLoading] = useState<boolean>(false);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [ingredientId, setIngredientId] = useState<string>('');
+  const [totalQuantity, setTotalQuantity] = useState<number>(0);
+  const [availableBatches, setAvailableBatches] = useState<BatchModel[]>([]);
+  const [expiringBatches, setExpiringBatches] = useState<BatchModel[]>([]);
 
   useEffect(() => {
     const initializeParams = async () => {
@@ -57,27 +67,34 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
   }, [params]);
 
   useEffect(() => {
-    const fetchIngredient = async () => {
-      try {
-        setLoading(true);
-        const data = await ingredientService.getById(ingredientId);
-        setIngredient(data);
-        setError(null);
-        
-        // After fetching ingredient, fetch batches
-        fetchBatches(data.id);
-      } catch (err: any) {
-        console.error('Error fetching ingredient:', err);
-        setError(err.message || 'Không thể tải thông tin nguyên liệu');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (ingredientId) {
-      fetchIngredient();
+      fetchData();
     }
   }, [ingredientId]);
+
+  useEffect(() => {
+    // Mỗi khi dữ liệu lô hàng thay đổi, tính toán lại số lượng
+    calculateQuantities();
+  }, [batches]);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      // Tải dữ liệu nguyên liệu
+      const ingredientData = await ingredientService.getById(ingredientId);
+      setIngredient(ingredientData);
+      
+      // Sau khi tải nguyên liệu, tải dữ liệu về các lô
+      await fetchBatches(ingredientData.id);
+      
+      setError(null);
+    } catch (err: any) {
+      console.error('Error fetching ingredient:', err);
+      setError(err.message || 'Không thể tải thông tin nguyên liệu');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchBatches = async (ingredientId: string) => {
     try {
@@ -92,6 +109,37 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  }
+
+  const calculateQuantities = () => {
+    // Tính tổng số lượng từ các lô còn khả dụng
+    const available = batches.filter(batch => batch.status === 'available');
+    const total = available.reduce((sum, batch) => sum + batch.remaining_quantity, 0);
+    setTotalQuantity(total);
+    setAvailableBatches(available);
+    
+    // Tính số lượng lô sắp hết hạn (30 ngày)
+    const expiring = available.filter(batch => {
+      if (!batch.expiry_date) return false;
+      const expiryDate = moment(batch.expiry_date);
+      const daysToExpiry = expiryDate.diff(moment(), 'days');
+      return daysToExpiry >= 0 && daysToExpiry <= 30;
+    });
+    setExpiringBatches(expiring);
+    
+    // Cập nhật dữ liệu nguyên liệu với số lượng mới
+    if (ingredient) {
+      setIngredient({
+        ...ingredient,
+        current_quantity: total
+      });
+    }
+  };
+
   const handleEdit = () => {
     router.push(`/warehouse/ingredients/edit/${ingredientId}`);
   };
@@ -99,7 +147,16 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
   const handleDelete = () => {
     Modal.confirm({
       title: 'Xác nhận xóa',
-      content: `Bạn có chắc chắn muốn xóa nguyên liệu "${ingredient?.name}"?`,
+      content: (
+        <div>
+          <p>Bạn có chắc chắn muốn xóa nguyên liệu <strong>{ingredient?.name}</strong>?</p>
+          {totalQuantity > 0 && (
+            <p className="text-red-600">
+              <WarningOutlined /> Cảnh báo: Nguyên liệu này hiện có {totalQuantity} {ingredient?.unit} từ {availableBatches.length} lô trong kho. Xóa nguyên liệu sẽ ảnh hưởng đến việc quản lý kho.
+            </p>
+          )}
+        </div>
+      ),
       okText: 'Xóa',
       okType: 'danger',
       cancelText: 'Hủy',
@@ -120,6 +177,10 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
   };
 
   const handleExport = () => {
+    if (totalQuantity <= 0) {
+      message.warning('Không có đủ số lượng để xuất kho');
+      return;
+    }
     router.push(`/warehouse/exports/create?ingredient=${ingredientId}`);
   };
 
@@ -134,6 +195,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
       title: 'Số lượng còn lại',
       dataIndex: 'remaining_quantity',
       key: 'remaining_quantity',
+      sorter: (a: BatchModel, b: BatchModel) => a.remaining_quantity - b.remaining_quantity,
       render: (quantity: number, record: BatchModel) => (
         <span>{quantity} {ingredient?.unit}</span>
       ),
@@ -142,6 +204,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
       title: 'Đơn giá',
       dataIndex: 'unit_price',
       key: 'unit_price',
+      sorter: (a: BatchModel, b: BatchModel) => a.unit_price - b.unit_price,
       render: (price: number) => (
         <span>{price.toLocaleString('vi-VN')} VND</span>
       ),
@@ -156,6 +219,11 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
       title: 'Hạn sử dụng',
       dataIndex: 'expiry_date',
       key: 'expiry_date',
+      sorter: (a: BatchModel, b: BatchModel) => {
+        if (!a.expiry_date) return 1;
+        if (!b.expiry_date) return -1;
+        return moment(a.expiry_date).diff(moment(b.expiry_date));
+      },
       render: (date: string) => {
         if (!date) return 'N/A';
         
@@ -183,6 +251,13 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
+      filters: [
+        { text: 'Có sẵn', value: 'available' },
+        { text: 'Đã hết', value: 'depleted' },
+        { text: 'Hết hạn', value: 'expired' },
+        { text: 'Hư hỏng', value: 'damaged' }
+      ],
+      onFilter: (value: any, record: BatchModel) => record.status === value,
       render: (status: string) => {
         let color = 'green';
         let text = 'Có sẵn';
@@ -209,12 +284,23 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
       title: 'Thao tác',
       key: 'action',
       render: (_: any, record: BatchModel) => (
-        <Button 
-          size="small"
-          onClick={() => router.push(`/warehouse/batches/${record.id}`)}
-        >
-          Chi tiết
-        </Button>
+        <Space>
+          <Button 
+            size="small"
+            onClick={() => router.push(`/warehouse/batches/${record.id}`)}
+          >
+            Chi tiết
+          </Button>
+          {record.status === 'available' && record.remaining_quantity > 0 && (
+            <Button 
+              size="small"
+              type="primary"
+              onClick={() => router.push(`/warehouse/exports/create?ingredient=${record.ingredient_id}`)}
+            >
+              Xuất kho
+            </Button>
+          )}
+        </Space>
       ),
     },
   ];
@@ -249,21 +335,37 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
 
   // Determine badge color based on stock level
   const getStockStatus = () => {
-    const currentQuantity = ingredient.current_quantity || 0;
+    const currentQuantity = totalQuantity;
     const threshold = ingredient.threshold;
     
     if (currentQuantity <= 0) {
-      return { status: 'error', text: 'Hết hàng' };
+      return { status: 'error', text: 'Hết hàng', percentage: 0 };
     } else if (currentQuantity <= threshold) {
-      return { status: 'warning', text: 'Sắp hết' };
+      return { 
+        status: 'warning', 
+        text: 'Sắp hết', 
+        percentage: Math.round((currentQuantity / threshold) * 100) 
+      };
     } else if (currentQuantity <= threshold * 1.5) {
-      return { status: 'processing', text: 'Thấp' };
+      return { 
+        status: 'processing', 
+        text: 'Thấp', 
+        percentage: Math.round((currentQuantity / (threshold * 2)) * 100) 
+      };
     } else {
-      return { status: 'success', text: 'Đủ hàng' };
+      return { 
+        status: 'success', 
+        text: 'Đủ hàng', 
+        percentage: Math.min(100, Math.round((currentQuantity / (threshold * 2)) * 100))
+      };
     }
   };
 
   const stockStatus = getStockStatus();
+  const progressColor = 
+    stockStatus.status === 'error' ? '#f5222d' :
+    stockStatus.status === 'warning' ? '#faad14' :
+    stockStatus.status === 'processing' ? '#1890ff' : '#52c41a';
 
   return (
     <div className="p-6">
@@ -284,6 +386,13 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
           </div>
           <div className="mt-4 sm:mt-0">
             <Space>
+              <Button
+                icon={<ReloadOutlined spin={refreshing} />}
+                onClick={handleRefresh}
+                disabled={refreshing}
+              >
+                Làm mới
+              </Button>
               <Button 
                 type="primary" 
                 icon={<ShoppingCartOutlined />} 
@@ -292,7 +401,8 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
                 Nhập kho
               </Button>
               <Button 
-                icon={<ExportOutlined />} 
+                icon={<ExportOutlined />}
+                disabled={totalQuantity <= 0}
                 onClick={handleExport}
               >
                 Xuất kho
@@ -318,7 +428,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
           <div className="md:w-1/3 mb-6 md:mb-0">
             <div className="mb-4">
               <ImageWithFallback
-                src={ingredient.image_url || '/images/ingredient-placeholder.png'}
+                src={ingredient.image_url || '/images/default-ingredient.png'}
                 alt={ingredient.name}
                 width={300}
                 height={300}
@@ -326,10 +436,25 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
               />
             </div>
             
-            <Card title="Tồn kho hiện tại" className="mb-4">
+            <Card title="Tồn kho hiện tại" className="mb-4" extra={
+              <Tooltip title="Số lượng được tính từ tất cả các lô còn khả dụng">
+                <InfoCircleOutlined />
+              </Tooltip>
+            }>
               <div className="text-center">
-                <Title level={2}>{ingredient.current_quantity || 0}</Title>
-                <Text>{ingredient.unit}</Text>
+                <Statistic 
+                  value={totalQuantity} 
+                  suffix={ingredient.unit}
+                  valueStyle={{ color: progressColor }} 
+                />
+                <div className="my-4">
+                  <Progress 
+                    percent={stockStatus.percentage} 
+                    status={stockStatus.status === 'error' ? 'exception' : undefined}
+                    strokeColor={progressColor}
+                    showInfo={false}
+                  />
+                </div>
                 <div className="mt-2">
                   <Badge status={stockStatus.status as any} text={stockStatus.text} />
                 </div>
@@ -339,6 +464,18 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
                 <Descriptions.Item label="Ngưỡng cảnh báo">
                   {ingredient.threshold} {ingredient.unit}
                 </Descriptions.Item>
+                <Descriptions.Item label="Số lô khả dụng">
+                  {availableBatches.length} lô
+                </Descriptions.Item>
+                {expiringBatches.length > 0 && (
+                  <Descriptions.Item label={
+                    <span className="text-orange-500">
+                      <WarningOutlined /> Sắp hết hạn
+                    </span>
+                  }>
+                    {expiringBatches.length} lô
+                  </Descriptions.Item>
+                )}
                 <Descriptions.Item label="Ngày tạo">
                   {ingredient.created_at 
                     ? moment(ingredient.created_at).format('DD/MM/YYYY') 
@@ -352,15 +489,22 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
           <div className="md:w-2/3">
             <Tabs defaultActiveKey="batches">
               <TabPane tab="Lô hàng" key="batches">
-                <div className="mb-4">
+                <div className="mb-4 flex justify-between items-center">
                   <Text>Danh sách các lô hàng của nguyên liệu này</Text>
+                  <Button 
+                    type="primary" 
+                    icon={<ShoppingCartOutlined />}
+                    onClick={handleImport}
+                  >
+                    Nhập lô mới
+                  </Button>
                 </div>
                 <Table
                   columns={batchesColumns}
                   dataSource={batches}
                   rowKey="id"
-                  loading={batchesLoading}
-                  pagination={{ pageSize: 5 }}
+                  loading={batchesLoading || refreshing}
+                  pagination={{ pageSize: 10 }}
                   scroll={{ x: 'max-content' }}
                 />
               </TabPane>

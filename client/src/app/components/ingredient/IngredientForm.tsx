@@ -91,7 +91,7 @@ const IngredientForm: React.FC<IngredientFormProps> = ({
         onSuccess(result);
       } else {
         // Quay lại trang danh sách
-        router.push('/warehouse/ingredients');
+        router.push('/admin/inventory/ingredients');
       }
     } catch (error: any) {
       console.error('Error submitting ingredient:', error);
@@ -240,7 +240,7 @@ const IngredientForm: React.FC<IngredientFormProps> = ({
             >
               {isEdit ? 'Cập nhật' : 'Tạo nguyên liệu'}
             </Button>
-            <Button onClick={() => router.push('/admin/ingredients')}>
+            <Button onClick={() => router.push('/admin/inventory/ingredients')}>
               Hủy
             </Button>
           </div>

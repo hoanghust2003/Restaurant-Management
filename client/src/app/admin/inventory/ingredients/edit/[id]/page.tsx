@@ -43,7 +43,7 @@ const EditIngredientPage = ({ params }: { params: Promise<Params> }) => {
     } catch (error) {
       console.error('Error fetching ingredient:', error);
       message.error('Không thể tải thông tin nguyên liệu');
-      router.push('/admin/ingredients');
+      router.push('/admin/inventory/ingredients');
     } finally {
       setLoading(false);
     }
@@ -80,7 +80,7 @@ const EditIngredientPage = ({ params }: { params: Promise<Params> }) => {
         title="404"
         subTitle="Không tìm thấy nguyên liệu"
         extra={
-          <Button type="primary" onClick={() => router.push('/admin/ingredients')}>
+          <Button type="primary" onClick={() => router.push('/admin/inventory/ingredients')}>
             Quay lại danh sách
           </Button>
         }
@@ -97,7 +97,7 @@ const EditIngredientPage = ({ params }: { params: Promise<Params> }) => {
             isEdit={true} 
             onSuccess={() => {
               router.refresh(); // Add this line
-              router.push('/admin/ingredients');
+              router.push('/admin/inventory/ingredients');
             }} 
           />
         </Card>
