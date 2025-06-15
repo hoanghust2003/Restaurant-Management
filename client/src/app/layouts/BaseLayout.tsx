@@ -14,6 +14,9 @@ import {
 import Sidebar from './Sidebar';
 import ContentWrapper from '../components/ContentWrapper';
 
+// Base URL for API
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
 interface SidebarMenuGroup {
   title: string;
   items: {
@@ -78,7 +81,7 @@ export default function BaseLayout({ children, title, sidebarSections, userRole 
         <aside className="hidden lg:flex flex-col w-64 bg-white border-r shadow z-20">
           <div className="flex items-center h-[60px] px-4 border-b">
             <CustomLink href="/" className="flex items-center space-x-2">
-              <img src="/logo.png" className="h-8 w-auto" alt="Logo" />
+              <img src={`${API_BASE_URL.replace('/api', '')}/uploads/logo.png`} className="h-8 w-auto" alt="Logo" />
               <span className="text-base font-bold text-gray-800">Việt Cuisine</span>
             </CustomLink>
           </div>
@@ -148,7 +151,7 @@ export default function BaseLayout({ children, title, sidebarSections, userRole 
             >
               <div className="flex items-center justify-between px-4 py-3 border-b">
                 <CustomLink href="/" className="flex items-center space-x-2">
-                  <img src="/logo.png" className="h-7 w-auto" alt="Logo" />
+                  <img src={`${API_BASE_URL.replace('/api', '')}/uploads/logo.png`} className="h-7 w-auto" alt="Logo" />
                   <span className="text-sm font-bold text-gray-800">Việt Cuisine</span>
                 </CustomLink>
                 <button

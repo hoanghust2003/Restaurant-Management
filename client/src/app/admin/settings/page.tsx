@@ -20,6 +20,9 @@ import {
   Upload,
   Spin
 } from 'antd';
+
+// Base URL for API
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 import { 
   SaveOutlined, 
   ShopOutlined, 
@@ -47,7 +50,7 @@ const initialSettings = {
     phone: '0987654321',
     email: 'contact@vietcuisine.com',
     website: 'www.vietcuisine.com',
-    logo: 'logo.png',
+    logo: 'uploads/logo.png',
     timezone: 'Asia/Ho_Chi_Minh',
     currency: 'VND',
     language: 'vi',
@@ -129,7 +132,7 @@ const SystemSettings = () => {
           uid: '-1',
           name: 'restaurant-logo.png',
           status: 'done',
-          url: '/logo.png',
+          url: '/uploads/logo.png',
         });
       } catch (error) {
         console.error('Failed to load settings:', error);
@@ -350,7 +353,7 @@ const SystemSettings = () => {
                           >
                             {logoFile ? (
                               <img 
-                                src={logoFile.url || '/logo.png'} 
+                                src={logoFile.url || `${API_BASE_URL.replace('/api', '')}/uploads/logo.png`} 
                                 alt="Logo" 
                                 style={{ width: '100%' }} 
                               />

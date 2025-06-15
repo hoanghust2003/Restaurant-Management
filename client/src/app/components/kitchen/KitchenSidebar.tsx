@@ -5,6 +5,9 @@ import { Layout, Menu } from 'antd';
 import { DesktopOutlined, ClockCircleOutlined, HistoryOutlined } from '@ant-design/icons';
 import { usePathname, useRouter } from 'next/navigation';
 
+// Base URL for API
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
 const { Sider } = Layout;
 
 const KitchenSidebar = () => {
@@ -38,7 +41,7 @@ const KitchenSidebar = () => {
     >
       <div className="p-4 text-center">
         <img 
-          src="/logo.png" 
+          src={`${API_BASE_URL.replace('/api', '')}/uploads/logo.png`}
           alt="Logo"
           className="w-32 h-auto mx-auto"
         />
