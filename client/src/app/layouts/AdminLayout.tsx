@@ -36,10 +36,22 @@ const adminMenuSections = [
     title: "Quản lý nhà hàng",
     items: [
       {
-        href: "/admin/tables",
+        href: "#",
         icon: <TableCellsIcon className="w-5 h-5" />,
         title: "Quản lý bàn",
         showIfRoles: ["admin"],
+        subItems: [
+          {
+            href: "/admin/tables",
+            title: "Danh sách bàn",
+            showIfRoles: ["admin"],
+          },
+          {
+            href: "/admin/tables/create",
+            title: "Thêm bàn mới",
+            showIfRoles: ["admin"],
+          },
+        ],
       },
       {
         href: "#",

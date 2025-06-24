@@ -129,7 +129,10 @@ export function BaseCrudTable<T>({
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              onClick={onCreate}
+              onClick={() => {
+                console.log('BaseCrudTable: Create button clicked, calling onCreate');
+                onCreate();
+              }}
             >
               {addButtonText}
             </Button>

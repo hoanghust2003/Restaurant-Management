@@ -1,4 +1,11 @@
-import { Injectable, NotFoundException, ForbiddenException, InternalServerErrorException, Logger, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  InternalServerErrorException,
+  Logger,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -18,19 +25,24 @@ export class TablesService {
     private configService: ConfigService,
   ) {}
 
-  async findAll(status?: TableStatus, includeDeleted: boolean = false): Promise<TableEntity[]> {
+  async findAll(
+    status?: TableStatus,
+    includeDeleted: boolean = false,
+  ): Promise<TableEntity[]> {
     try {
       const queryOptions: any = {};
-      
+
       if (status) {
         queryOptions.where = { status };
       }
-      
+
       if (includeDeleted) {
         queryOptions.withDeleted = true;
       }
-      
-      this.logger.log(`Fetching tables with options: ${JSON.stringify(queryOptions)}`);
+
+      this.logger.log(
+        `Fetching tables with options: ${JSON.stringify(queryOptions)}`,
+      );
       return this.tableRepository.find(queryOptions);
     } catch (error) {
       this.logger.error(`Error fetching tables: ${error.message}`, error.stack);
@@ -38,33 +50,49 @@ export class TablesService {
     }
   }
 
-  async findOne(id: string, includeDeleted: boolean = false): Promise<TableEntity> {
+  async findOne(
+    id: string,
+    includeDeleted: boolean = false,
+  ): Promise<TableEntity> {
     try {
-      this.logger.log(`Finding table by id: ${id}, includeDeleted: ${includeDeleted}`);
+      this.logger.log(
+        `Finding table by id: ${id}, includeDeleted: ${includeDeleted}`,
+      );
       const table = await this.tableRepository.findOne({
         where: { id },
-        withDeleted: includeDeleted
+        withDeleted: includeDeleted,
       });
-      
+
       if (!table) {
         this.logger.warn(`Table with id ${id} not found`);
         throw new NotFoundException('Table not found');
       }
-      
+
       return table;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      this.logger.error(`Error finding table by id ${id}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error finding table by id ${id}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
 
-  async create(createTableDto: CreateTableDto, userRole?: UserRole): Promise<TableEntity> {
+  async create(
+    createTableDto: CreateTableDto,
+    userRole?: UserRole,
+  ): Promise<TableEntity> {
     try {
-      this.logger.log(`Creating table with data: ${JSON.stringify(createTableDto)}`);
-      const table = this.tableRepository.create(createTableDto);
+      this.logger.log(
+        `Creating table with data: ${JSON.stringify(createTableDto)}`,
+      );
+      const table = this.tableRepository.create({
+        ...createTableDto,
+        status: TableStatus.AVAILABLE, // Set default status
+      });
       const savedTable = await this.tableRepository.save(table);
       this.logger.log(`Table created successfully with id: ${savedTable.id}`);
       return savedTable;
@@ -74,27 +102,43 @@ export class TablesService {
     }
   }
 
-  async update(id: string, updateTableDto: UpdateTableDto, userRole: UserRole): Promise<TableEntity> {
+  async update(
+    id: string,
+    updateTableDto: UpdateTableDto,
+    userRole: UserRole,
+  ): Promise<TableEntity> {
     try {
-      this.logger.log(`Updating table ${id} with data: ${JSON.stringify(updateTableDto)}`);
-      
+      this.logger.log(
+        `Updating table ${id} with data: ${JSON.stringify(updateTableDto)}`,
+      );
+
       if (!userRole) {
-        throw new ForbiddenException('User role is required for this operation');
+        throw new ForbiddenException(
+          'User role is required for this operation',
+        );
       }
 
       if (![UserRole.ADMIN, UserRole.STAFF].includes(userRole)) {
-        throw new ForbiddenException('Insufficient permissions to update table');
+        throw new ForbiddenException(
+          'Insufficient permissions to update table',
+        );
       }
 
       const table = await this.findOne(id);
-      
+
       // If status is being updated, only allow certain transitions
       if (updateTableDto.status) {
-        if (!this.isValidStatusTransition(table.status, updateTableDto.status, userRole)) {
+        if (
+          !this.isValidStatusTransition(
+            table.status,
+            updateTableDto.status,
+            userRole,
+          )
+        ) {
           throw new BadRequestException('Invalid table status transition');
         }
       }
-      
+
       Object.assign(table, updateTableDto);
       const updatedTable = await this.tableRepository.save(table);
       this.logger.log(`Table ${id} updated successfully`);
@@ -103,7 +147,10 @@ export class TablesService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      this.logger.error(`Error updating table ${id}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error updating table ${id}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -118,7 +165,10 @@ export class TablesService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      this.logger.error(`Error removing table ${id}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error removing table ${id}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -127,47 +177,62 @@ export class TablesService {
     try {
       this.logger.log(`Restoring table with id: ${id}`);
       const table = await this.findOne(id, true);
-      
+
       if (!table.deleted_at) {
         this.logger.warn(`Table ${id} is not deleted`);
         throw new ForbiddenException('Table is not deleted');
       }
-      
+
       await this.tableRepository.restore(id);
       const restoredTable = await this.findOne(id);
       this.logger.log(`Table ${id} restored successfully`);
       return restoredTable;
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException
+      ) {
         throw error;
       }
-      this.logger.error(`Error restoring table ${id}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error restoring table ${id}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
 
   async findByUser(userId: string, userRole: UserRole): Promise<TableEntity[]> {
     try {
-      this.logger.log(`Finding tables for user ${userId} with role ${userRole}`);
-      
+      this.logger.log(
+        `Finding tables for user ${userId} with role ${userRole}`,
+      );
+
       // For now, return all tables as we don't have user-table assignments
       // In the future, you might want to implement table assignments
       if (userRole === UserRole.STAFF) {
         // Could filter by assigned waiter
         return this.findAll();
       }
-      
+
       return this.findAll();
     } catch (error) {
-      this.logger.error(`Error finding tables for user ${userId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error finding tables for user ${userId}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
 
-  async updateStatus(id: string, status: TableStatus, userRole: UserRole = UserRole.ADMIN): Promise<TableEntity> {
+  async updateStatus(
+    id: string,
+    status: TableStatus,
+    userRole: UserRole = UserRole.ADMIN,
+  ): Promise<TableEntity> {
     try {
       this.logger.log(`Updating table ${id} status to ${status}`);
-      
+
       // Find and validate table exists
       const table = await this.findOne(id);
       if (!table) {
@@ -182,16 +247,20 @@ export class TablesService {
       // Update status
       table.status = status;
       const updatedTable = await this.tableRepository.save(table);
-      
+
       this.logger.log(`Table ${id} status successfully updated to ${status}`);
       return updatedTable;
-      
     } catch (error) {
-      if (error instanceof NotFoundException || 
-          error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
-      this.logger.error(`Error updating table ${id} status: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error updating table ${id} status: ${error.message}`,
+        error.stack,
+      );
       throw new InternalServerErrorException('Failed to update table status');
     }
   }
@@ -199,60 +268,79 @@ export class TablesService {
   async generateQrCode(id: string): Promise<QrCodeResponseDto> {
     try {
       this.logger.log(`Generating QR code for table ${id}`);
-      
+
       // First, verify the table exists
       const table = await this.findOne(id);
-      
+
       // Get the frontend URL from environment variables
-      const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-      
+      const frontendUrl =
+        this.configService.get<string>('FRONTEND_URL') ||
+        'http://localhost:3000';
+
       // Create the customer menu URL with table ID
       const menuUrl = `${frontendUrl}/customer/menu?tableId=${id}`;
-      
+
       this.logger.log(`Generating QR code for URL: ${menuUrl}`);
-      
+
       // Generate QR code as base64 data URL
       const qrCodeDataUrl: string = await QRCode.toDataURL(menuUrl, {
         errorCorrectionLevel: 'M',
         margin: 1,
-        width: 256
+        width: 256,
       });
-      
+
       // Validate the QR code data
-      if (!qrCodeDataUrl || !qrCodeDataUrl.startsWith('data:image/png;base64,')) {
-        this.logger.error(`Generated QR code has invalid format for table ${id}`);
+      if (
+        !qrCodeDataUrl ||
+        !qrCodeDataUrl.startsWith('data:image/png;base64,')
+      ) {
+        this.logger.error(
+          `Generated QR code has invalid format for table ${id}`,
+        );
       } else {
-        this.logger.log(`QR code generated successfully for table ${id}, length: ${qrCodeDataUrl.length}`);
+        this.logger.log(
+          `QR code generated successfully for table ${id}, length: ${qrCodeDataUrl.length}`,
+        );
       }
-      
+
       const responseData = {
         qrCode: qrCodeDataUrl,
         url: menuUrl,
         table: {
           id: table.id,
           name: table.name,
-          capacity: table.capacity
+          capacity: table.capacity,
         },
         metadata: {
           generatedAt: new Date().toISOString(),
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Expires in 24 hours
           size: qrCodeDataUrl.length,
-          format: 'PNG'
-        }
+          format: 'PNG',
+        },
       };
-      
+
       this.logger.log(`Returning QR code response for table ${id}`);
       return responseData;
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException
+      ) {
         throw error;
       }
-      this.logger.error(`Error generating QR code for table ${id}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error generating QR code for table ${id}: ${error.message}`,
+        error.stack,
+      );
       throw new InternalServerErrorException('Failed to generate QR code');
     }
   }
 
-  private isValidStatusTransition(currentStatus: TableStatus, newStatus: TableStatus, userRole: UserRole): boolean {
+  private isValidStatusTransition(
+    currentStatus: TableStatus,
+    newStatus: TableStatus,
+    userRole: UserRole,
+  ): boolean {
     // Admin can make any status transition
     if (userRole === UserRole.ADMIN) {
       return true;

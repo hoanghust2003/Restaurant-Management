@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Form, Select, message, Modal, Input, InputNumber, Space, Tag } from 'antd';
-import { EditOutlined, QrcodeOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { Form, Select, message, Modal, Input, InputNumber, Space, Tag, Button } from 'antd';
+import { QrcodeOutlined } from '@ant-design/icons';
 import { TableModel } from '@/app/models/table.model';
 import { TableStatus, tableStatusText } from '@/app/utils/enums';
 import { tableService } from '@/app/services/table.service';
@@ -10,10 +10,12 @@ import AdminLayout from '@/app/layouts/AdminLayout';
 import { BaseCrudTable } from '@/app/components/shared/BaseCrudTable';
 import { useRefresh } from '@/app/contexts/RefreshContext';
 import QrCodeModal from '@/app/components/QrCodeModal';
+import { useRouter } from 'next/navigation';
 
 const { Option } = Select;
 
 const TableManagementPage = () => {
+  const router = useRouter();
   const [form] = Form.useForm();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingTable, setEditingTable] = useState<TableModel | null>(null);
@@ -69,9 +71,9 @@ const TableManagementPage = () => {
       await tableService.updateStatus(tableId, newStatus);
       message.success('Cập nhật trạng thái bàn thành công!');
       refreshSpecificData('tables');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to update table status:', error);
-      const errorMessage = error.message || 'Lỗi khi cập nhật trạng thái bàn.';
+      const errorMessage = error instanceof Error ? error.message : 'Lỗi khi cập nhật trạng thái bàn.';
       message.error(errorMessage);
     } finally {
       setUpdatingStatus(null);
@@ -157,14 +159,25 @@ const TableManagementPage = () => {
                   ))}
                 </Select>
               ),
+            },
+            {
+              title: 'QR Code',
+              key: 'qrcode',
+              render: (_: unknown, record: TableModel) => (
+                <Button
+                  type="link"
+                  icon={<QrcodeOutlined />}
+                  onClick={() => handleShowQrCode(record)}
+                >
+                  QR
+                </Button>
+              ),
             }
           ]}
           addButtonText="Thêm bàn mới"
           onCreate={() => {
-            form.resetFields();
-            form.setFieldsValue({ status: TableStatus.AVAILABLE });
-            setEditingTable(null);
-            setIsModalVisible(true);
+            console.log('Create button clicked, navigating to /admin/tables/create');
+            router.push('/admin/tables/create');
           }}
           onEdit={handleEdit}
           additionalButtons={
@@ -242,14 +255,3 @@ const TableManagementPage = () => {
 };
 
 export default TableManagementPage;
-
-interface CreateTableDto {
-  name: string;
-  capacity: number;
-}
-
-interface UpdateTableDto {
-  name?: string;
-  capacity?: number;
-  status?: TableStatus;
-}

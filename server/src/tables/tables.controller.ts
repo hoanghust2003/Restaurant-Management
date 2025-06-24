@@ -1,23 +1,29 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Put, 
-  Delete, 
-  Patch, 
-  Body, 
-  Param, 
-  Query, 
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Patch,
+  Body,
+  Param,
+  Query,
   ParseUUIDPipe,
   UseGuards,
-  Req
+  Req,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { TablesService } from './tables.service';
-import { CreateTableDto, UpdateTableDto, UpdateTableStatusDto, QrCodeResponseDto } from './dto';
+import {
+  CreateTableDto,
+  UpdateTableDto,
+  UpdateTableStatusDto,
+  QrCodeResponseDto,
+} from './dto';
 import { TableEntity } from '../entities/table.entity';
 import { TableStatus } from '../enums/table-status.enum';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../enums/user-role.enum';
 
@@ -38,23 +44,25 @@ export class TablesController {
   @Get()
   async findAll(
     @Query('status') status?: TableStatus,
-    @Query('includeDeleted') includeDeleted?: string
+    @Query('includeDeleted') includeDeleted?: string,
   ): Promise<TableEntity[]> {
     const include = includeDeleted === 'true';
     return this.tablesService.findAll(status, include);
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.STAFF)
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
-    @Query('includeDeleted') includeDeleted?: string
+    @Query('includeDeleted') includeDeleted?: string,
   ): Promise<TableEntity> {
     const include = includeDeleted === 'true';
     return this.tablesService.findOne(id, include);
   }
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   async create(
     @Body() createTableDto: CreateTableDto,
@@ -63,11 +71,14 @@ export class TablesController {
     try {
       return await this.tablesService.create(createTableDto);
     } catch (error) {
-      throw new BadRequestException(error.message || 'Không thể tạo bàn mới. Vui lòng thử lại.');
+      throw new BadRequestException(
+        error.message || 'Không thể tạo bàn mới. Vui lòng thử lại.',
+      );
     }
   }
 
   @Put(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.STAFF)
   async update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -76,6 +87,7 @@ export class TablesController {
     return this.tablesService.update(id, updateTableDto, UserRole.ADMIN);
   }
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
@@ -86,6 +98,7 @@ export class TablesController {
   }
 
   @Post(':id/restore')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   async restore(
     @Param('id', ParseUUIDPipe) id: string,
@@ -96,6 +109,7 @@ export class TablesController {
   }
 
   @Patch(':id/status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.STAFF)
   async updateStatus(
     @Param('id', ParseUUIDPipe) id: string,
@@ -104,9 +118,9 @@ export class TablesController {
   ): Promise<TableEntity> {
     try {
       return await this.tablesService.updateStatus(
-        id, 
-        updateTableStatusDto.status, 
-        req.user.role
+        id,
+        updateTableStatusDto.status,
+        req.user.role,
       );
     } catch (error) {
       // Use logger or handle specific error types as needed
@@ -115,6 +129,7 @@ export class TablesController {
   }
 
   @Get(':id/qr-code')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.STAFF)
   async generateQrCode(
     @Param('id', ParseUUIDPipe) id: string,
