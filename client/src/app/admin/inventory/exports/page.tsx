@@ -2,6 +2,7 @@
 
 import React from 'react';
 import AdminLayout from '@/app/layouts/AdminLayout';
+import ExportStatsCards from './components/ExportStatsCards';
 import { 
   Table, 
   Button, 
@@ -14,8 +15,7 @@ import {
   Input, 
   Spin, 
   Alert, 
-  Tooltip,
-  Badge
+  Tooltip
 } from 'antd';
 import { 
   PlusOutlined, 
@@ -191,14 +191,13 @@ const AdminExportsList: React.FC = () => {
           <Title level={4}>Quản lý xuất kho</Title>
           <Text type="secondary">Danh sách các phiếu xuất kho</Text>
         </div>
-        <div className="mt-2 sm:mt-0">
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />} 
-            onClick={() => router.push('/admin/inventory/exports/create')}
-          >
-            Tạo phiếu xuất mới
-          </Button>
+        <div className="mt-2 sm:mt-0">            <Button 
+              type="primary" 
+              icon={<PlusOutlined />} 
+              onClick={() => router.push('/admin/inventory/exports/create')}
+            >
+              Tạo phiếu xuất mới
+            </Button>
         </div>
       </div>
       
@@ -263,6 +262,7 @@ export default function AdminExportsPage() {
   return (
     <AdminLayout title="Quản lý xuất kho">
       <div className="p-6">
+        <ExportStatsCards />
         <AdminExportsList />
       </div>
     </AdminLayout>

@@ -149,8 +149,8 @@ export interface CreateExportDto {
   reason: 'usage' | 'damaged' | 'expired' | 'other';
   notes?: string;
   items: {
-    batch_id: string;
-    ingredient_id: string;
+    batchId: string;
+    ingredientId: string;
     quantity: number;
   }[];
 }
