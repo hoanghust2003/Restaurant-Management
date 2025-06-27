@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository, IsNull, LessThan, MoreThan } from 'typeorm';
 import { IngredientExport } from '../entities/ingredient-export.entity'; // Corrected path
@@ -20,41 +24,64 @@ export class IngredientExportsService {
     private readonly dataSource: DataSource,
   ) {}
 
-  private async allocateBatchesForIngredient(ingredientId: string, quantity: number) {
+  private async allocateBatchesForIngredient(
+    ingredientId: string,
+    quantity: number,
+  ) {
     const today = new Date();
 
-    // Get available batches sorted by expiry date (FIFO)
+    // Get available batches sorted by expiry date (FIFO - First In, First Out)
+    // Prioritize batches that expire soonest to reduce waste
     const availableBatches = await this.batchRepository.find({
       where: {
-        ingredientId: ingredientId, // Corrected field name
-        status: BatchStatus.AVAILABLE, // Added status check
-        remaining_quantity: MoreThan(0), // Corrected operator
-        expiry_date: MoreThan(today), // Corrected operator for non-expired
-        deleted_at: IsNull(), // Corrected for soft delete check
+        ingredientId: ingredientId,
+        status: BatchStatus.AVAILABLE,
+        remaining_quantity: MoreThan(0),
+        expiry_date: MoreThan(today), // Only non-expired batches
+        deleted_at: IsNull(),
       },
       order: {
-        expiry_date: 'ASC',
-        created_at: 'ASC', // Added for tie-breaking
+        expiry_date: 'ASC', // Expiry date first (FIFO based on expiry)
+        created_at: 'ASC', // Then by creation time for tie-breaking
       },
     });
+
+    if (availableBatches.length === 0) {
+      throw new BadRequestException(
+        `Không có lô hàng khả dụng cho nguyên liệu ${ingredientId}`,
+      );
+    }
 
     const allocations: { batchId: string; quantity: number }[] = [];
     let remainingQuantity = quantity;
 
+    // Allocate from earliest expiring batches first
     for (const batch of availableBatches) {
       if (remainingQuantity <= 0) break;
 
-      const allocationQuantity = Math.min(batch.remaining_quantity, remainingQuantity);
-      allocations.push({
-        batchId: batch.id,
-        quantity: allocationQuantity,
-      });
+      const allocationQuantity = Math.min(
+        batch.remaining_quantity,
+        remainingQuantity,
+      );
 
-      remainingQuantity -= allocationQuantity;
+      if (allocationQuantity > 0) {
+        allocations.push({
+          batchId: batch.id,
+          quantity: allocationQuantity,
+        });
+
+        remainingQuantity -= allocationQuantity;
+      }
     }
 
     if (remainingQuantity > 0) {
-      throw new BadRequestException(`Không đủ số lượng nguyên liệu trong kho`);
+      const totalAvailable = availableBatches.reduce(
+        (sum, batch) => sum + batch.remaining_quantity,
+        0,
+      );
+      throw new BadRequestException(
+        `Không đủ số lượng nguyên liệu trong kho. Cần: ${quantity}, Có sẵn: ${totalAvailable}`,
+      );
     }
 
     return allocations;
@@ -86,7 +113,6 @@ export class IngredientExportsService {
         const allocatedBatchSummaries = await this.allocateBatchesForIngredient(
           item.ingredientId,
           item.quantity,
-          // queryRunner, // Removed queryRunner from here
         );
 
         if (allocatedBatchSummaries.length === 0) {
@@ -130,7 +156,7 @@ export class IngredientExportsService {
 
           actualBatch.remaining_quantity -= quantityFromThisBatch;
           if (actualBatch.remaining_quantity < 0) {
-             // This should ideally be caught by allocateBatchesForIngredient or earlier checks
+            // This should ideally be caught by allocateBatchesForIngredient or earlier checks
             throw new Error('Số lượng còn lại của lô hàng không thể âm.');
           }
           if (actualBatch.remaining_quantity === 0) {
@@ -174,7 +200,10 @@ export class IngredientExportsService {
     });
   }
 
-  async findOne(id: string, includeDeleted: boolean = false): Promise<IngredientExport> {
+  async findOne(
+    id: string,
+    includeDeleted: boolean = false,
+  ): Promise<IngredientExport> {
     const exportRecord = await this.exportRepository.findOne({
       where: { id, deleted_at: includeDeleted ? undefined : IsNull() }, // Corrected: use IsNull()
       relations: ['items', 'items.ingredient', 'items.batch', 'created_by'],

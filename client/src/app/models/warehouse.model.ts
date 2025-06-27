@@ -147,7 +147,7 @@ export interface CreateExportDto {
   reference_number?: string;
   export_date: Date;
   reason: 'usage' | 'damaged' | 'expired' | 'other';
-  notes?: string;
+  description?: string;
   items: {
     batchId: string;
     ingredientId: string;

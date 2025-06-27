@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan, IsNull } from 'typeorm';
 import { Batch } from '../entities/batch.entity';
@@ -48,8 +53,9 @@ export class BatchesService {
   async findAll(includeDeleted: boolean = false): Promise<Batch[]> {
     try {
       this.logger.log('Getting all batches');
-      
-      const queryBuilder = this.batchRepository.createQueryBuilder('batch')
+
+      const queryBuilder = this.batchRepository
+        .createQueryBuilder('batch')
         .leftJoinAndSelect('batch.ingredient', 'ingredient')
         .leftJoinAndSelect('batch.import', 'import');
 
@@ -58,7 +64,7 @@ export class BatchesService {
       }
 
       const batches = await queryBuilder.getMany();
-      
+
       // Update status of all batches
       for (const batch of batches) {
         await this.updateBatchStatus(batch);
@@ -66,7 +72,10 @@ export class BatchesService {
 
       return batches;
     } catch (error) {
-      this.logger.error(`Error getting all batches: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error getting all batches: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -74,8 +83,9 @@ export class BatchesService {
   async findOne(id: string, includeDeleted: boolean = false): Promise<Batch> {
     try {
       this.logger.log(`Getting batch with id ${id}`);
-      
-      const queryBuilder = this.batchRepository.createQueryBuilder('batch')
+
+      const queryBuilder = this.batchRepository
+        .createQueryBuilder('batch')
         .leftJoinAndSelect('batch.ingredient', 'ingredient')
         .leftJoinAndSelect('batch.import', 'import')
         .where('batch.id = :id', { id });
@@ -95,40 +105,54 @@ export class BatchesService {
 
       return batch;
     } catch (error) {
-      this.logger.error(`Error getting batch ${id}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error getting batch ${id}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
 
-  async create(createBatchDto: CreateBatchDto, userRole: UserRole): Promise<Batch> {
+  async create(
+    createBatchDto: CreateBatchDto,
+    userRole: UserRole,
+  ): Promise<Batch> {
     try {
       // Check permission
       if (userRole !== UserRole.ADMIN && userRole !== UserRole.WAREHOUSE) {
-        this.logger.warn(`User with role ${userRole} attempted to create a batch`);
-        throw new BadRequestException('Only admin or warehouse can create batches');
+        this.logger.warn(
+          `User with role ${userRole} attempted to create a batch`,
+        );
+        throw new BadRequestException(
+          'Only admin or warehouse can create batches',
+        );
       }
 
       // Check if ingredient exists
-      const ingredient = await this.ingredientRepository.findOne({ 
-        where: { id: createBatchDto.ingredientId, deleted_at: undefined } 
+      const ingredient = await this.ingredientRepository.findOne({
+        where: { id: createBatchDto.ingredientId, deleted_at: undefined },
       });
-      
+
       if (!ingredient) {
-        throw new NotFoundException(`Ingredient with id ${createBatchDto.ingredientId} not found`);
+        throw new NotFoundException(
+          `Ingredient with id ${createBatchDto.ingredientId} not found`,
+        );
       }
 
       // Check if import exists
-      const importRecord = await this.importRepository.findOne({ 
-        where: { id: createBatchDto.importId } 
+      const importRecord = await this.importRepository.findOne({
+        where: { id: createBatchDto.importId },
       });
-      
+
       if (!importRecord) {
-        throw new NotFoundException(`Import with id ${createBatchDto.importId} not found`);
+        throw new NotFoundException(
+          `Import with id ${createBatchDto.importId} not found`,
+        );
       }
 
       this.logger.log(`Creating new batch for ingredient ${ingredient.name}`);
       const batch = this.batchRepository.create(createBatchDto);
-      
+
       return await this.batchRepository.save(batch);
     } catch (error) {
       this.logger.error(`Error creating batch: ${error.message}`, error.stack);
@@ -136,32 +160,51 @@ export class BatchesService {
     }
   }
 
-  async update(id: string, updateBatchDto: UpdateBatchDto, userRole: UserRole): Promise<Batch> {
+  async update(
+    id: string,
+    updateBatchDto: UpdateBatchDto,
+    userRole: UserRole,
+  ): Promise<Batch> {
     try {
       // Check permission
       if (userRole !== UserRole.ADMIN && userRole !== UserRole.WAREHOUSE) {
-        this.logger.warn(`User with role ${userRole} attempted to update batch ${id}`);
-        throw new BadRequestException('Only admin or warehouse can update batches');
+        this.logger.warn(
+          `User with role ${userRole} attempted to update batch ${id}`,
+        );
+        throw new BadRequestException(
+          'Only admin or warehouse can update batches',
+        );
       }
 
       // Check if batch exists
       const batch = await this.findOne(id);
-      
+
       // Cannot update the import ID or ingredient ID after creation
-      if (updateBatchDto.importId && updateBatchDto.importId !== batch.importId) {
+      if (
+        updateBatchDto.importId &&
+        updateBatchDto.importId !== batch.importId
+      ) {
         throw new BadRequestException('Cannot update the import ID of a batch');
       }
 
-      if (updateBatchDto.ingredientId && updateBatchDto.ingredientId !== batch.ingredientId) {
-        throw new BadRequestException('Cannot update the ingredient ID of a batch');
+      if (
+        updateBatchDto.ingredientId &&
+        updateBatchDto.ingredientId !== batch.ingredientId
+      ) {
+        throw new BadRequestException(
+          'Cannot update the ingredient ID of a batch',
+        );
       }
 
       this.logger.log(`Updating batch ${id}`);
       this.batchRepository.merge(batch, updateBatchDto);
-      
+
       return await this.batchRepository.save(batch);
     } catch (error) {
-      this.logger.error(`Error updating batch ${id}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error updating batch ${id}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -170,8 +213,12 @@ export class BatchesService {
     try {
       // Check permission
       if (userRole !== UserRole.ADMIN && userRole !== UserRole.WAREHOUSE) {
-        this.logger.warn(`User with role ${userRole} attempted to delete batch ${id}`);
-        throw new BadRequestException('Only admin or warehouse can delete batches');
+        this.logger.warn(
+          `User with role ${userRole} attempted to delete batch ${id}`,
+        );
+        throw new BadRequestException(
+          'Only admin or warehouse can delete batches',
+        );
       }
 
       // Check if batch exists
@@ -179,10 +226,13 @@ export class BatchesService {
 
       this.logger.log(`Soft deleting batch ${id}`);
       const result = await this.batchRepository.softDelete(id);
-      
+
       return result.affected !== undefined && result.affected > 0;
     } catch (error) {
-      this.logger.error(`Error deleting batch ${id}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error deleting batch ${id}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -191,23 +241,30 @@ export class BatchesService {
     try {
       // Check permission
       if (userRole !== UserRole.ADMIN && userRole !== UserRole.WAREHOUSE) {
-        this.logger.warn(`User with role ${userRole} attempted to restore batch ${id}`);
-        throw new BadRequestException('Only admin or warehouse can restore batches');
+        this.logger.warn(
+          `User with role ${userRole} attempted to restore batch ${id}`,
+        );
+        throw new BadRequestException(
+          'Only admin or warehouse can restore batches',
+        );
       }
 
       // Check if batch exists but is deleted
       const batch = await this.findOne(id, true);
-      
+
       if (!batch.deleted_at) {
         throw new BadRequestException(`Batch with id ${id} is not deleted`);
       }
 
       this.logger.log(`Restoring batch ${id}`);
       await this.batchRepository.restore(id);
-      
+
       return await this.findOne(id);
     } catch (error) {
-      this.logger.error(`Error restoring batch ${id}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error restoring batch ${id}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -215,13 +272,14 @@ export class BatchesService {
   async getExpiringBatches(daysThreshold: number = 7): Promise<Batch[]> {
     try {
       this.logger.log(`Getting batches expiring within ${daysThreshold} days`);
-      
+
       const warningDate = new Date();
       warningDate.setDate(warningDate.getDate() + daysThreshold);
-      
+
       const expiryDate = new Date();
-      
-      const batches = await this.batchRepository.createQueryBuilder('batch')
+
+      const batches = await this.batchRepository
+        .createQueryBuilder('batch')
         .leftJoinAndSelect('batch.ingredient', 'ingredient')
         .where('batch.deleted_at IS NULL')
         .andWhere('batch.remaining_quantity > 0')
@@ -231,18 +289,24 @@ export class BatchesService {
 
       return batches;
     } catch (error) {
-      this.logger.error(`Error getting expiring batches: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error getting expiring batches: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
 
-  async getBatchesByStatus(status: BatchStatus | BatchStatus[]): Promise<Batch[]> {
+  async getBatchesByStatus(
+    status: BatchStatus | BatchStatus[],
+  ): Promise<Batch[]> {
     try {
       this.logger.log(`Getting batches with status ${status}`);
-      
+
       const statuses = Array.isArray(status) ? status : [status];
-      
-      const batches = await this.batchRepository.createQueryBuilder('batch')
+
+      const batches = await this.batchRepository
+        .createQueryBuilder('batch')
         .leftJoinAndSelect('batch.ingredient', 'ingredient')
         .where('batch.deleted_at IS NULL')
         .andWhere('batch.status IN (:...statuses)', { statuses })
@@ -250,26 +314,32 @@ export class BatchesService {
 
       return batches;
     } catch (error) {
-      this.logger.error(`Error getting batches by status: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error getting batches by status: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
 
   /**
    * Get available batches for an ingredient sorted by expiry date (FIFO)
+   * Bao gồm việc lọc theo status available và không hết hạn
    */
   async getAvailableBatchesForIngredient(ingredientId: string) {
     const today = new Date();
-    
+
     return this.batchRepository.find({
       where: {
         ingredientId,
-        expiry_date: MoreThan(today),
-        remaining_quantity: MoreThan(0),
-        deleted_at: IsNull(),
+        status: BatchStatus.AVAILABLE, // Only available batches
+        expiry_date: MoreThan(today), // Not expired
+        remaining_quantity: MoreThan(0), // Has remaining quantity
+        deleted_at: IsNull(), // Not soft deleted
       },
       order: {
-        expiry_date: 'ASC', // First Expiry First Out
+        expiry_date: 'ASC', // First Expiry First Out (FIFO)
+        created_at: 'ASC', // Tiebreaker by creation date
       },
       relations: ['ingredient', 'import'],
     });
@@ -278,53 +348,66 @@ export class BatchesService {
   /**
    * Allocate quantity from available batches using FIFO strategy
    */
-  async allocateIngredientQuantity(ingredientId: string, requiredQuantity: number) {
+  async allocateIngredientQuantity(
+    ingredientId: string,
+    requiredQuantity: number,
+  ) {
     const allocations: { batchId: string; quantity: number }[] = [];
     let remainingQuantity = requiredQuantity;
-    
+
     // Get available batches sorted by expiry date
-    const availableBatches = await this.getAvailableBatchesForIngredient(ingredientId);
-    
+    const availableBatches =
+      await this.getAvailableBatchesForIngredient(ingredientId);
+
     for (const batch of availableBatches) {
       if (remainingQuantity <= 0) break;
-      
-      const quantityFromBatch = Math.min(batch.remaining_quantity, remainingQuantity);
-      
+
+      const quantityFromBatch = Math.min(
+        batch.remaining_quantity,
+        remainingQuantity,
+      );
+
       if (quantityFromBatch > 0) {
         allocations.push({
           batchId: batch.id,
           quantity: quantityFromBatch,
         });
-        
+
         remainingQuantity -= quantityFromBatch;
       }
     }
-    
+
     // Check if we can fulfill the entire quantity
     if (remainingQuantity > 0) {
-      throw new BadRequestException(`Insufficient stock for ingredient. Missing ${remainingQuantity} units`);
+      throw new BadRequestException(
+        `Insufficient stock for ingredient. Missing ${remainingQuantity} units`,
+      );
     }
-    
+
     return allocations;
   }
 
   /**
    * Update remaining quantities after allocation
    */
-  async updateBatchQuantities(allocations: { batchId: string; quantity: number }[]) {
+  async updateBatchQuantities(
+    allocations: { batchId: string; quantity: number }[],
+  ) {
     for (const allocation of allocations) {
       const batch = await this.batchRepository.findOne({
-        where: { id: allocation.batchId }
+        where: { id: allocation.batchId },
       });
-      
+
       if (!batch) {
         throw new NotFoundException(`Batch ${allocation.batchId} not found`);
       }
-      
+
       if (batch.remaining_quantity < allocation.quantity) {
-        throw new BadRequestException(`Insufficient quantity in batch ${batch.id}`);
+        throw new BadRequestException(
+          `Insufficient quantity in batch ${batch.id}`,
+        );
       }
-      
+
       batch.remaining_quantity -= allocation.quantity;
       await this.batchRepository.save(batch);
       await this.updateBatchStatus(batch);
@@ -336,14 +419,19 @@ export class BatchesService {
    */
   async getAvailableQuantity(ingredientId: string): Promise<number> {
     const batches = await this.getAvailableBatchesForIngredient(ingredientId);
-    return batches.reduce((total, batch) => total + batch.remaining_quantity, 0);
+    return batches.reduce(
+      (total, batch) => total + batch.remaining_quantity,
+      0,
+    );
   }
 
   /**
    * Check if ingredient is below minimum stock quantity
    */
   async checkStock(ingredientId: string): Promise<boolean> {
-    const ingredient = await this.ingredientRepository.findOne({ where: { id: ingredientId } });
+    const ingredient = await this.ingredientRepository.findOne({
+      where: { id: ingredientId },
+    });
     if (!ingredient) {
       throw new NotFoundException('Nguyên liệu không tồn tại');
     }
@@ -351,16 +439,26 @@ export class BatchesService {
     return availableQuantity <= ingredient.threshold;
   }
 
-  async getLowStockIngredients(): Promise<{ ingredient: Ingredient; availableQuantity: number; minStockQuantity: number; }[]> {
+  async getLowStockIngredients(): Promise<
+    {
+      ingredient: Ingredient;
+      availableQuantity: number;
+      minStockQuantity: number;
+    }[]
+  > {
     const ingredients = await this.ingredientRepository.find();
-    const lowStockIngredients: { ingredient: Ingredient; availableQuantity: number; minStockQuantity: number; }[] = []; // Explicitly typed
+    const lowStockIngredients: {
+      ingredient: Ingredient;
+      availableQuantity: number;
+      minStockQuantity: number;
+    }[] = []; // Explicitly typed
     for (const ingredient of ingredients) {
       const availableQuantity = await this.getAvailableQuantity(ingredient.id);
       if (availableQuantity <= ingredient.threshold) {
         lowStockIngredients.push({
           ingredient,
           availableQuantity,
-          minStockQuantity: ingredient.threshold, 
+          minStockQuantity: ingredient.threshold,
         });
       }
     }
@@ -372,13 +470,19 @@ export class BatchesService {
     const warningDate = new Date();
     warningDate.setDate(today.getDate() + 7); // Notify for batches expiring within 7 days
 
-    return this.batchRepository.createQueryBuilder('batch')
-      .where('batch.expiry_date BETWEEN :today AND :warningDate', { today, warningDate })
+    return this.batchRepository
+      .createQueryBuilder('batch')
+      .where('batch.expiry_date BETWEEN :today AND :warningDate', {
+        today,
+        warningDate,
+      })
       .andWhere('batch.status = :status', { status: BatchStatus.AVAILABLE })
       .getMany();
   }
 
   async markBatchesAsNotified(batchIds: string[]): Promise<void> {
-    this.logger.log(`Batches marked as notified (conceptually): ${batchIds.join(', ')}`);
+    this.logger.log(
+      `Batches marked as notified (conceptually): ${batchIds.join(', ')}`,
+    );
   }
 }

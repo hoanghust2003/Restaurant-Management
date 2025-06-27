@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, Request, Delete, Patch } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+  Delete,
+  Patch,
+} from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -52,7 +63,10 @@ export class InventoryController {
   @Get('imports/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
-  async getImportById(@Param('id') id: string, @Query('includeDeleted') includeDeleted?: string) {
+  async getImportById(
+    @Param('id') id: string,
+    @Query('includeDeleted') includeDeleted?: string,
+  ) {
     const include = includeDeleted === 'true';
     return this.inventoryService.getImportById(id, include);
   }
@@ -98,7 +112,10 @@ export class InventoryController {
   @Get('exports/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
-  async getExportById(@Param('id') id: string, @Query('includeDeleted') includeDeleted?: string) {
+  async getExportById(
+    @Param('id') id: string,
+    @Query('includeDeleted') includeDeleted?: string,
+  ) {
     const include = includeDeleted === 'true';
     return this.inventoryService.getExportById(id, include);
   }
@@ -107,7 +124,7 @@ export class InventoryController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async createExport(@Body() createExportDto: CreateExportDto, @Request() req) {
-    return this.inventoryService.createExport(createExportDto, req.user.id);
+    return this.inventoryService.createExport(createExportDto, req.user.userId);
   }
 
   @Delete('exports/:id')
@@ -137,7 +154,10 @@ export class InventoryController {
   @Get('batches/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.WAREHOUSE, UserRole.CHEF)
-  async getBatchById(@Param('id') id: string, @Query('includeDeleted') includeDeleted?: string) {
+  async getBatchById(
+    @Param('id') id: string,
+    @Query('includeDeleted') includeDeleted?: string,
+  ) {
     const include = includeDeleted === 'true';
     return this.inventoryService.getBatchById(id, include);
   }
@@ -152,15 +172,27 @@ export class InventoryController {
   @Get('import-history')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
-  async getImportHistory(@Query('startDate') startDate: string, @Query('endDate') endDate: string) {
-    return this.inventoryService.getImportHistory(new Date(startDate), new Date(endDate));
+  async getImportHistory(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ) {
+    return this.inventoryService.getImportHistory(
+      new Date(startDate),
+      new Date(endDate),
+    );
   }
 
   @Get('export-history')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
-  async getExportHistory(@Query('startDate') startDate: string, @Query('endDate') endDate: string) {
-    return this.inventoryService.getExportHistory(new Date(startDate), new Date(endDate));
+  async getExportHistory(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ) {
+    return this.inventoryService.getExportHistory(
+      new Date(startDate),
+      new Date(endDate),
+    );
   }
 
   @Get('costs')
@@ -168,14 +200,16 @@ export class InventoryController {
   @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async getInventoryCosts(
     @Query('start') startDate: string,
-    @Query('end') endDate: string
+    @Query('end') endDate: string,
   ) {
-    const start = startDate ? new Date(startDate) : new Date(new Date().setMonth(new Date().getMonth() - 1));
+    const start = startDate
+      ? new Date(startDate)
+      : new Date(new Date().setMonth(new Date().getMonth() - 1));
     const end = endDate ? new Date(endDate) : new Date();
     return this.inventoryService.calculateInventoryCosts(start, end);
   }
 
-  @Get('stock-value') 
+  @Get('stock-value')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   async getStockValue() {

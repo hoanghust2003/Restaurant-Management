@@ -80,8 +80,13 @@ const MultiBatchExportForm: React.FC<MultiBatchExportFormProps> = ({
       setLoading(prev => ({ ...prev, ingredients: true }));
       const data = await ingredientService.getAll();
       
+      console.log('Loaded ingredients with quantities:', data); // Debug log
+      
       // Filter ingredients that have available stock
       const availableIngredients = data.filter((ing: IngredientModel) => (ing.current_quantity || 0) > 0);
+      
+      console.log('Available ingredients:', availableIngredients); // Debug log
+      
       setIngredients(availableIngredients);
       setError(null);
     } catch (err: any) {
@@ -233,7 +238,7 @@ const MultiBatchExportForm: React.FC<MultiBatchExportFormProps> = ({
         reference_number: values.reference_number,
         export_date: values.export_date.toDate(),
         reason: values.reason,
-        notes: values.notes,
+        description: values.notes,
         items: exportItems.flatMap((item: IngredientExportItem) => 
           Object.values(item.batches).map((batchData) => ({
             batchId: (batchData as { batch: BatchModel; quantity: number }).batch.id,

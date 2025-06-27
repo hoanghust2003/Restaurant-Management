@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Param, Body, Query, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -22,7 +31,7 @@ export class IngredientImportsController {
   @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   findOne(
     @Param('id') id: string,
-    @Query('includeDeleted') includeDeleted?: string
+    @Query('includeDeleted') includeDeleted?: string,
   ) {
     const include = includeDeleted === 'true';
     return this.importsService.findOne(id, include);
@@ -31,6 +40,6 @@ export class IngredientImportsController {
   @Post()
   @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   create(@Body() createImportDto: CreateImportDto, @Request() req) {
-    return this.importsService.create(req.user.id, createImportDto);
+    return this.importsService.create(req.user.userId, createImportDto);
   }
 }

@@ -16,19 +16,21 @@ export const ingredientService = {  /**
     // Tạo cache key có tính đến tham số includeDeleted
     const url = includeDeleted ? `${API_URL}?includeDeleted=true` : API_URL;
     
-    // Sử dụng cache để cải thiện hiệu suất
-    const cachedResult = requestCache.get(url);
-    if (cachedResult) {
-      return cachedResult;
-    }
+    // Tạm thời tắt cache để debug
+    // const cachedResult = requestCache.get(url);
+    // if (cachedResult) {
+    //   return cachedResult;
+    // }
 
     const response = await axios.get(url);
     const data = response.data;
     
+    console.log('Raw API response for ingredients:', data); // Debug log
+    
     // Nếu includeDeleted=true, trả về tất cả, nếu không, lọc bỏ các bản ghi đã xóa
     const filteredData = includeDeleted ? data : data.filter((item: IngredientModel) => !item.deleted_at);
     
-    requestCache.set(url, filteredData);
+    // requestCache.set(url, filteredData); // Tạm thời tắt cache
     return filteredData;
   },
 
