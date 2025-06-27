@@ -1,11 +1,32 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, Req, UseGuards, ParseUUIDPipe, HttpStatus, HttpCode } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+  Query,
+  Req,
+  UseGuards,
+  ParseUUIDPipe,
+  HttpStatus,
+  HttpCode,
+} from '@nestjs/common';
 import { BatchesService } from './batches.service';
 import { CreateBatchDto, UpdateBatchDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../enums/user-role.enum';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 @ApiTags('batches')
 @Controller('batches')
@@ -18,8 +39,19 @@ export class BatchesController {
   @Roles(UserRole.ADMIN, UserRole.WAREHOUSE)
   @ApiOperation({ summary: 'Get all batches' })
   @ApiResponse({ status: 200, description: 'Returns all batches' })
-  async findAll(@Query('include_deleted') includeDeleted: boolean = false) {
-    return await this.batchesService.findAll(includeDeleted);
+  async findAll(
+    @Query('include_deleted') includeDeleted: boolean = false,
+    @Query('ingredient_id') ingredientId?: string,
+    @Query('supplier_id') supplierId?: string,
+    @Query('status') status?: string,
+    @Query('expiring_soon') expiringSoon?: boolean,
+  ) {
+    return await this.batchesService.findAll(includeDeleted, {
+      ingredient_id: ingredientId,
+      supplier_id: supplierId,
+      status,
+      expiring_soon: expiringSoon,
+    });
   }
 
   @Get('expiring')
@@ -45,7 +77,7 @@ export class BatchesController {
   @ApiResponse({ status: 404, description: 'Batch not found' })
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
-    @Query('include_deleted') includeDeleted: boolean = false
+    @Query('include_deleted') includeDeleted: boolean = false,
   ) {
     return await this.batchesService.findOne(id, includeDeleted);
   }
@@ -68,7 +100,7 @@ export class BatchesController {
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateBatchDto: UpdateBatchDto,
-    @Req() req
+    @Req() req,
   ) {
     return await this.batchesService.update(id, updateBatchDto, req.user.role);
   }

@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/require-await */
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import {
   Injectable,
   NotFoundException,
@@ -50,18 +53,58 @@ export class BatchesService {
     }
   }
 
-  async findAll(includeDeleted: boolean = false): Promise<Batch[]> {
+  async findAll(
+    includeDeleted: boolean = false,
+    filters?: {
+      ingredient_id?: string;
+      supplier_id?: string;
+      status?: string;
+      expiring_soon?: boolean;
+    },
+  ): Promise<Batch[]> {
     try {
-      this.logger.log('Getting all batches');
+      this.logger.log('Getting all batches with filters:', filters);
 
       const queryBuilder = this.batchRepository
         .createQueryBuilder('batch')
         .leftJoinAndSelect('batch.ingredient', 'ingredient')
-        .leftJoinAndSelect('batch.import', 'import');
+        .leftJoinAndSelect('batch.import', 'import')
+        .leftJoinAndSelect('import.supplier', 'supplier');
 
       if (!includeDeleted) {
-        queryBuilder.where('batch.deleted_at IS NULL');
+        queryBuilder.andWhere('batch.deleted_at IS NULL');
       }
+
+      // Apply filters
+      if (filters) {
+        if (filters.ingredient_id) {
+          queryBuilder.andWhere('batch.ingredientId = :ingredientId', {
+            ingredientId: filters.ingredient_id,
+          });
+        }
+
+        if (filters.supplier_id) {
+          queryBuilder.andWhere('import.supplierId = :supplierId', {
+            supplierId: filters.supplier_id,
+          });
+        }
+
+        if (filters.status) {
+          queryBuilder.andWhere('batch.status = :status', {
+            status: filters.status,
+          });
+        }
+
+        if (filters.expiring_soon) {
+          const sevenDaysFromNow = new Date();
+          sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+          queryBuilder.andWhere('batch.expiry_date <= :expiryDate', {
+            expiryDate: sevenDaysFromNow,
+          });
+        }
+      }
+
+      queryBuilder.orderBy('batch.expiry_date', 'ASC');
 
       const batches = await queryBuilder.getMany();
 
@@ -70,12 +113,10 @@ export class BatchesService {
         await this.updateBatchStatus(batch);
       }
 
+      this.logger.log(`Found ${batches.length} batches matching filters`);
       return batches;
     } catch (error) {
-      this.logger.error(
-        `Error getting all batches: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Error getting batches: ${error.message}`, error.stack);
       throw error;
     }
   }

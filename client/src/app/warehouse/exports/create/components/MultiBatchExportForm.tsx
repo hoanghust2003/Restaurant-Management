@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Form,
   Button,
@@ -16,16 +16,12 @@ import {
   DatePicker,
   Input,
   Collapse,
-  Table,
 } from 'antd';
 import { useRouter } from 'next/navigation';
 import { 
   MinusCircleOutlined, 
-  PlusOutlined, 
   SaveOutlined, 
   ArrowLeftOutlined,
-  InfoCircleOutlined,
-  WarningOutlined,
 } from '@ant-design/icons';
 import { ingredientService } from '@/app/services/ingredient.service';
 import { exportService, batchService } from '@/app/services/warehouse.service';
@@ -67,62 +63,14 @@ const MultiBatchExportForm: React.FC<MultiBatchExportFormProps> = ({
     batches: false,
     submitting: false,
   });
+  const [batchesLoading, setBatchesLoading] = useState<{[ingredientId: string]: boolean}>({});
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchIngredients();
   }, []);
 
-  useEffect(() => {
-    if (initialIngredientId && ingredients.length > 0) {
-      addIngredientToExport(initialIngredientId);
-    }
-  }, [initialIngredientId, ingredients]);
-
-  const fetchIngredients = async () => {
-    try {
-      setLoading(prev => ({ ...prev, ingredients: true }));
-      const data = await ingredientService.getAll();
-      
-      // Filter ingredients that have available stock
-      const availableIngredients = data.filter(ing => (ing.current_quantity || 0) > 0);
-      setIngredients(availableIngredients);
-      setError(null);
-    } catch (err: any) {
-      console.error('Error fetching ingredients:', err);
-      setError('Không thể tải danh sách nguyên liệu');
-    } finally {
-      setLoading(prev => ({ ...prev, ingredients: false }));
-    }
-  };
-
-  const fetchBatches = async (ingredientId: string) => {
-    try {
-      setLoading(prev => ({ ...prev, batches: true }));
-      
-      const data = await batchService.getAll({ 
-        ingredient_id: ingredientId,
-        status: 'available'
-      });
-      
-      // Only keep batches with remaining quantity > 0
-      const validBatches = data.filter(batch => batch.remaining_quantity > 0);
-      
-      setAvailableBatches(prev => ({
-        ...prev,
-        [ingredientId]: validBatches
-      }));
-      
-      setError(null);
-    } catch (err: any) {
-      console.error('Error fetching batches:', err);
-      message.error('Không thể tải danh sách lô hàng');
-    } finally {
-      setLoading(prev => ({ ...prev, batches: false }));
-    }
-  };
-
-  const addIngredientToExport = async (ingredientId: string) => {
+  const addIngredientToExport = useCallback(async (ingredientId: string) => {
     const ingredient = ingredients.find(i => i.id === ingredientId);
     if (!ingredient) return;
 
@@ -143,6 +91,56 @@ const MultiBatchExportForm: React.FC<MultiBatchExportFormProps> = ({
     };
 
     setExportItems(prev => [...prev, newItem]);
+  }, [ingredients, exportItems]);
+
+  useEffect(() => {
+    if (initialIngredientId && ingredients.length > 0) {
+      addIngredientToExport(initialIngredientId);
+    }
+  }, [initialIngredientId, ingredients, addIngredientToExport]);
+
+  const fetchIngredients = async () => {
+    try {
+      setLoading(prev => ({ ...prev, ingredients: true }));
+      const data = await ingredientService.getAll();
+      
+      // Filter ingredients that have available stock
+      const availableIngredients = data.filter(ing => (ing.current_quantity || 0) > 0);
+      setIngredients(availableIngredients);
+      setError(null);
+    } catch (err: unknown) {
+      console.error('Error fetching ingredients:', err);
+      setError('Không thể tải danh sách nguyên liệu');
+    } finally {
+      setLoading(prev => ({ ...prev, ingredients: false }));
+    }
+  };
+
+  const fetchBatches = async (ingredientId: string) => {
+    try {
+      setBatchesLoading(prev => ({ ...prev, [ingredientId]: true }));
+      
+      const data = await batchService.getAll({ 
+        ingredient_id: ingredientId,
+        status: 'available'
+      });
+      
+      // Only keep batches with remaining quantity > 0
+      const validBatches = data.filter(batch => batch.remaining_quantity > 0);
+      
+      setAvailableBatches(prev => ({
+        ...prev,
+        [ingredientId]: validBatches
+      }));
+      
+      setError(null);
+    } catch (err: unknown) {
+      console.error('Error fetching batches:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Không thể tải danh sách lô hàng';
+      message.error(errorMessage);
+    } finally {
+      setBatchesLoading(prev => ({ ...prev, [ingredientId]: false }));
+    }
   };
 
   const removeIngredientFromExport = (ingredientId: string) => {
@@ -179,7 +177,12 @@ const MultiBatchExportForm: React.FC<MultiBatchExportFormProps> = ({
     );
   };
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: {
+    reference_number?: string;
+    export_date: moment.Moment;
+    reason: 'usage' | 'damaged' | 'expired' | 'other';
+    notes?: string;
+  }) => {
     try {
       setLoading(prev => ({ ...prev, submitting: true }));
 
@@ -237,7 +240,7 @@ const MultiBatchExportForm: React.FC<MultiBatchExportFormProps> = ({
         reference_number: values.reference_number,
         export_date: values.export_date.toDate(),
         reason: values.reason,
-        notes: values.notes,
+        description: values.notes,
         items: exportItems.flatMap((item: IngredientExportItem) => 
           Object.values(item.batches).map((batchData) => ({
             batchId: (batchData as { batch: BatchModel; quantity: number }).batch.id,
@@ -254,9 +257,10 @@ const MultiBatchExportForm: React.FC<MultiBatchExportFormProps> = ({
       
       // Navigate to export details
       router.push(`/warehouse/exports/${result.id}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error creating export:', err);
-      message.error(`Lỗi: ${err.message || 'Không thể tạo phiếu xuất kho'}`);
+      const errorMessage = err instanceof Error ? err.message : 'Không thể tạo phiếu xuất kho';
+      message.error(`Lỗi: ${errorMessage}`);
     } finally {
       setLoading((prev: typeof loading) => ({ ...prev, submitting: false }));
     }
@@ -382,8 +386,8 @@ const MultiBatchExportForm: React.FC<MultiBatchExportFormProps> = ({
                   placeholder="Chọn nguyên liệu để thêm vào danh sách xuất"
                   style={{ width: '100%' }}
                   showSearch
-                  filterOption={(input: string, option: any) =>
-                    (option?.children as string)?.toLowerCase().includes(input.toLowerCase())
+                  filterOption={(input, option) =>
+                    option?.children?.toString().toLowerCase().includes(input.toLowerCase()) ?? false
                   }
                   onChange={addIngredientToExport}
                   value={undefined}
@@ -448,7 +452,7 @@ const MultiBatchExportForm: React.FC<MultiBatchExportFormProps> = ({
                       Chọn số lượng cần xuất từ mỗi lô. Tổng có sẵn: {item.ingredient?.current_quantity || 0} {item.ingredient?.unit}
                     </Text>
 
-                    {loading.batches ? (
+                    {batchesLoading[item.ingredient_id] ? (
                       <div className="text-center py-4">Đang tải thông tin lô hàng...</div>
                     ) : (
                       <div className="space-y-3">
