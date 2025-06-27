@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   Injectable,
   Logger,
@@ -9,6 +13,7 @@ import { Repository, MoreThan } from 'typeorm';
 import { Ingredient } from '../entities/ingredient.entity';
 import { CreateIngredientDto, UpdateIngredientDto } from './dto';
 import { UserRole } from '../enums/user-role.enum';
+import { BatchStatus } from '../enums/batch-status.enum';
 import { Batch } from '../entities/batch.entity';
 
 @Injectable()
@@ -44,6 +49,7 @@ export class IngredientsService {
           const batches = await this.batchRepository.find({
             where: {
               ingredientId: ingredient.id,
+              status: BatchStatus.AVAILABLE, // Only count available batches
               remaining_quantity: MoreThan(0),
               // Only count non-expired batches for current quantity
               expiry_date: MoreThan(today),

@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import {  useRouter } from 'next/navigation';
 import { 
   Card, 
   Typography, 
@@ -80,9 +82,10 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      // Tải dữ liệu nguyên liệu
+      // Tải dữ liệu nguyên liệu (đã bao gồm current_quantity được tính từ backend)
       const ingredientData = await ingredientService.getById(ingredientId);
       setIngredient(ingredientData);
+      setTotalQuantity(ingredientData.current_quantity || 0);
       
       // Sau khi tải nguyên liệu, tải dữ liệu về các lô
       await fetchBatches(ingredientData.id);
@@ -116,10 +119,8 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
   }
 
   const calculateQuantities = () => {
-    // Tính tổng số lượng từ các lô còn khả dụng
+    // Tính toán các thống kê phụ từ dữ liệu lô hàng (để hiển thị)
     const available = batches.filter(batch => batch.status === 'available');
-    const total = available.reduce((sum, batch) => sum + batch.remaining_quantity, 0);
-    setTotalQuantity(total);
     setAvailableBatches(available);
     
     // Tính số lượng lô sắp hết hạn (30 ngày)
@@ -131,13 +132,7 @@ const IngredientDetail: React.FC<IngredientDetailProps> = ({ params }) => {
     });
     setExpiringBatches(expiring);
     
-    // Cập nhật dữ liệu nguyên liệu với số lượng mới
-    if (ingredient) {
-      setIngredient({
-        ...ingredient,
-        current_quantity: total
-      });
-    }
+    // Không tự tính current_quantity nữa - sử dụng từ backend
   };
 
   const handleEdit = () => {

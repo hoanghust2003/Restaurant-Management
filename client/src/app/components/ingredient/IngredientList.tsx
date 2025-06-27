@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Input, Space, Card, Typography, Tag, message, Modal, Popconfirm } from 'antd';
+import { Table, Button, Input, Space, Card, Typography, Tag, message, Popconfirm } from 'antd';
 import { 
   SearchOutlined, 
   PlusOutlined, 
@@ -14,7 +14,6 @@ import {
 import { useRouter } from 'next/navigation';
 import { IngredientModel } from '@/app/models/ingredient.model';
 import { ingredientService } from '@/app/services/ingredient.service';
-import { batchService } from '@/app/services/warehouse.service';
 import ImageWithFallback from '@/app/components/ImageWithFallback';
 
 const { Title } = Typography;
@@ -34,30 +33,14 @@ const IngredientList = () => {
       setLoading(true);
       const data = await ingredientService.getAll();
       
-      // Fetch batch data for each ingredient to calculate current quantity
-      const ingredientsWithStock = await Promise.all(
-        data.map(async (ingredient) => {
-          try {
-            const batches = await batchService.getAll({ ingredient_id: ingredient.id });
-            // Calculate total remaining quantity from all batches
-            const totalQuantity = batches.reduce(
-              (sum, batch) => sum + (batch.remaining_quantity || 0), 
-              0
-            );
-            
-            return {
-              ...ingredient,
-              current_quantity: totalQuantity
-            };
-          } catch (error) {
-            console.error(`Error fetching batches for ingredient ${ingredient.id}:`, error);
-            return ingredient;
-          }
-        })
-      );
-      
-      setIngredients(ingredientsWithStock);
-    } catch (error) {
+      // Backend đã tính toán sẵn current_quantity dựa trên tổng remaining_quantity 
+      // từ tất cả các lô available và chưa hết hạn - không cần tính toán lại
+      setIngredients(data.map(ingredient => ({
+        ...ingredient,
+        current_quantity: ingredient.current_quantity || 0
+      })));
+    } catch (error: unknown) {
+      console.error('Error fetching ingredients:', error);
       message.error('Không thể tải danh sách nguyên liệu');
     } finally {
       setLoading(false);
@@ -76,7 +59,7 @@ const IngredientList = () => {
       title: 'Ảnh',
       key: 'image',
       width: 90,
-      render: (_: any, record: IngredientModel) => (
+      render: (_: unknown, record: IngredientModel) => (
         <ImageWithFallback
           src={record.image_url}
           type="ingredients"
@@ -139,7 +122,7 @@ const IngredientList = () => {
       title: 'Thao tác',
       key: 'action',
       width: 300,
-      render: (_: any, record: IngredientModel) => (
+      render: (_: unknown, record: IngredientModel) => (
         <Space>
           <Button 
             type="primary"

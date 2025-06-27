@@ -7,7 +7,6 @@ import {
   Input, 
   Space, 
   Tag, 
-  Popconfirm, 
   message, 
   Card, 
   Typography,
@@ -31,7 +30,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { IngredientModel } from '@/app/models/ingredient.model';
 import { ingredientService } from '@/app/services/ingredient.service';
-import { batchService } from '@/app/services/warehouse.service';
 import ImageWithFallback from '@/app/components/ImageWithFallback';
 
 const { Title, Text } = Typography;
@@ -52,32 +50,12 @@ const IngredientList: React.FC = () => {
       setLoading(true);
       const data = await ingredientService.getAll();
       
-      // Tải thông tin chi tiết về lô hàng cho mỗi nguyên liệu để có dữ liệu chính xác
-      const ingredientsWithDetails = await Promise.all(
-        data.map(async (ingredient) => {
-          try {
-            // Lấy tất cả các lô còn available cho nguyên liệu
-            const batches = await batchService.getAll({ 
-              ingredient_id: ingredient.id,
-              status: 'available' 
-            });
-            
-            // Tính tổng số lượng từ các lô còn available
-            const totalQuantity = batches.reduce((sum, batch) => sum + batch.remaining_quantity, 0);
-            
-            return {
-              ...ingredient,
-              current_quantity: totalQuantity,
-              batches_count: batches.length
-            };
-          } catch (error) {
-            console.error(`Error fetching batches for ingredient ${ingredient.id}:`, error);
-            return ingredient;
-          }
-        })
-      );
-      
-      setIngredients(ingredientsWithDetails);
+      // Backend đã tính toán sẵn current_quantity dựa trên tổng remaining_quantity 
+      // từ tất cả các lô available và chưa hết hạn - không cần tính toán lại
+      setIngredients(data.map(ingredient => ({
+        ...ingredient,
+        current_quantity: ingredient.current_quantity || 0
+      })));
     } catch (error) {
       message.error('Không thể tải danh sách nguyên liệu');
       console.error('Error fetching ingredients:', error);
@@ -250,7 +228,7 @@ const IngredientList: React.FC = () => {
       title: 'Thao tác',
       key: 'action',
       width: 280,
-      render: (_: any, record: IngredientModel) => (
+      render: (_: unknown, record: IngredientModel) => (
         <Space>
           <Button 
             icon={<ImportOutlined />}

@@ -14,7 +14,6 @@ import {
 } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
-import { ingredientService } from '@/app/services/ingredient.service';
 import { IngredientModel } from '@/app/models/ingredient.model';
 import { useAdminInventory } from '@/app/contexts/AdminInventoryContext';
 
@@ -57,20 +56,30 @@ const IngredientsList: React.FC = () => {
     },
     {
       title: 'Tồn kho',
-      dataIndex: 'stock',
-      key: 'stock',
+      dataIndex: 'current_quantity',
+      key: 'current_quantity',
       width: '15%',
-      render: (stock: number) => {
+      render: (currentQuantity: number, record: IngredientModel) => {
+        const quantity = currentQuantity || 0;
+        const threshold = record.threshold || 10;
         let color = 'green';
-        if (stock <= 0) {
+        let status = 'Đủ hàng';
+        
+        if (quantity <= 0) {
           color = 'red';
-        } else if (stock <= 10) {
+          status = 'Hết hàng';
+        } else if (quantity <= threshold) {
           color = 'orange';
+          status = 'Sắp hết';
         }
+        
         return (
-          <Tag color={color}>
-            {stock}
-          </Tag>
+          <Space direction="vertical" size={0}>
+            <Tag color={color}>
+              {quantity} {record.unit}
+            </Tag>
+            <span style={{ fontSize: '12px', color: '#666' }}>{status}</span>
+          </Space>
         );
       },
     },
@@ -89,7 +98,7 @@ const IngredientsList: React.FC = () => {
     {
       title: 'Thao tác',
       key: 'action',
-      render: (_: any, record: IngredientModel) => (
+      render: (_: unknown, record: IngredientModel) => (
         <Space size="middle">
           <Button 
             type="link"
