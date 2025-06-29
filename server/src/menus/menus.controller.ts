@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query, UseInterceptors, UploadedFile, ParseFilePipe, FileTypeValidator, MaxFileSizeValidator } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiQuery, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { MenusService } from './menus.service';
 import { CreateMenuDto, UpdateMenuDto } from './dto';
@@ -8,6 +9,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../enums/user-role.enum';
 import { FileUploadService } from '../file-upload/file-upload.service';
 
+@ApiTags('menus')
 @Controller('menus')
 export class MenusController {
   constructor(
@@ -16,12 +18,20 @@ export class MenusController {
   ) {}
 
   @Get()
+  @ApiOperation({ summary: 'Get all menus' })
+  @ApiQuery({ name: 'includeDeleted', type: 'string', required: false, description: 'Include deleted menus (true/false)' })
+  @ApiResponse({ status: 200, description: 'Returns list of all menus' })
   async findAll(@Query('includeDeleted') includeDeleted?: string) {
     const include = includeDeleted === 'true';
     return this.menusService.findAll(include);
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get menu by ID' })
+  @ApiParam({ name: 'id', description: 'Menu ID', type: 'string' })
+  @ApiQuery({ name: 'includeDeleted', type: 'string', required: false, description: 'Include deleted menus (true/false)' })
+  @ApiResponse({ status: 200, description: 'Returns menu details' })
+  @ApiResponse({ status: 404, description: 'Menu not found' })
   async findOne(@Param('id') id: string, @Query('includeDeleted') includeDeleted?: string) {
     const include = includeDeleted === 'true';
     return this.menusService.findOne(id, include);
@@ -31,6 +41,26 @@ export class MenusController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.CHEF)
   @UseInterceptors(FileInterceptor('image'))
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Create new menu' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({ status: 201, description: 'Menu created successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  @ApiBody({
+    description: 'Menu data with optional image',
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Thực đơn mùa đông' },
+        description: { type: 'string', example: 'Thực đơn đặc biệt cho mùa đông' },
+        is_active: { type: 'boolean', example: true },
+        image: { type: 'string', format: 'binary' }
+      },
+      required: ['name', 'description']
+    }
+  })
   async create(
     @Body() createMenuDto: CreateMenuDto, 
     @Request() req,

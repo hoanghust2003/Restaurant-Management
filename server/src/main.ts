@@ -4,6 +4,8 @@ import { AppModule } from './app.module';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { WebSocketAdapter } from './events/websocket-adapter';
+import { SwaggerModule } from '@nestjs/swagger';
+import { swaggerConfig } from './swagger-config';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -43,6 +45,34 @@ async function bootstrap() {
       transformOptions: { enableImplicitConversion: true },
     }),
   );
+
+  // Setup Swagger API Documentation
+  const config = swaggerConfig;
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+      tagsSorter: 'alpha',
+      operationsSorter: 'alpha',
+      docExpansion: 'none',
+      filter: true,
+      showRequestDuration: true,
+      tryItOutEnabled: true,
+      requestInterceptor: (req: any) => {
+        console.log('API Request:', req);
+        return req;
+      }
+    },
+    customCss: `
+      .swagger-ui .topbar { display: none; }
+      .swagger-ui .info { margin: 50px 0; }
+      .swagger-ui .info .title { color: #3b82f6; }
+      .swagger-ui .scheme-container { background: #f8fafc; padding: 15px; border-radius: 8px; }
+    `,
+    customSiteTitle: 'Restaurant Management API Documentation',
+    customfavIcon: '/favicon.ico',
+  });
 
   // Get port from config service
   const configService = app.get(ConfigService);

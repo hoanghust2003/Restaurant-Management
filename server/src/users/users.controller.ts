@@ -17,6 +17,7 @@ import {
   BadRequestException,
   NotFoundException
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FileUploadInterceptor } from '../common/interceptors/file-upload.interceptor';
 import { UsersService } from './users.service';
@@ -28,6 +29,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRole } from '../enums/user-role.enum';
 import { FileUploadService } from '../file-upload/file-upload.service';
 
+@ApiTags('users')
 @Controller('users')
 export class UsersController {
   constructor(
@@ -38,6 +40,10 @@ export class UsersController {
   // Get current user profile - accessible to authenticated users
   @UseGuards(JwtAuthGuard)
   @Get('me')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiResponse({ status: 200, description: 'Returns current user profile' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getProfile(@Request() req) {
     return this.usersService.findById(req.user.userId);
   }
@@ -46,6 +52,23 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @Patch('me')
   @UseInterceptors(FileInterceptor('avatar'), FileUploadInterceptor)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Update current user profile' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiBody({
+    description: 'User profile data with optional avatar',
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Nguyễn Văn A' },
+        email: { type: 'string', example: 'user@example.com' },
+        avatar: { type: 'string', format: 'binary' }
+      }
+    }
+  })
   async updateProfile(
     @Request() req,
     @Body() updateProfileDto: UpdateUserProfileDto,
@@ -75,6 +98,12 @@ export class UsersController {
   // Change current user password - accessible to authenticated users
   @UseGuards(JwtAuthGuard)
   @Patch('me/password')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Change current user password' })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - validation failed or incorrect current password' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiBody({ type: ChangePasswordDto })
   async changePassword(
     @Request() req,
     @Body() changePasswordDto: ChangePasswordDto,
@@ -87,6 +116,11 @@ export class UsersController {
   // Get all users - accessible only to admins
   @UseGuards(JwtAuthGuard)
   @Get()
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get all users (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Returns list of all users' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
   async getAllUsers(@Request() req) {
     this.checkIsAdmin(req.user);
     return this.usersService.findAll();
@@ -96,6 +130,27 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @Post()
   @UseInterceptors(FileInterceptor('avatar'), FileUploadInterceptor)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Create new user (Admin only)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({ status: 201, description: 'User created successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiBody({
+    description: 'User data with optional avatar',
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Nguyễn Văn A' },
+        email: { type: 'string', example: 'user@example.com' },
+        password: { type: 'string', example: 'Password123' },
+        role: { type: 'string', enum: Object.values(UserRole), example: UserRole.STAFF },
+        avatar: { type: 'string', format: 'binary' }
+      },
+      required: ['name', 'email', 'password', 'role']
+    }
+  })
   async createUser(
     @Request() req, 
     @Body() createUserDto: CreateUserDto,
@@ -130,6 +185,27 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
   @UseInterceptors(FileInterceptor('avatar'), FileUploadInterceptor)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Update user (Admin only)' })
+  @ApiParam({ name: 'id', description: 'User ID', type: 'string' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({ status: 200, description: 'User updated successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required or cannot edit own role' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiBody({
+    description: 'Updated user data with optional avatar',
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Nguyễn Văn A' },
+        email: { type: 'string', example: 'user@example.com' },
+        role: { type: 'string', enum: Object.values(UserRole), example: UserRole.STAFF },
+        avatar: { type: 'string', format: 'binary' }
+      }
+    }
+  })
   async updateUser(
     @Request() req,
     @Param('id') id: string,
@@ -175,6 +251,14 @@ export class UsersController {
   // Delete a user - accessible only to admins
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Delete user (Admin only)' })
+  @ApiParam({ name: 'id', description: 'User ID', type: 'string' })
+  @ApiResponse({ status: 200, description: 'User deleted successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required or cannot delete own account' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async deleteUser(@Request() req, @Param('id') id: string) {
     try {
       // Check admin permission

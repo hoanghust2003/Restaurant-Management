@@ -12,6 +12,7 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { Request } from 'express';
 import { TablesService } from './tables.service';
 import {
@@ -38,10 +39,16 @@ interface RequestWithUser extends Request {
   };
 }
 
+@ApiTags('tables')
 @Controller('tables')
 export class TablesController {
   constructor(private readonly tablesService: TablesService) {}
+  
   @Get()
+  @ApiOperation({ summary: 'Get all tables' })
+  @ApiQuery({ name: 'status', enum: TableStatus, required: false, description: 'Filter by table status' })
+  @ApiQuery({ name: 'includeDeleted', type: 'string', required: false, description: 'Include deleted tables (true/false)' })
+  @ApiResponse({ status: 200, description: 'Returns list of tables' })
   async findAll(
     @Query('status') status?: TableStatus,
     @Query('includeDeleted') includeDeleted?: string,
@@ -53,6 +60,12 @@ export class TablesController {
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get table by ID' })
+  @ApiParam({ name: 'id', description: 'Table ID', type: 'string' })
+  @ApiQuery({ name: 'includeDeleted', type: 'string', required: false, description: 'Include deleted tables (true/false)' })
+  @ApiResponse({ status: 200, description: 'Returns table details' })
+  @ApiResponse({ status: 404, description: 'Table not found' })
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
     @Query('includeDeleted') includeDeleted?: string,
@@ -64,6 +77,13 @@ export class TablesController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Create new table' })
+  @ApiResponse({ status: 201, description: 'Table created successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  @ApiBody({ type: CreateTableDto })
   async create(
     @Body() createTableDto: CreateTableDto,
     @Req() req: RequestWithUser,
@@ -80,15 +100,32 @@ export class TablesController {
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Update table' })
+  @ApiParam({ name: 'id', description: 'Table ID', type: 'string' })
+  @ApiResponse({ status: 200, description: 'Table updated successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  @ApiResponse({ status: 404, description: 'Table not found' })
+  @ApiBody({ type: UpdateTableDto })
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateTableDto: UpdateTableDto,
   ): Promise<TableEntity> {
     return this.tablesService.update(id, updateTableDto, UserRole.ADMIN);
   }
+  
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Delete table (soft delete)' })
+  @ApiParam({ name: 'id', description: 'Table ID', type: 'string' })
+  @ApiResponse({ status: 200, description: 'Table deleted successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  @ApiResponse({ status: 404, description: 'Table not found' })
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @Req() req: RequestWithUser,
@@ -100,6 +137,13 @@ export class TablesController {
   @Post(':id/restore')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Restore deleted table' })
+  @ApiParam({ name: 'id', description: 'Table ID', type: 'string' })
+  @ApiResponse({ status: 200, description: 'Table restored successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  @ApiResponse({ status: 404, description: 'Table not found' })
   async restore(
     @Param('id', ParseUUIDPipe) id: string,
     @Req() req: RequestWithUser,
@@ -111,6 +155,15 @@ export class TablesController {
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Update table status' })
+  @ApiParam({ name: 'id', description: 'Table ID', type: 'string' })
+  @ApiResponse({ status: 200, description: 'Table status updated successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  @ApiResponse({ status: 404, description: 'Table not found' })
+  @ApiBody({ type: UpdateTableStatusDto })
   async updateStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateTableStatusDto: UpdateTableStatusDto,
@@ -131,6 +184,13 @@ export class TablesController {
   @Get(':id/qr-code')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Generate QR code for table' })
+  @ApiParam({ name: 'id', description: 'Table ID', type: 'string' })
+  @ApiResponse({ status: 200, description: 'Returns QR code data', type: QrCodeResponseDto })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  @ApiResponse({ status: 404, description: 'Table not found' })
   async generateQrCode(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<QrCodeResponseDto> {

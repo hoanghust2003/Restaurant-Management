@@ -1,0 +1,4043 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "AppController_getHello",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns welcome message"
+          }
+        },
+        "summary": "Health check endpoint",
+        "tags": [
+          "app"
+        ]
+      }
+    },
+    "/assets/avatars/{filename}": {
+      "get": {
+        "operationId": "StaticAssetsController_getAvatar",
+        "parameters": [
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "StaticAssets"
+        ]
+      }
+    },
+    "/assets/dishes/{filename}": {
+      "get": {
+        "operationId": "StaticAssetsController_getDishImage",
+        "parameters": [
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "StaticAssets"
+        ]
+      }
+    },
+    "/assets/menus/{filename}": {
+      "get": {
+        "operationId": "StaticAssetsController_getMenuImage",
+        "parameters": [
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "StaticAssets"
+        ]
+      }
+    },
+    "/assets/ingredients/{filename}": {
+      "get": {
+        "operationId": "StaticAssetsController_getIngredientImage",
+        "parameters": [
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "StaticAssets"
+        ]
+      }
+    },
+    "/users/me": {
+      "get": {
+        "operationId": "UsersController_getProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns current user profile"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Get current user profile",
+        "tags": [
+          "users"
+        ]
+      },
+      "patch": {
+        "operationId": "UsersController_updateProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "User profile data with optional avatar",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Nguyễn Văn A"
+                  },
+                  "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                  },
+                  "avatar": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully"
+          },
+          "400": {
+            "description": "Bad request - validation failed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Update current user profile",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/me/password": {
+      "patch": {
+        "operationId": "UsersController_changePassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed successfully"
+          },
+          "400": {
+            "description": "Bad request - validation failed or incorrect current password"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Change current user password",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users": {
+      "get": {
+        "operationId": "UsersController_getAllUsers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns list of all users"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin access required"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Get all users (Admin only)",
+        "tags": [
+          "users"
+        ]
+      },
+      "post": {
+        "operationId": "UsersController_createUser",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "User data with optional avatar",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Nguyễn Văn A"
+                  },
+                  "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "Password123"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "admin",
+                      "staff",
+                      "chef",
+                      "warehouse",
+                      "customer"
+                    ],
+                    "example": "staff"
+                  },
+                  "avatar": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "name",
+                  "email",
+                  "password",
+                  "role"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully"
+          },
+          "400": {
+            "description": "Bad request - validation failed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin access required"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Create new user (Admin only)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/{id}": {
+      "patch": {
+        "operationId": "UsersController_updateUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "User ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Updated user data with optional avatar",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Nguyễn Văn A"
+                  },
+                  "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "admin",
+                      "staff",
+                      "chef",
+                      "warehouse",
+                      "customer"
+                    ],
+                    "example": "staff"
+                  },
+                  "avatar": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated successfully"
+          },
+          "400": {
+            "description": "Bad request - validation failed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin access required or cannot edit own role"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Update user (Admin only)",
+        "tags": [
+          "users"
+        ]
+      },
+      "delete": {
+        "operationId": "UsersController_deleteUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "User ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User deleted successfully"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin access required or cannot delete own account"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Delete user (Admin only)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/uploads/avatar": {
+      "post": {
+        "operationId": "FileUploadController_uploadAvatar",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "FileUpload"
+        ]
+      }
+    },
+    "/uploads/s3/avatar": {
+      "post": {
+        "operationId": "FileUploadController_uploadAvatarToS3",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "FileUpload"
+        ]
+      }
+    },
+    "/uploads/s3/{folder}": {
+      "post": {
+        "operationId": "FileUploadController_uploadToS3",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "FileUpload"
+        ]
+      }
+    },
+    "/ingredients/low-stock": {
+      "get": {
+        "operationId": "IngredientsController_getLowStock",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns list of ingredients below threshold"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Get ingredients with low stock",
+        "tags": [
+          "ingredients"
+        ]
+      }
+    },
+    "/ingredients": {
+      "get": {
+        "operationId": "IngredientsController_findAll",
+        "parameters": [
+          {
+            "name": "includeDeleted",
+            "required": false,
+            "in": "query",
+            "description": "Include deleted ingredients (true/false)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns list of all ingredients with current stock"
+          }
+        },
+        "summary": "Get all ingredients",
+        "tags": [
+          "ingredients"
+        ]
+      },
+      "post": {
+        "operationId": "IngredientsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Ingredient data with optional image",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Thịt bò"
+                  },
+                  "unit": {
+                    "type": "string",
+                    "example": "kg"
+                  },
+                  "threshold": {
+                    "type": "number",
+                    "example": 10
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Thịt bò tươi"
+                  },
+                  "image": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "name",
+                  "unit",
+                  "threshold"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Ingredient created successfully"
+          },
+          "400": {
+            "description": "Bad request - validation failed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Create new ingredient",
+        "tags": [
+          "ingredients"
+        ]
+      }
+    },
+    "/ingredients/{id}": {
+      "get": {
+        "operationId": "IngredientsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Ingredient ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeDeleted",
+            "required": false,
+            "in": "query",
+            "description": "Include deleted ingredients (true/false)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns ingredient details with current stock"
+          },
+          "404": {
+            "description": "Ingredient not found"
+          }
+        },
+        "summary": "Get ingredient by ID",
+        "tags": [
+          "ingredients"
+        ]
+      },
+      "patch": {
+        "operationId": "IngredientsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Ingredient ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Updated ingredient data with optional image",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Thịt bò"
+                  },
+                  "unit": {
+                    "type": "string",
+                    "example": "kg"
+                  },
+                  "threshold": {
+                    "type": "number",
+                    "example": 10
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Thịt bò tươi"
+                  },
+                  "image": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ingredient updated successfully"
+          },
+          "400": {
+            "description": "Bad request - validation failed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          },
+          "404": {
+            "description": "Ingredient not found"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Update ingredient",
+        "tags": [
+          "ingredients"
+        ]
+      },
+      "delete": {
+        "operationId": "IngredientsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Ingredient ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ingredient deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          },
+          "404": {
+            "description": "Ingredient not found"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Delete ingredient (soft delete)",
+        "tags": [
+          "ingredients"
+        ]
+      }
+    },
+    "/ingredients/{id}/restore": {
+      "post": {
+        "operationId": "IngredientsController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Ingredient ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ingredient restored successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          },
+          "404": {
+            "description": "Ingredient not found"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Restore deleted ingredient",
+        "tags": [
+          "ingredients"
+        ]
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "operationId": "AuthController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User successfully registered"
+          },
+          "400": {
+            "description": "Bad request - validation failed"
+          },
+          "409": {
+            "description": "Email already exists"
+          }
+        },
+        "summary": "Register a new user",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User successfully logged in"
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        },
+        "summary": "Login user",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "AuthController_getProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns current user profile"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Get current user profile",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/tables": {
+      "get": {
+        "operationId": "TablesController_findAll",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by table status",
+            "schema": {
+              "enum": [
+                "available",
+                "occupied",
+                "reserved",
+                "cleaning"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeDeleted",
+            "required": false,
+            "in": "query",
+            "description": "Include deleted tables (true/false)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns list of tables"
+          }
+        },
+        "summary": "Get all tables",
+        "tags": [
+          "tables"
+        ]
+      },
+      "post": {
+        "operationId": "TablesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTableDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Table created successfully"
+          },
+          "400": {
+            "description": "Bad request - validation failed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Create new table",
+        "tags": [
+          "tables"
+        ]
+      }
+    },
+    "/tables/{id}": {
+      "get": {
+        "operationId": "TablesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Table ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeDeleted",
+            "required": false,
+            "in": "query",
+            "description": "Include deleted tables (true/false)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns table details"
+          },
+          "404": {
+            "description": "Table not found"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Get table by ID",
+        "tags": [
+          "tables"
+        ]
+      },
+      "put": {
+        "operationId": "TablesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Table ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTableDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Table updated successfully"
+          },
+          "400": {
+            "description": "Bad request - validation failed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          },
+          "404": {
+            "description": "Table not found"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Update table",
+        "tags": [
+          "tables"
+        ]
+      },
+      "delete": {
+        "operationId": "TablesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Table ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Table deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          },
+          "404": {
+            "description": "Table not found"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Delete table (soft delete)",
+        "tags": [
+          "tables"
+        ]
+      }
+    },
+    "/tables/{id}/restore": {
+      "post": {
+        "operationId": "TablesController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Table ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Table restored successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          },
+          "404": {
+            "description": "Table not found"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Restore deleted table",
+        "tags": [
+          "tables"
+        ]
+      }
+    },
+    "/tables/{id}/status": {
+      "patch": {
+        "operationId": "TablesController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Table ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTableStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Table status updated successfully"
+          },
+          "400": {
+            "description": "Bad request - validation failed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          },
+          "404": {
+            "description": "Table not found"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Update table status",
+        "tags": [
+          "tables"
+        ]
+      }
+    },
+    "/tables/{id}/qr-code": {
+      "get": {
+        "operationId": "TablesController_generateQrCode",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Table ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns QR code data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QrCodeResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          },
+          "404": {
+            "description": "Table not found"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Generate QR code for table",
+        "tags": [
+          "tables"
+        ]
+      }
+    },
+    "/dishes": {
+      "post": {
+        "operationId": "DishesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDishDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Dish created successfully"
+          },
+          "400": {
+            "description": "Bad request - validation failed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Create new dish",
+        "tags": [
+          "dishes"
+        ]
+      },
+      "get": {
+        "operationId": "DishesController_findAll",
+        "parameters": [
+          {
+            "name": "includeDeleted",
+            "required": false,
+            "in": "query",
+            "description": "Include deleted dishes",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns list of all dishes"
+          }
+        },
+        "summary": "Get all dishes",
+        "tags": [
+          "dishes"
+        ]
+      }
+    },
+    "/dishes/{id}": {
+      "get": {
+        "operationId": "DishesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Dish ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeDeleted",
+            "required": false,
+            "in": "query",
+            "description": "Include deleted dishes",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns dish details"
+          },
+          "404": {
+            "description": "Dish not found"
+          }
+        },
+        "summary": "Get dish by ID",
+        "tags": [
+          "dishes"
+        ]
+      },
+      "patch": {
+        "operationId": "DishesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Dish ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDishDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Dish updated successfully"
+          },
+          "400": {
+            "description": "Bad request - validation failed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          },
+          "404": {
+            "description": "Dish not found"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Update dish",
+        "tags": [
+          "dishes"
+        ]
+      },
+      "delete": {
+        "operationId": "DishesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Dish ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dish deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          },
+          "404": {
+            "description": "Dish not found"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Delete dish (soft delete)",
+        "tags": [
+          "dishes"
+        ]
+      }
+    },
+    "/dishes/{id}/restore": {
+      "post": {
+        "operationId": "DishesController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Dish ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dish restored successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          },
+          "404": {
+            "description": "Dish not found"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Restore deleted dish",
+        "tags": [
+          "dishes"
+        ]
+      }
+    },
+    "/dishes/{id}/hard": {
+      "delete": {
+        "operationId": "DishesController_hardDelete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Dish ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dish permanently deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          },
+          "404": {
+            "description": "Dish not found"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Permanently delete dish",
+        "tags": [
+          "dishes"
+        ]
+      }
+    },
+    "/menus": {
+      "get": {
+        "operationId": "MenusController_findAll",
+        "parameters": [
+          {
+            "name": "includeDeleted",
+            "required": false,
+            "in": "query",
+            "description": "Include deleted menus (true/false)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns list of all menus"
+          }
+        },
+        "summary": "Get all menus",
+        "tags": [
+          "menus"
+        ]
+      },
+      "post": {
+        "operationId": "MenusController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Menu data with optional image",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Thực đơn mùa đông"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Thực đơn đặc biệt cho mùa đông"
+                  },
+                  "is_active": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "image": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "name",
+                  "description"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Menu created successfully"
+          },
+          "400": {
+            "description": "Bad request - validation failed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Create new menu",
+        "tags": [
+          "menus"
+        ]
+      }
+    },
+    "/menus/{id}": {
+      "get": {
+        "operationId": "MenusController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Menu ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeDeleted",
+            "required": false,
+            "in": "query",
+            "description": "Include deleted menus (true/false)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns menu details"
+          },
+          "404": {
+            "description": "Menu not found"
+          }
+        },
+        "summary": "Get menu by ID",
+        "tags": [
+          "menus"
+        ]
+      },
+      "patch": {
+        "operationId": "MenusController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMenuDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "menus"
+        ]
+      },
+      "delete": {
+        "operationId": "MenusController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "menus"
+        ]
+      }
+    },
+    "/menus/{id}/restore": {
+      "post": {
+        "operationId": "MenusController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "menus"
+        ]
+      }
+    },
+    "/menus/{id}/dishes": {
+      "get": {
+        "operationId": "MenusController_getDishes",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "menus"
+        ]
+      },
+      "post": {
+        "operationId": "MenusController_addDishesToMenu",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "menus"
+        ]
+      },
+      "delete": {
+        "operationId": "MenusController_removeDishesFromMenu",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "menus"
+        ]
+      }
+    },
+    "/menus/{id}/dishes/{dishId}": {
+      "post": {
+        "operationId": "MenusController_addDishToMenu",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dishId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "menus"
+        ]
+      },
+      "delete": {
+        "operationId": "MenusController_removeDishFromMenu",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dishId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "menus"
+        ]
+      }
+    },
+    "/menus/main": {
+      "get": {
+        "operationId": "MenusController_getMainMenu",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "menus"
+        ]
+      }
+    },
+    "/menus/{id}/set-main": {
+      "patch": {
+        "operationId": "MenusController_setMainMenu",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "menus"
+        ]
+      }
+    },
+    "/orders": {
+      "post": {
+        "operationId": "OrdersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The order has been successfully created."
+          }
+        },
+        "summary": "Create a new order",
+        "tags": [
+          "orders"
+        ]
+      },
+      "get": {
+        "operationId": "OrdersController_findAll",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return all orders."
+          }
+        },
+        "summary": "Get all orders with optional filters",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/orders/active-orders": {
+      "get": {
+        "operationId": "OrdersController_findActive",
+        "parameters": [
+          {
+            "name": "statuses",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return all active orders."
+          },
+          "400": {
+            "description": "Invalid status value."
+          }
+        },
+        "summary": "Get all active orders",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/orders/table/{tableId}/active": {
+      "get": {
+        "operationId": "OrdersController_findActiveByTable",
+        "parameters": [
+          {
+            "name": "tableId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return the active order for the table."
+          },
+          "400": {
+            "description": "Invalid table ID."
+          },
+          "404": {
+            "description": "Table not found."
+          }
+        },
+        "summary": "Get active order by table id",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/orders/{id}": {
+      "get": {
+        "operationId": "OrdersController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return the order."
+          },
+          "400": {
+            "description": "Invalid order ID."
+          },
+          "404": {
+            "description": "Order not found."
+          }
+        },
+        "summary": "Get order by id",
+        "tags": [
+          "orders"
+        ]
+      },
+      "patch": {
+        "operationId": "OrdersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The order has been successfully updated."
+          },
+          "400": {
+            "description": "Invalid order ID or update data."
+          },
+          "404": {
+            "description": "Order not found."
+          }
+        },
+        "summary": "Update an order",
+        "tags": [
+          "orders"
+        ]
+      },
+      "delete": {
+        "operationId": "OrdersController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The order has been successfully deleted."
+          },
+          "400": {
+            "description": "Invalid order ID."
+          },
+          "404": {
+            "description": "Order not found."
+          }
+        },
+        "summary": "Delete an order",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/orders/{id}/status": {
+      "patch": {
+        "operationId": "OrdersController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The order status has been successfully updated."
+          },
+          "400": {
+            "description": "Invalid order ID or status."
+          },
+          "404": {
+            "description": "Order not found."
+          }
+        },
+        "summary": "Update order status",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/customer/orders": {
+      "post": {
+        "operationId": "CustomerController_createOrder",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomerOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The order has been successfully created."
+          },
+          "400": {
+            "description": "Invalid order data"
+          },
+          "404": {
+            "description": "Table or dish not found"
+          }
+        },
+        "summary": "Create a new order from customer",
+        "tags": [
+          "customer"
+        ]
+      }
+    },
+    "/customer/tables/{id}": {
+      "get": {
+        "operationId": "CustomerController_getTable",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return the table information."
+          },
+          "404": {
+            "description": "Table not found."
+          }
+        },
+        "summary": "Get table information",
+        "tags": [
+          "customer"
+        ]
+      }
+    },
+    "/customer/tables/{id}/qr-code": {
+      "get": {
+        "operationId": "CustomerController_getTableQrCode",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return the QR code for the table."
+          },
+          "404": {
+            "description": "Table not found."
+          }
+        },
+        "summary": "Get table QR code",
+        "tags": [
+          "customer"
+        ]
+      }
+    },
+    "/batches": {
+      "get": {
+        "operationId": "BatchesController_findAll",
+        "parameters": [
+          {
+            "name": "include_deleted",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "ingredient_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "supplier_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expiring_soon",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns all batches"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all batches",
+        "tags": [
+          "batches"
+        ]
+      },
+      "post": {
+        "operationId": "BatchesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBatchDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Batch successfully created"
+          },
+          "400": {
+            "description": "Invalid input data"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new batch",
+        "tags": [
+          "batches"
+        ]
+      }
+    },
+    "/batches/expiring": {
+      "get": {
+        "operationId": "BatchesController_getExpiringBatches",
+        "parameters": [
+          {
+            "name": "days",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns batches expiring soon"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get expiring batches",
+        "tags": [
+          "batches"
+        ]
+      }
+    },
+    "/batches/expired": {
+      "get": {
+        "operationId": "BatchesController_findExpiredBatches",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns expired batches"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get expired batches",
+        "tags": [
+          "batches"
+        ]
+      }
+    },
+    "/batches/{id}": {
+      "get": {
+        "operationId": "BatchesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include_deleted",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the batch"
+          },
+          "404": {
+            "description": "Batch not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get batch by ID",
+        "tags": [
+          "batches"
+        ]
+      },
+      "put": {
+        "operationId": "BatchesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBatchDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch successfully updated"
+          },
+          "400": {
+            "description": "Invalid input data"
+          },
+          "404": {
+            "description": "Batch not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a batch",
+        "tags": [
+          "batches"
+        ]
+      },
+      "delete": {
+        "operationId": "BatchesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Batch successfully deleted"
+          },
+          "404": {
+            "description": "Batch not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a batch",
+        "tags": [
+          "batches"
+        ]
+      }
+    },
+    "/batches/{id}/restore": {
+      "put": {
+        "operationId": "BatchesController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Batch successfully restored"
+          },
+          "404": {
+            "description": "Batch not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore a deleted batch",
+        "tags": [
+          "batches"
+        ]
+      }
+    },
+    "/suppliers": {
+      "get": {
+        "operationId": "SuppliersController_findAll",
+        "parameters": [
+          {
+            "name": "includeDeleted",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Suppliers"
+        ]
+      },
+      "post": {
+        "operationId": "SuppliersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSupplierDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Suppliers"
+        ]
+      }
+    },
+    "/suppliers/{id}": {
+      "get": {
+        "operationId": "SuppliersController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeDeleted",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Suppliers"
+        ]
+      },
+      "patch": {
+        "operationId": "SuppliersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSupplierDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Suppliers"
+        ]
+      },
+      "delete": {
+        "operationId": "SuppliersController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Suppliers"
+        ]
+      }
+    },
+    "/suppliers/{id}/restore": {
+      "post": {
+        "operationId": "SuppliersController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Suppliers"
+        ]
+      }
+    },
+    "/inventory/stats": {
+      "get": {
+        "operationId": "InventoryController_getInventoryStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/inventory/low-stock": {
+      "get": {
+        "operationId": "InventoryController_getLowStockItems",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/inventory/expiring-soon": {
+      "get": {
+        "operationId": "InventoryController_getExpiringSoonItems",
+        "parameters": [
+          {
+            "name": "days",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/inventory/imports/recent": {
+      "get": {
+        "operationId": "InventoryController_getRecentImports",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/inventory/imports": {
+      "get": {
+        "operationId": "InventoryController_getAllImports",
+        "parameters": [
+          {
+            "name": "includeDeleted",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      },
+      "post": {
+        "operationId": "InventoryController_createImport",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateImportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/inventory/imports/{id}": {
+      "get": {
+        "operationId": "InventoryController_getImportById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeDeleted",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      },
+      "delete": {
+        "operationId": "InventoryController_removeImport",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/inventory/imports/{id}/restore": {
+      "post": {
+        "operationId": "InventoryController_restoreImport",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/inventory/exports/recent": {
+      "get": {
+        "operationId": "InventoryController_getRecentExports",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/inventory/exports": {
+      "get": {
+        "operationId": "InventoryController_getAllExports",
+        "parameters": [
+          {
+            "name": "includeDeleted",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      },
+      "post": {
+        "operationId": "InventoryController_createExport",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateExportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/inventory/exports/{id}": {
+      "get": {
+        "operationId": "InventoryController_getExportById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeDeleted",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      },
+      "delete": {
+        "operationId": "InventoryController_removeExport",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/inventory/exports/{id}/restore": {
+      "post": {
+        "operationId": "InventoryController_restoreExport",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/inventory/batches": {
+      "get": {
+        "operationId": "InventoryController_getAllBatches",
+        "parameters": [
+          {
+            "name": "includeDeleted",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/inventory/batches/{id}": {
+      "get": {
+        "operationId": "InventoryController_getBatchById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeDeleted",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/inventory/ingredient-stock": {
+      "get": {
+        "operationId": "InventoryController_getIngredientStock",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/inventory/import-history": {
+      "get": {
+        "operationId": "InventoryController_getImportHistory",
+        "parameters": [
+          {
+            "name": "startDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/inventory/export-history": {
+      "get": {
+        "operationId": "InventoryController_getExportHistory",
+        "parameters": [
+          {
+            "name": "startDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/inventory/costs": {
+      "get": {
+        "operationId": "InventoryController_getInventoryCosts",
+        "parameters": [
+          {
+            "name": "start",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "end",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/inventory/stock-value": {
+      "get": {
+        "operationId": "InventoryController_getStockValue",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/inventory/expiring": {
+      "get": {
+        "operationId": "InventoryController_getExpiringSoon",
+        "parameters": [
+          {
+            "name": "days",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/categories": {
+      "get": {
+        "operationId": "CategoriesController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns list of all categories"
+          }
+        },
+        "summary": "Get all categories",
+        "tags": [
+          "categories"
+        ]
+      },
+      "post": {
+        "operationId": "CategoriesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Category created successfully"
+          },
+          "400": {
+            "description": "Bad request - validation failed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Create new category",
+        "tags": [
+          "categories"
+        ]
+      }
+    },
+    "/categories/{id}": {
+      "get": {
+        "operationId": "CategoriesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Category ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns category details"
+          },
+          "404": {
+            "description": "Category not found"
+          }
+        },
+        "summary": "Get category by ID",
+        "tags": [
+          "categories"
+        ]
+      },
+      "patch": {
+        "operationId": "CategoriesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Category ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Category updated successfully"
+          },
+          "400": {
+            "description": "Bad request - validation failed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          },
+          "404": {
+            "description": "Category not found"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Update category",
+        "tags": [
+          "categories"
+        ]
+      },
+      "delete": {
+        "operationId": "CategoriesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Category ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          },
+          "404": {
+            "description": "Category not found"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Delete category (soft delete)",
+        "tags": [
+          "categories"
+        ]
+      }
+    },
+    "/categories/{id}/restore": {
+      "post": {
+        "operationId": "CategoriesController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Category ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category restored successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          },
+          "404": {
+            "description": "Category not found"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Restore deleted category",
+        "tags": [
+          "categories"
+        ]
+      }
+    },
+    "/payment/create-payment": {
+      "post": {
+        "operationId": "PaymentController_createPayment",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payment"
+        ]
+      }
+    },
+    "/payment/vnpay-return": {
+      "get": {
+        "operationId": "PaymentController_handleVNPayReturn",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payment"
+        ]
+      }
+    },
+    "/payment/order/{orderId}": {
+      "get": {
+        "operationId": "PaymentController_getPaymentByOrderId",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payment"
+        ]
+      }
+    },
+    "/payment/history": {
+      "get": {
+        "operationId": "PaymentController_getPaymentHistory",
+        "parameters": [
+          {
+            "name": "startDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payment"
+        ]
+      }
+    },
+    "/payment/print-receipt": {
+      "post": {
+        "operationId": "PaymentController_recordReceiptPrint",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrintReceiptDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payment"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Restaurant Management API",
+    "description": "\n    # Restaurant Management System API Documentation\n    \n    Hệ thống quản lý nhà hàng toàn diện với các tính năng đầy đủ cho việc vận hành nhà hàng hiện đại.\n    \n    ## Tính năng chính\n    - **🔐 Xác thực & Phân quyền**: JWT-based authentication với phân quyền theo vai trò\n    - **👥 Quản lý người dùng**: Admin, Staff, Kitchen, Waiter, Warehouse roles\n    - **🍽️ Quản lý thực đơn**: Categories, dishes, menus với theo dõi nguyên liệu\n    - **📋 Quản lý đơn hàng**: Đặt bàn qua QR, workflow bếp, theo dõi trạng thái\n    - **📦 Quản lý kho**: Theo dõi nguyên liệu, quản lý lô hàng, nhập/xuất kho\n    - **💳 Thanh toán**: Tích hợp VNPay cho thanh toán online\n    - **🪑 Quản lý bàn**: Tạo QR code, theo dõi trạng thái bàn\n    - **📊 Báo cáo**: Báo cáo tài chính, báo cáo kho\n    \n    ## Xác thực API\n    Hầu hết các endpoint yêu cầu xác thực qua JWT token. Thêm token vào header Authorization:\n    `Authorization: Bearer <your-jwt-token>`\n    \n    ## Phân quyền người dùng\n    - **ADMIN**: Toàn quyền hệ thống\n    - **STAFF**: Các thao tác nhân viên phục vụ\n    - **KITCHEN**: Các thao tác đặc thù bếp\n    - **WAITER**: Quản lý bàn và đơn hàng\n    - **WAREHOUSE**: Quản lý kho\n    \n    ## HTTP Status Codes\n    API trả về các mã trạng thái HTTP chuẩn:\n    - **200**: Thành công\n    - **201**: Tạo mới thành công\n    - **400**: Yêu cầu không hợp lệ\n    - **401**: Chưa xác thực\n    - **403**: Không có quyền truy cập\n    - **404**: Không tìm thấy\n    - **500**: Lỗi server\n    \n    ## Cấu trúc Response\n    Tất cả response đều có cấu trúc nhất quán:\n    ```json\n    {\n      \"data\": {}, // Dữ liệu chính\n      \"message\": \"Success message\",\n      \"statusCode\": 200\n    }\n    ```\n    \n    ## Upload File\n    Các endpoint upload file hỗ trợ:\n    - **Định dạng**: JPG, PNG, JPEG\n    - **Kích thước tối đa**: 5MB\n    - **Loại file**: Avatar, dish images, ingredient images, menu images\n    \n    ## Pagination\n    Các endpoint list hỗ trợ pagination với query parameters:\n    - `page`: Số trang (default: 1)\n    - `limit`: Số item per page (default: 10)\n    - `search`: Tìm kiếm (optional)\n    - `sort`: Sắp xếp (optional)\n  ",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Restaurant Management Team",
+      "url": "https://restaurant-management.com",
+      "email": "support@restaurant-management.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "tags": [
+    {
+      "name": "app",
+      "description": "🏠 Application health and info"
+    },
+    {
+      "name": "auth",
+      "description": "🔐 Authentication and authorization"
+    },
+    {
+      "name": "users",
+      "description": "👥 User management and profiles"
+    },
+    {
+      "name": "categories",
+      "description": "📂 Food categories management"
+    },
+    {
+      "name": "ingredients",
+      "description": "🥬 Ingredient inventory management"
+    },
+    {
+      "name": "dishes",
+      "description": "🍽️ Dish and recipe management"
+    },
+    {
+      "name": "menus",
+      "description": "📋 Menu composition and management"
+    },
+    {
+      "name": "tables",
+      "description": "🪑 Table management and QR codes"
+    },
+    {
+      "name": "orders",
+      "description": "📋 Order processing and tracking"
+    },
+    {
+      "name": "payment",
+      "description": "💳 Payment processing and receipts"
+    },
+    {
+      "name": "inventory",
+      "description": "📦 Inventory tracking and reports"
+    },
+    {
+      "name": "suppliers",
+      "description": "🏢 Supplier management"
+    },
+    {
+      "name": "batches",
+      "description": "📦 Batch tracking and management"
+    },
+    {
+      "name": "exports",
+      "description": "📤 Inventory export operations"
+    },
+    {
+      "name": "imports",
+      "description": "📥 Inventory import operations"
+    },
+    {
+      "name": "uploads",
+      "description": "📁 File upload and asset management"
+    },
+    {
+      "name": "reports",
+      "description": "📊 Analytics and reporting"
+    },
+    {
+      "name": "customer",
+      "description": "👤 Customer-facing endpoints"
+    }
+  ],
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Development Server"
+    },
+    {
+      "url": "https://api.restaurant-management.com",
+      "description": "Production Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "JWT-auth": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "name": "JWT",
+        "description": "Nhập JWT token (không cần prefix Bearer)",
+        "in": "header"
+      }
+    },
+    "schemas": {
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RegisterDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "User name",
+            "example": "Nguyễn Văn A",
+            "minLength": 2,
+            "maxLength": 50
+          },
+          "email": {
+            "type": "string",
+            "description": "User email address",
+            "example": "user@example.com",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "description": "User password",
+            "example": "password123",
+            "minLength": 6
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "password"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "User email address",
+            "example": "user@example.com",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "description": "User password",
+            "example": "password123",
+            "minLength": 6
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "CreateTableDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Table name",
+            "example": "Bàn 1"
+          },
+          "capacity": {
+            "type": "number",
+            "description": "Table capacity (number of seats)",
+            "example": 4,
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": [
+          "name",
+          "capacity"
+        ]
+      },
+      "UpdateTableDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Table name",
+            "example": "Bàn 1"
+          },
+          "capacity": {
+            "type": "number",
+            "description": "Table capacity (number of seats)",
+            "example": 4,
+            "minimum": 1,
+            "maximum": 50
+          },
+          "status": {
+            "type": "string",
+            "description": "Table status",
+            "enum": [
+              "available",
+              "occupied",
+              "reserved",
+              "cleaning"
+            ]
+          }
+        }
+      },
+      "UpdateTableStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Table status",
+            "enum": [
+              "available",
+              "occupied",
+              "reserved",
+              "cleaning"
+            ],
+            "example": "available"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "QrCodeResponseDto": {
+        "type": "object",
+        "properties": {
+          "qrCode": {
+            "type": "string",
+            "description": "The QR code as base64 encoded string",
+            "example": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+          },
+          "url": {
+            "type": "string",
+            "description": "The URL that the QR code points to",
+            "example": "http://localhost:3000/customer/menu?tableId=123e4567-e89b-12d3-a456-426614174000"
+          },
+          "table": {
+            "type": "object",
+            "description": "Table information",
+            "example": {
+              "id": "123e4567-e89b-12d3-a456-426614174000",
+              "name": "Bàn 1",
+              "capacity": 4
+            }
+          }
+        },
+        "required": [
+          "qrCode",
+          "url",
+          "table"
+        ]
+      },
+      "DishIngredientDto": {
+        "type": "object",
+        "properties": {
+          "ingredientId": {
+            "type": "string",
+            "description": "Ingredient ID",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Quantity of ingredient needed",
+            "example": 100,
+            "minimum": 0
+          }
+        },
+        "required": [
+          "ingredientId",
+          "quantity"
+        ]
+      },
+      "CreateDishDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Dish name",
+            "example": "Phở Bò Tái"
+          },
+          "description": {
+            "type": "string",
+            "description": "Dish description",
+            "example": "Phở bò tái truyền thống với nước dùng đậm đà"
+          },
+          "price": {
+            "type": "number",
+            "description": "Dish price in VND",
+            "example": 85000,
+            "minimum": 0
+          },
+          "image_url": {
+            "type": "string",
+            "description": "Image URL for the dish",
+            "example": "https://example.com/images/pho-bo-tai.jpg"
+          },
+          "is_preparable": {
+            "type": "boolean",
+            "description": "Whether the dish can be prepared in kitchen",
+            "example": true
+          },
+          "available": {
+            "type": "boolean",
+            "description": "Whether the dish is available for ordering",
+            "example": true
+          },
+          "preparation_time": {
+            "type": "number",
+            "description": "Preparation time in minutes",
+            "example": 15,
+            "minimum": 0
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "Category ID that this dish belongs to",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "ingredients": {
+            "description": "List of ingredients required for this dish",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DishIngredientDto"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "price",
+          "preparation_time",
+          "categoryId"
+        ]
+      },
+      "UpdateDishDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateMenuDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "OrderItemDto": {
+        "type": "object",
+        "properties": {
+          "dishId": {
+            "type": "string",
+            "description": "Dish ID",
+            "example": "uuid-string"
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Quantity",
+            "example": 2,
+            "minimum": 1
+          },
+          "note": {
+            "type": "string",
+            "description": "Special notes for this dish"
+          }
+        },
+        "required": [
+          "dishId",
+          "quantity"
+        ]
+      },
+      "CreateOrderDto": {
+        "type": "object",
+        "properties": {
+          "tableId": {
+            "type": "string",
+            "description": "Table ID",
+            "example": "uuid-string"
+          },
+          "userId": {
+            "type": "string",
+            "description": "User ID (server/waiter)",
+            "example": "uuid-string"
+          },
+          "items": {
+            "description": "Order items",
+            "example": [
+              {
+                "dishId": "uuid-string",
+                "quantity": 2,
+                "note": "No spicy"
+              }
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemDto"
+            }
+          }
+        },
+        "required": [
+          "tableId",
+          "items"
+        ]
+      },
+      "UpdateOrderItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Item ID",
+            "example": "uuid-string"
+          },
+          "dishId": {
+            "type": "string",
+            "description": "Dish ID",
+            "example": "uuid-string"
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Quantity",
+            "example": 2,
+            "minimum": 1
+          },
+          "note": {
+            "type": "string",
+            "description": "Special notes for this dish"
+          }
+        },
+        "required": [
+          "dishId",
+          "quantity"
+        ]
+      },
+      "UpdateOrderDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "Order items to add or update",
+            "example": [
+              {
+                "id": "uuid-string",
+                "dishId": "uuid-string",
+                "quantity": 3,
+                "note": "Extra sauce"
+              }
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpdateOrderItemDto"
+            }
+          },
+          "removedItems": {
+            "description": "Item IDs to remove from the order",
+            "example": [
+              "uuid-string"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CreateCustomerOrderDto": {
+        "type": "object",
+        "properties": {
+          "tableId": {
+            "type": "string",
+            "description": "Table ID",
+            "example": "uuid-string"
+          },
+          "items": {
+            "description": "Order items",
+            "example": [
+              {
+                "dishId": "uuid-string",
+                "quantity": 2,
+                "note": "No spicy"
+              }
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemDto"
+            }
+          }
+        },
+        "required": [
+          "tableId",
+          "items"
+        ]
+      },
+      "CreateBatchDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateBatchDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateSupplierDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateSupplierDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateImportDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateExportDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Category name",
+            "example": "Món chính",
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "description": "Category description",
+            "example": "Các món ăn chính trong thực đơn"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateCategoryDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PrintReceiptDto": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string",
+            "description": "Order ID",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "paymentId": {
+            "type": "string",
+            "description": "Payment ID",
+            "example": "987fcdeb-51a2-43d1-b789-123456789abc"
+          },
+          "printedBy": {
+            "type": "string",
+            "description": "Name of the person who printed the receipt",
+            "example": "Nguyễn Văn A"
+          },
+          "printedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Date and time when receipt was printed",
+            "example": "2024-01-15T10:30:00Z"
+          }
+        },
+        "required": [
+          "orderId",
+          "paymentId",
+          "printedBy",
+          "printedAt"
+        ]
+      }
+    }
+  }
+}
