@@ -132,7 +132,9 @@ const SystemSettings = () => {
           uid: '-1',
           name: 'restaurant-logo.png',
           status: 'done',
-          url: '/uploads/logo.png',
+          url: `${API_BASE_URL?.startsWith('http') 
+          ? API_BASE_URL.replace('/api', '') 
+          : 'https://restaurant-api.findnear.vn'}/uploads/logo.png`,
         });
       } catch (error) {
         console.error('Failed to load settings:', error);
