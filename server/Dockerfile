@@ -11,15 +11,14 @@ RUN mkdir -p /usr/build
 
 WORKDIR /usr/build
 
-COPY package.json yarn.lock ./
-
-# install dependencies 
-RUN yarn install --ignore-platform 
+COPY package.json package-lock.json ./
+RUN npm install --force
+ 
 
 COPY . .
 
 # build application
-RUN yarn build
+RUN npm run build
 
 # run node prune
 RUN node-prune /usr/build
