@@ -353,7 +353,7 @@ const SystemSettings = () => {
                           >
                             {logoFile ? (
                               <img 
-                                src={logoFile.url || `${API_BASE_URL.replace('/api', '')}/uploads/logo.png`} 
+                                src={logoFile.url || `${API_BASE_URL?.startsWith('http') ? API_BASE_URL.replace('/api', '') : 'https://restaurant-api.findnear.vn'}/uploads/logo.png`} 
                                 alt="Logo" 
                                 style={{ width: '100%' }} 
                               />
