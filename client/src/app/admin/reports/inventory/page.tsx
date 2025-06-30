@@ -102,7 +102,7 @@ const generateInventoryMockData = () => {
       total_exports: stockMovement.reduce((sum, item) => sum + item.exports, 0),
       total_import_value: totalImportValue,
       total_export_value: totalExportValue,
-      current_value: 285400000
+      current_value: 28540000
     },
     mostUsedIngredients,
     lowStockItems,

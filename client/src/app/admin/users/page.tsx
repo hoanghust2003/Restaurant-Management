@@ -43,11 +43,19 @@ const UserList = () => {
   // Role badge color mapping
   const roleColors: { [key: string]: string } = {
     admin: 'red',
-    manager: 'blue',
+    staff: 'blue',
     chef: 'orange',
-    waiter: 'green',
-    cashier: 'purple',
+    warehouse: 'green',
     customer: 'default',
+  };
+
+  // Role display names
+  const roleNames: { [key: string]: string } = {
+    admin: 'Quản trị viên',
+    staff: 'Nhân viên',
+    chef: 'Đầu bếp',
+    warehouse: 'Kho',
+    customer: 'Khách hàng',
   };
 
   // Define table columns
@@ -74,7 +82,7 @@ const UserList = () => {
       key: 'role',
       render: (role: string) => (
         <Tag color={roleColors[role.toLowerCase()]}>
-          {role.toUpperCase()}
+          {roleNames[role.toLowerCase()] || role.toUpperCase()}
         </Tag>
       ),
     },

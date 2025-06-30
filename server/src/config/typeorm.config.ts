@@ -10,7 +10,7 @@ export const typeOrmConfig: TypeOrmModuleOptions = {
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_DATABASE || 'restaurant_db',
   entities: [__dirname + '/../**/*.entity.{js,ts}'],
-  synchronize: true, // chỉ dùng synchronize: true trong môi trường phát triển
+  synchronize: false, // chỉ dùng synchronize: true trong môi trường phát triển
 };
 
 // Cấu hình không đồng bộ sử dụng ConfigService - nên sử dụng
