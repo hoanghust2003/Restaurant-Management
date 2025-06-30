@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Tag, Typography, message } from 'antd';
+import { Card, Table, Tag, Typography, message, Button, Space, Empty } from 'antd';
+import { ReloadOutlined, HistoryOutlined } from '@ant-design/icons';
+import Link from 'next/link';
 import { orderService } from '@/app/services/order.service';
-import { formatPrice } from '@/app/utils/format';
+import { formatPrice, formatDateTime } from '@/app/utils/format';
 import { OrderStatus, orderStatusText } from '@/app/utils/enums';
 import { OrderModel } from '@/app/models/order.model';
 
@@ -17,6 +19,11 @@ export default function ActiveOrdersPage() {
 
   useEffect(() => {
     loadOrders();
+    // Show success message if redirected from cart
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') === 'order') {
+      message.success('Đơn hàng của bạn đã được đặt thành công! Bạn có thể theo dõi tình trạng đơn hàng tại đây.');
+    }
   }, []);
 
   const loadOrders = async () => {
@@ -40,7 +47,7 @@ export default function ActiveOrdersPage() {
       title: 'Mã đơn',
       dataIndex: 'id',
       key: 'id', 
-      render: (id: string) => id.slice(0, 8),
+      render: (id: string) => `#${id.slice(0, 8)}`,
     },
     {
       title: 'Bàn',
@@ -48,10 +55,16 @@ export default function ActiveOrdersPage() {
       key: 'tableName',
     },
     {
+      title: 'Thời gian đặt',
+      dataIndex: 'created_at',
+      key: 'createdAt',
+      render: (date: string) => formatDateTime(date),
+    },
+    {
       title: 'Số món',
       dataIndex: 'items',
       key: 'itemCount',
-      render: (items: any[]) => items.length,
+      render: (items: any[]) => `${items.length} món`,
     },
     {
       title: 'Tổng tiền',
@@ -74,13 +87,47 @@ export default function ActiveOrdersPage() {
   return (
     <div className="p-6">
       <Card>
-        <Title level={2}>Đơn hàng đang hoạt động</Title>
-        <Table
-          dataSource={orders}
-          columns={columns}
-          rowKey="id"
-          loading={loading}
-        />
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <Title level={2} className="mb-2">Đơn hàng đang hoạt động</Title>
+            <Typography.Text type="secondary">
+              Theo dõi tình trạng các đơn hàng đang được xử lý
+            </Typography.Text>
+          </div>
+          <Space>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={loadOrders}
+              loading={loading}
+            >
+              Làm mới
+            </Button>
+            <Link href="/customer/orders/history">
+              <Button icon={<HistoryOutlined />}>
+                Lịch sử đơn hàng
+              </Button>
+            </Link>
+          </Space>
+        </div>
+        
+        {orders.length === 0 && !loading ? (
+          <Empty
+            description="Bạn chưa có đơn hàng nào đang hoạt động"
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          >
+            <Link href="/customer/menu">
+              <Button type="primary">Gọi món ngay</Button>
+            </Link>
+          </Empty>
+        ) : (
+          <Table
+            dataSource={orders}
+            columns={columns}
+            rowKey="id"
+            loading={loading}
+            pagination={{ pageSize: 10 }}
+          />
+        )}
       </Card>
     </div>
   );

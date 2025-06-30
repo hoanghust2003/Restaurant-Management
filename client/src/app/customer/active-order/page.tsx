@@ -1,15 +1,33 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { socketService } from '@/app/services/socket.service';
 import { OrderStatus, OrderItemStatus } from '@/app/utils/enums';
 import { OrderModel, OrderItemModel } from '@/app/models/order.model';
-import { Card, Typography, Space, Tag, Progress, Flex } from 'antd';
+import { Card, Typography, Space, Tag, Progress, Flex, message } from 'antd';
 
 const { Title, Text } = Typography;
 
 export default function ActiveOrderPage() {
+  const searchParams = useSearchParams();
+  const orderSuccess = searchParams.get('orderSuccess');
   const [activeOrder, setActiveOrder] = useState<OrderModel | null>(null);
+
+  // Handle order success message
+  useEffect(() => {
+    if (orderSuccess === 'true') {
+      message.success({
+        content: 'Đặt hàng thành công! Bạn có thể theo dõi tiến trình đơn hàng tại đây.',
+        duration: 5,
+      });
+      
+      // Clean up URL parameter
+      const url = new URL(window.location.href);
+      url.searchParams.delete('orderSuccess');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [orderSuccess]);
 
   useEffect(() => {
     // Initialize socket with a user ID (you might need to get this from auth context)

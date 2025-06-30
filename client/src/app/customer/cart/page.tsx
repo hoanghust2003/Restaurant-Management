@@ -36,6 +36,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { TableModel } from '@/app/models/table.model';
 import { TableStatus } from '@/app/utils/enums';
 import ImageWithFallback from '@/app/components/ImageWithFallback';
+import TableSelector from '@/app/components/customer/TableSelector';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -43,11 +44,12 @@ const { Option } = Select;
 const { confirm } = Modal;
 
 export default function ShoppingCartPage() {
-  const { items, totalPrice, updateItemQuantity, updateItemNote, removeItem, clearCart, tableId: cartTableId } = useShoppingCart();
+  const { items, totalPrice, updateItemQuantity, updateItemNote, removeItem, clearCart, tableId: cartTableId, setTableId: setCartTableId } = useShoppingCart();
   const [checkoutLoading, setCheckoutLoading] = useState<boolean>(false);
   const [checkoutModalVisible, setCheckoutModalVisible] = useState<boolean>(false);
   const [tables, setTables] = useState<TableModel[]>([]);
   const [tablesLoading, setTablesLoading] = useState<boolean>(false);
+  const [tableSelectionVisible, setTableSelectionVisible] = useState<boolean>(false);
   const [form] = Form.useForm();
   const { user } = useAuth();
   const router = useRouter();
@@ -77,8 +79,20 @@ export default function ShoppingCartPage() {
     });
   };
   
+  // Handle table selection change
+  const handleTableSelectionChange = (selectedTable: TableModel) => {
+    setCartTableId(selectedTable.id);
+    message.success(`Đã chọn ${selectedTable.name}`);
+    setTableSelectionVisible(false);
+  };
+  
   // Handle showing checkout modal
   const showCheckoutModal = async () => {
+    if (!cartTableId) {
+      setTableSelectionVisible(true);
+      return;
+    }
+    
     try {
       setTablesLoading(true);
       const tableData = await tableService.getAll();
@@ -129,8 +143,10 @@ export default function ShoppingCartPage() {
       clearCart();
       setCheckoutModalVisible(false);
       
-      // Chuyển hướng về trang menu
-      router.push('/customer/menu');
+      // Chuyển hướng về trang đơn hàng đang hoạt động để khách theo dõi
+      setTimeout(() => {
+        router.push('/customer/orders/active?orderSuccess=true');
+      }, 1000);
     } catch (error) {
       console.error('Error creating order:', error);
       message.error('Không thể đặt hàng. Vui lòng thử lại sau.');
@@ -308,19 +324,28 @@ export default function ShoppingCartPage() {
           {cartTableId ? (
             <div className="mb-6">
               <Card className="bg-blue-50 border border-blue-200">
-                <div className="flex items-center">
-                  <div className="mr-4">
-                    <TableOutlined style={{ fontSize: '24px', color: '#1890ff' }}/>
-                  </div>
-                  <div>
-                    <div className="text-lg font-medium">
-                      {tables.find(t => t.id === cartTableId)?.name || `Bàn đã chọn`}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-white p-3 rounded-full">
+                      <TableOutlined style={{ fontSize: '24px', color: '#1890ff' }}/>
                     </div>
-                    <Text type="secondary">
-                      Thông tin bàn đã lấy từ mã QR
-                    </Text>
-                    <Input type="hidden" name="tableId" value={cartTableId} />
+                    <div>
+                      <div className="text-lg font-medium">
+                        {tables.find(t => t.id === cartTableId)?.name || `Bàn đã chọn`}
+                      </div>
+                      <Text type="secondary">
+                        Thông tin bàn đã lấy từ mã QR
+                      </Text>
+                      <Input type="hidden" name="tableId" value={cartTableId} />
+                    </div>
                   </div>
+                  <Button 
+                    type="primary" 
+                    ghost 
+                    onClick={() => setTableSelectionVisible(true)}
+                  >
+                    Đổi bàn
+                  </Button>
                 </div>
               </Card>
             </div>
@@ -377,6 +402,15 @@ export default function ShoppingCartPage() {
           </Form.Item>
         </Form>
       </Modal>
+      
+      {/* Table Selection Modal */}
+      <TableSelector
+        visible={tableSelectionVisible}
+        onClose={() => setTableSelectionVisible(false)}
+        onTableSelect={handleTableSelectionChange}
+        currentTableId={cartTableId || undefined}
+        title="Chọn bàn để đặt món"
+      />
     </div>
   );
 }

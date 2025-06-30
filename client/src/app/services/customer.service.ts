@@ -14,6 +14,15 @@ export const customerService = {
   },
 
   /**
+   * Get all available tables for customer selection
+   * @returns List of available tables
+   */
+  async getAvailableTables(): Promise<TableModel[]> {
+    const response = await axios.get(`${API_URL}/tables`);
+    return response.data;
+  },
+
+  /**
    * Create a new order as a customer
    */
   async createOrder(data: {

@@ -36,6 +36,7 @@ import { dishService } from '@/app/services/dish.service';
 import { categoryService } from '@/app/services/category.service';
 import { menuService } from '@/app/services/menu.service';
 import { tableService } from '@/app/services/table.service';
+import { customerService } from '@/app/services/customer.service';
 import { DishModel } from '@/app/models/dish.model';
 import { CategoryModel } from '@/app/models/category.model';
 import { MenuModel } from '@/app/models/menu.model';
@@ -44,6 +45,7 @@ import { useShoppingCart } from '@/app/contexts/ShoppingCartContext';
 import { formatPrice } from '@/app/utils/format';
 import ImageWithFallback from '@/app/components/ImageWithFallback';
 import { TableStatus } from '@/app/utils/enums';
+import TableSelector from '@/app/components/customer/TableSelector';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -63,11 +65,6 @@ export default function CustomerMenuPage() {
 
   // Table selection modal state
   const [tableSelectionVisible, setTableSelectionVisible] = useState<boolean>(false);
-  const [availableTables, setAvailableTables] = useState<TableModel[]>([]);
-  const [tablesLoading, setTablesLoading] = useState<boolean>(false);
-  const [searchTableText, setSearchTableText] = useState<string>('');
-
-  const [form] = Form.useForm();
 
   // Check table availability before selection
   const checkTableAvailability = async (tableId: string): Promise<boolean> => {
@@ -85,57 +82,50 @@ export default function CustomerMenuPage() {
     }
   };
 
-  // Load available tables for selection
-  const loadTables = async () => {
-    try {
-      setTablesLoading(true);
-      const tableData = await tableService.getAll();
-      // Only show actually available tables
-      const availableTables = tableData.filter(table => 
-        table.status === TableStatus.AVAILABLE
-      );
-      setAvailableTables(availableTables);
-      
-      if (!tableId && !cartTableId && availableTables.length === 0) {
-        message.warning('Hiện tại không có bàn trống');
-      } else if (!tableId && !cartTableId) {
-        setTableSelectionVisible(true);
-      }
-    } catch (error) {
-      console.error('Error fetching tables:', error);
-      message.error('Không thể tải danh sách bàn');
-    } finally {
-      setTablesLoading(false);
-    }
-  };
-
   // Handle table selection
-  const handleTableSelection = async (values: { tableId: string }) => {
-    if (!values.tableId) {
-      message.error('Vui lòng chọn bàn');
-      return;
-    }
-
+  const handleTableSelection = async (selectedTable: TableModel) => {
     try {
       // Verify table is still available
-      const isAvailable = await checkTableAvailability(values.tableId);
+      const isAvailable = await checkTableAvailability(selectedTable.id);
       if (!isAvailable) {
-        loadTables(); // Refresh table list if table is no longer available
+        message.error('Bàn này không còn trống. Vui lòng chọn bàn khác.');
+        setTableSelectionVisible(true); // Open table selector to choose another table
         return;
       }
 
-      setCartTableId(values.tableId);
+      setCartTableId(selectedTable.id);
+      setTable(selectedTable);
+      message.success(`Đã chọn ${selectedTable.name}`);
       setTableSelectionVisible(false);
-
-      // Find and set the selected table
-      const selectedTable = availableTables.find(t => t.id === values.tableId);
-      if (selectedTable) {
-        setTable(selectedTable);
-        message.success(`Đã chọn ${selectedTable.name}`);
-      }
     } catch (error) {
       console.error('Error selecting table:', error);
       message.error('Không thể chọn bàn');
+    }
+  };
+
+  // Handle opening table selection modal
+  const handleChangeTable = () => {
+    setTableSelectionVisible(true);
+  };
+
+  // Load available tables for selection
+  const loadTables = async () => {
+    try {
+      const availableTables = await customerService.getAvailableTables();
+      
+      // If no tables available, show message
+      if (availableTables.length === 0) {
+        message.warning('Hiện tại không có bàn trống. Vui lòng thử lại sau.');
+        return;
+      }
+      
+      // If customer doesn't have a table selected, auto-open table selector
+      if (!tableId && !cartTableId) {
+        setTableSelectionVisible(true);
+      }
+    } catch (error) {
+      console.error('Error loading available tables:', error);
+      message.error('Không thể tải danh sách bàn trống');
     }
   };
   
@@ -150,32 +140,109 @@ export default function CustomerMenuPage() {
           try {
             const tableData = await tableService.getById(tableId);
             setTable(tableData);
+            setCartTableId(tableId); // Set in cart context
           } catch (error) {
             console.error('Error fetching table:', error);
             message.error('Không thể tải thông tin bàn');
           }
         }
         
-        // Lấy menu chính
-        const mainMenuData = await menuService.getMain();
-        setMainMenu(mainMenuData);
-        // Nếu có menu chính, chỉ lấy các món thuộc menu đó
+        // Initialize with empty states to ensure UI renders
+        let mainMenuData: MenuModel | null = null;
+        let categoriesData: CategoryModel[] = [];
         let dishesData: DishModel[] = [];
-        if (mainMenuData && mainMenuData.dishes) {
-          dishesData = mainMenuData.dishes.filter((dish: DishModel) => dish);
+        
+        try {
+          // Fetch main menu
+          console.log('Fetching main menu...');
+          mainMenuData = await menuService.getMain();
+          console.log('Main menu result:', mainMenuData);
+        } catch (error) {
+          console.error('Error fetching main menu:', error);
+          message.warning('Không thể tải thực đơn chính');
+        }
+        
+        try {
+          // Fetch categories
+          console.log('Fetching categories...');
+          categoriesData = await categoryService.getAll();
+          console.log('Categories result:', categoriesData?.length || 0);
+        } catch (error) {
+          console.error('Error fetching categories:', error);
+          message.warning('Không thể tải danh mục món ăn');
+        }
+        
+        // Update states immediately after each fetch
+        setMainMenu(mainMenuData);
+        setCategories(categoriesData || []);
+        
+        // Process dishes from main menu
+        if (mainMenuData && mainMenuData.dishes && Array.isArray(mainMenuData.dishes)) {
+          dishesData = mainMenuData.dishes.filter((dish: DishModel) => 
+            dish && dish.available !== false
+          );
+          console.log('Filtered dishes:', dishesData.length);
+        } else {
+          console.log('No dishes found in main menu');
         }
         setDishes(dishesData);
-        const categoriesData = await categoryService.getAll();
-        setCategories(categoriesData);
+        
+        // Log final state for debugging
+        console.log('Menu data loaded successfully:', {
+          mainMenu: !!mainMenuData,
+          dishes: dishesData.length,
+          categories: categoriesData?.length || 0
+        });
+        
       } catch (error) {
-        console.error('Error fetching data:', error);
-        message.error('Không thể tải danh sách món ăn');
+        console.error('Unexpected error in fetchData:', error);
+        message.error('Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại.');
+        
+        // Ensure states are set even on error
+        setMainMenu(null);
+        setDishes([]);
+        setCategories([]);
       } finally {
         setLoading(false);
       }
     };
-      fetchData();
-  }, [tableId]);
+
+    fetchData();
+  }, [tableId, setCartTableId]);
+
+  // Handle order success message
+  useEffect(() => {
+    if (orderSuccess === 'true') {
+      message.success({
+        content: 'Đặt hàng thành công! Nhân viên sẽ mang món đến bàn của bạn sớm.',
+        duration: 5,
+      });
+      
+      // Clean up URL parameter
+      const url = new URL(window.location.href);
+      url.searchParams.delete('orderSuccess');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [orderSuccess]);
+
+  // Check if user should see table selection prompt
+  useEffect(() => {
+    const checkTableSelection = async () => {
+      // Only prompt for table selection if:
+      // 1. No table ID from QR code
+      // 2. No table in cart context
+      // 3. Not currently loading
+      // 4. There are dishes available to order
+      if (!tableId && !cartTableId && !loading && dishes.length > 0) {
+        setTimeout(() => {
+          console.log('Auto-opening table selection modal...');
+          loadTables();
+        }, 500); // Shorter delay to improve UX
+      }
+    };
+    
+    checkTableSelection();
+  }, [tableId, cartTableId, loading, dishes.length]);
 
   // Filter dishes based on search and category
   const filteredDishes = dishes.filter(dish => {
@@ -193,11 +260,25 @@ export default function CustomerMenuPage() {
 
   // Handle adding dish to cart
   const handleAddToCart = (dish: DishModel) => {
+    // Check if table is selected
+    if (!tableId && !cartTableId) {
+      message.warning('Vui lòng chọn bàn trước khi đặt món');
+      setTableSelectionVisible(true);
+      return;
+    }
+    
     addItem(dish, 1);
   };
 
   // Handle increasing quantity for dishes already in cart
   const handleIncreaseQuantity = (dish: DishModel) => {
+    // Check if table is selected
+    if (!tableId && !cartTableId) {
+      message.warning('Vui lòng chọn bàn trước khi đặt món');
+      setTableSelectionVisible(true);
+      return;
+    }
+    
     const cartItem = items.find(item => item.dishId === dish.id);
     if (cartItem) {
       updateItemQuantity(dish.id, cartItem.quantity + 1);
@@ -295,15 +376,80 @@ export default function CustomerMenuPage() {
     );
   };
 
-  // Nếu không có menu chính
+  // Nếu đang loading
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="flex justify-center items-center p-12">
+          <div className="flex-col">
+            <Spin size="large" />
+            <div className="mt-3 text-gray-600">Đang tải thực đơn...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Nếu không có menu chính hoặc không có món nào
   if (!mainMenu) {
-    return <Empty description="Hiện chưa có menu chính để khách chọn món" />;
+    return (
+      <div className="p-6">
+        <Card className="mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
+            <Title level={3} className="mb-4 sm:mb-0">
+              Thực đơn
+            </Title>
+          </div>
+          
+          {!tableId && !cartTableId && (
+            <Alert
+              message="Bạn chưa chọn bàn"
+              description={
+                <div>
+                  Vui lòng chọn bàn để đặt món. Bạn có thể quét mã QR trên bàn hoặc chọn bàn thủ công.
+                  <div className="mt-2">
+                    <Button 
+                      type="primary"
+                      ghost
+                      onClick={loadTables}
+                      icon={<TableOutlined />}
+                    >
+                      Chọn bàn ngay
+                    </Button>
+                  </div>
+                </div>
+              }
+              type="warning"
+              showIcon
+              className="mb-4"
+            />
+          )}
+        </Card>
+        
+        <Empty 
+          description="Hiện chưa có thực đơn nào hoặc thực đơn chưa có món ăn" 
+          image={Empty.PRESENTED_IMAGE_DEFAULT}
+        >
+          <Button type="primary" onClick={() => window.location.reload()}>
+            Tải lại trang
+          </Button>
+        </Empty>
+        
+        {/* Table Selection Component */}
+        <TableSelector
+          visible={tableSelectionVisible}
+          onClose={() => setTableSelectionVisible(false)}
+          onTableSelect={handleTableSelection}
+          currentTableId={cartTableId || tableId || undefined}
+        />
+      </div>
+    );
   }
   
   return (
     <div className="p-6">
       {/* Table Information Display */}
-      {(tableId || cartTableId) && (
+      {(tableId || cartTableId) && table && (
         <Card className="mb-6 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-4">
@@ -330,16 +476,14 @@ export default function CustomerMenuPage() {
             </div>
             
             <Space>
-              {!tableId && (
-                <Button 
-                  type="primary"
-                  ghost
-                  icon={<SwapOutlined />}
-                  onClick={loadTables}
-                >
-                  Đổi bàn
-                </Button>
-              )}
+              <Button 
+                type="primary"
+                ghost
+                icon={<SwapOutlined />}
+                onClick={handleChangeTable}
+              >
+                Đổi bàn
+              </Button>
             </Space>
           </div>
         </Card>
@@ -376,13 +520,17 @@ export default function CustomerMenuPage() {
             message="Bạn chưa chọn bàn"
             description={
               <div>
-                Vui lòng chọn bàn để đặt món.
-                <Button 
-                  type="link" 
-                  onClick={() => setTableSelectionVisible(true)}
-                >
-                  Chọn bàn ngay
-                </Button>
+                Vui lòng chọn bàn để đặt món. Bạn có thể quét mã QR trên bàn hoặc chọn bàn thủ công.
+                <div className="mt-2">
+                  <Button 
+                    type="primary"
+                    ghost
+                    onClick={loadTables}
+                    icon={<TableOutlined />}
+                  >
+                    Chọn bàn ngay
+                  </Button>
+                </div>
               </div>
             }
             type="warning"
@@ -392,126 +540,41 @@ export default function CustomerMenuPage() {
         )}
       </Card>
       
-      {loading ? (
-        <div className="flex justify-center items-center p-12">
-          <div className="flex-col">
-            <Spin size="large" />
-            <div className="mt-3 text-gray-600">Đang tải món ăn...</div>
-          </div>
-        </div>
+      {/* Check if there are no dishes available */}
+      {dishes.length === 0 ? (
+        <Empty 
+          description="Thực đơn hiện chưa có món ăn nào"
+          image={Empty.PRESENTED_IMAGE_DEFAULT}
+        >
+          <Button type="primary" onClick={() => window.location.reload()}>
+            Tải lại trang
+          </Button>
+        </Empty>
       ) : (
-        <>
-          {filteredDishes.length > 0 ? (
-            <Row gutter={[16, 16]}>
-              {filteredDishes.map(dish => (
-                <Col key={dish.id} xs={24} sm={12} md={8} lg={6}>
-                  {renderDishCard(dish)}
-                </Col>
-              ))}
-            </Row>
-          ) : (
-            <Empty 
-              description="Không tìm thấy món ăn nào"
-              image={Empty.PRESENTED_IMAGE_DEFAULT}
-            />
-          )}
-        </>
+        /* Main content - dishes */
+        filteredDishes.length > 0 ? (
+          <Row gutter={[16, 16]}>
+            {filteredDishes.map(dish => (
+              <Col key={dish.id} xs={24} sm={12} md={8} lg={6}>
+                {renderDishCard(dish)}
+              </Col>
+            ))}
+          </Row>
+        ) : (
+          <Empty 
+            description="Không tìm thấy món ăn nào phù hợp với tìm kiếm"
+            image={Empty.PRESENTED_IMAGE_DEFAULT}
+          />
+        )
       )}
       
-      {/* Table Selection Modal */}
-      <Modal
-        title={
-          <div className="flex items-center">
-            <TableOutlined className="mr-2" />
-            <span>Chọn bàn của bạn</span>
-          </div>
-        }
-        open={tableSelectionVisible}
-        onCancel={() => {
-          setTableSelectionVisible(false);
-          form.resetFields();
-        }}
-        footer={null}
-        destroyOnClose
-        centered
-        width={600}
-      >
-        <Alert 
-          message="Chọn bàn để đặt món" 
-          description="Vui lòng chọn bàn trước khi đặt món. Bạn cũng có thể quét mã QR trên bàn để tự động chọn bàn." 
-          type="info" 
-          showIcon 
-          className="mb-4"
-        />
-        
-        <div className="mb-4 flex justify-between items-center">
-          <Input.Search
-            placeholder="Tìm kiếm bàn..."
-            onChange={(e) => setSearchTableText(e.target.value)}
-            style={{ width: '60%' }}
-            allowClear
-          />
-          <Text type="secondary">
-            {availableTables.length} bàn trống
-          </Text>
-        </div>
-        
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleTableSelection}
-          initialValues={{ tableId: '' }}
-        >
-          {tablesLoading ? (
-            <div className="text-center py-6">
-              <Spin />
-              <div className="mt-2 text-gray-500">Đang tải danh sách bàn...</div>
-            </div>
-          ) : availableTables.length === 0 ? (
-            <Empty 
-              description="Không có bàn trống" 
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
-          ) : (
-            <div className="grid grid-cols-2 gap-4 max-h-[400px] overflow-y-auto mb-4">
-              {availableTables
-                .filter(table => 
-                  searchTableText ? table.name.toLowerCase().includes(searchTableText.toLowerCase()) : true
-                )
-                .map(table => (
-                  <Card 
-                    key={table.id}
-                    hoverable
-                    size="small"
-                    className="cursor-pointer transition-all hover:shadow-md"
-                    onClick={() => {
-                      form.setFieldsValue({ tableId: table.id });
-                      form.submit(); // Use form.submit() instead of direct function call
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium text-lg">{table.name}</div>
-                        <div className="text-gray-500">
-                          <UsergroupAddOutlined className="mr-1" />
-                          Sức chứa: {table.capacity} người
-                        </div>
-                      </div>
-                      <Tag color="success" icon={<CheckCircleOutlined />}>
-                        Trống
-                      </Tag>
-                    </div>
-                  </Card>
-                ))
-              }
-            </div>
-          )}
-          
-          <Form.Item name="tableId" hidden rules={[{ required: true, message: 'Vui lòng chọn bàn' }]}>
-            <Input />
-          </Form.Item>
-        </Form>
-      </Modal>
+      {/* Table Selection Component */}
+      <TableSelector
+        visible={tableSelectionVisible}
+        onClose={() => setTableSelectionVisible(false)}
+        onTableSelect={handleTableSelection}
+        currentTableId={cartTableId || tableId || undefined}
+      />
     </div>
   );
 }

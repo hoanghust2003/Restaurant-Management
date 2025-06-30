@@ -261,14 +261,51 @@ export const menuService = {
    * Get the main menu (menu đang là menu chính)
    */
   async getMain(): Promise<MenuModel | null> {
+    const cacheKey = `${API_URL}/main`;
+    
     try {
-      const response = await axios.get(API_URL, { params: { is_main: true } });
-      if (Array.isArray(response.data) && response.data.length > 0) {
-        return response.data[0];
+      // Check cache first
+      const cachedData = requestCache.get(cacheKey);
+      if (cachedData) {
+        console.log('Returning cached main menu');
+        return cachedData;
       }
+      
+      console.log('Fetching main menu from API...');
+      const response = await axios.get(API_URL, { params: { is_main: true } });
+      
+      if (Array.isArray(response.data) && response.data.length > 0) {
+        const mainMenu = response.data[0];
+        console.log('Main menu found:', mainMenu.name, 'with', mainMenu.dishes?.length || 0, 'dishes');
+        
+        // Cache the result
+        requestCache.set(cacheKey, mainMenu);
+        
+        return mainMenu;
+      }
+      
+      console.warn('No main menu found');
       return null;
     } catch (error) {
       console.error('Error fetching main menu:', error);
+      
+      // Try to get any menu as fallback
+      try {
+        console.log('Trying to fetch any available menu as fallback...');
+        const allMenus = await this.getAll();
+        if (allMenus && allMenus.length > 0) {
+          const fallbackMenu = allMenus[0];
+          console.log('Using fallback menu:', fallbackMenu.name);
+          
+          // Cache the fallback result with shorter TTL
+          requestCache.set(cacheKey, fallbackMenu, 60); // 1 minute cache for fallback
+          
+          return fallbackMenu;
+        }
+      } catch (fallbackError) {
+        console.error('Fallback menu fetch also failed:', fallbackError);
+      }
+      
       return null;
     }
   }

@@ -225,6 +225,37 @@ export class TablesService {
     }
   }
 
+  /**
+   * Find available tables for customer selection
+   * Returns only tables that are available for ordering
+   */
+  async findAvailableTablesForCustomer(): Promise<TableEntity[]> {
+    try {
+      this.logger.log('Finding available tables for customer selection');
+
+      // Only return tables that are truly available for customers to book
+      const availableTables = await this.tableRepository.find({
+        where: { 
+          status: TableStatus.AVAILABLE  // Only truly available tables
+        },
+        order: {
+          name: 'ASC',
+        },
+      });
+
+      this.logger.log(
+        `Found ${availableTables.length} available tables for customer selection`,
+      );
+      return availableTables;
+    } catch (error) {
+      this.logger.error(
+        `Error finding available tables for customer: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
   async updateStatus(
     id: string,
     status: TableStatus,

@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { OrdersService } from '../orders/orders.service';
 import { CreateCustomerOrderDto } from './dto/create-customer-order.dto';
 import { TablesService } from '../tables/tables.service';
+import { TableStatus } from '../enums/table-status.enum';
 
 @ApiTags('customer')
 @Controller('customer')
@@ -30,6 +31,13 @@ export class CustomerController {
       }
       throw new BadRequestException('Could not create order: ' + error.message);
     }
+  }
+
+  @Get('tables')
+  @ApiOperation({ summary: 'Get all available tables for customer selection' })
+  @ApiResponse({ status: 200, description: 'Return list of available tables.' })
+  async getAvailableTables() {
+    return this.tablesService.findAvailableTablesForCustomer();
   }
 
   @Get('tables/:id')
