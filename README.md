@@ -1,126 +1,331 @@
-# Restaurant Management System
+# 🍽️ Restaurant Management System
 
-A comprehensive system for managing restaurant operations including menu management, order processing, inventory control, and customer ordering through QR codes.
+<div align="center">
 
-## Features
+![Restaurant Management](https://img.shields.io/badge/Restaurant-Management-brightgreen)
+![NestJS](https://img.shields.io/badge/NestJS-E0234E?logo=nestjs&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-000000?logo=nextdotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?logo=postgresql&logoColor=white)
 
-### QR Code Table Ordering
+*Hệ thống quản lý nhà hàng toàn diện với công nghệ hiện đại*
 
-The system allows customers to scan QR codes placed on restaurant tables to access a digital menu and place orders directly from their devices.
+</div>
 
-#### How It Works
+---
 
-1. **QR Code Generation**: The system generates unique QR codes for each table in the restaurant.
-2. **Table Association**: Each QR code contains a URL that includes the table's unique identifier.
-3. **Customer Scanning**: When customers scan a QR code, they are directed to the restaurant's menu page with their table ID automatically recognized.
-4. **Seamless Ordering**: Customers can browse the menu, add items to their cart, and place orders without needing to install an app.
-5. **Table Identification**: Orders are automatically associated with the correct table, streamlining the service process.
+## 📋 Tổng quan
 
-#### Benefits
+**Restaurant Management System** là một hệ thống quản lý nhà hàng hoàn chỉnh, được xây dựng bằng **NestJS** (Backend) và **Next.js** (Frontend), hỗ trợ đầy đủ các tính năng vận hành nhà hàng hiện đại từ việc gọi món qua QR code đến quản lý kho, thanh toán và báo cáo.
 
-- **Contactless Ordering**: Minimizes physical contact with menus and staff.
-- **Reduced Wait Times**: Customers can place orders as soon as they're seated.
-- **Error Reduction**: Eliminates order-taking errors and ensures accurate table identification.
-- **Enhanced Analytics**: Provides data on table utilization, ordering patterns, and customer preferences.
+## 🚀 Tính năng chính
 
-### Key Components
+### 🔐 **Xác thực & Phân quyền**
+- Đăng nhập/đăng ký với JWT authentication
+- Phân quyền theo vai trò: Admin, Staff, Kitchen, Waiter, Warehouse
+- Bảo mật API với Bearer Token
 
-#### For Restaurant Staff
+### 📱 **Gọi món qua QR Code**
+- **Tạo QR Code tự động** cho từng bàn ăn
+- **Gọi món không tiếp xúc**: Khách quét QR → hiển thị menu → đặt món
+- **Nhận diện bàn tự động**: Đơn hàng được liên kết với bàn ngay lập tức
+- **Chatbot gợi ý món**: AI hỗ trợ gợi ý món ăn phù hợp
 
-- **QR Code Management**: Generate, print, and manage QR codes for all tables.
-- **Order Monitoring**: Real-time updates on incoming orders from tables.
-- **Table Status Tracking**: See which tables are occupied, ordered, or ready for service.
+### 🍽️ **Quản lý thực đơn**
+- Quản lý **danh mục món ăn** (Categories)
+- Tạo và chỉnh sửa **món ăn** với hình ảnh, giá cả, mô tả
+- **Quản lý nguyên liệu** cho từng món
+- **Tạo menu** linh hoạt theo thời gian, sự kiện
 
-#### For Customers
+### 📋 **Xử lý đơn hàng**
+- **Workflow đầy đủ**: Đặt món → Bếp → Phục vụ → Thanh toán
+- **Theo dõi trạng thái real-time** qua WebSocket
+- **Quản lý bàn ăn**: Available, Occupied, Reserved, Cleaning
+- **Ghi chú đặc biệt** cho từng món
 
-- **Digital Menu Access**: Easily access the complete menu through a QR code scan.
-- **Table-Specific Ordering**: Orders are automatically linked to their table.
-- **Order Tracking**: View order status and estimated preparation time.
-- **Special Instructions**: Add notes or special requests for each dish.
+### 👨‍🍳 **Module bếp (Kitchen)**
+- **Nhận đơn hàng real-time** qua WebSocket
+- **Xác nhận bắt đầu chế biến**
+- **Cập nhật trạng thái món**: Đang làm, Hoàn thành
+- **Lịch sử chế biến** và theo dõi thời gian
 
-## Getting Started
+### 📦 **Quản lý kho nguyên liệu**
+- **CRUD nguyên liệu** với phân loại, đơn vị tính
+- **Quản lý nhà cung cấp** và thông tin liên hệ
+- **Nhập/xuất kho** với theo dõi lô hàng (batches)
+- **Kiểm kê tự động** và cảnh báo hết hàng
+- **Truy xuất nguồn gốc** nguyên liệu
 
-### Prerequisites
+### 💳 **Thanh toán**
+- **Tích hợp VNPay** cho thanh toán online
+- **Thanh toán tiền mặt** tại quầy
+- **In hóa đơn** tự động
+- **Cập nhật trạng thái bàn** sau thanh toán
 
-- Node.js (v16 or later)
-- npm or yarn
-- PostgreSQL database
+### 📊 **Báo cáo & Thống kê**
+- **Báo cáo doanh thu** theo ngày, tháng, quý
+- **Thống kê món bán chạy**
+- **Báo cáo tồn kho** và nhập xuất
+- **Phân tích hiệu suất** nhà hàng
 
-### Installation
+### ⚡ **Tính năng nâng cao**
+- **Real-time notifications** với WebSocket
+- **File upload** cho hình ảnh món ăn, avatar
+- **RESTful API** với Swagger documentation
+- **Database migrations** tự động
+- **Multi-language support** (Vietnamese/English)
 
-#### Backend Setup
+## 🛠️ Công nghệ sử dụng
 
-1. Navigate to the server directory:
+### Backend (NestJS)
+- **Framework**: NestJS với TypeScript
+- **Database**: PostgreSQL + TypeORM
+- **Authentication**: JWT với Passport
+- **API Documentation**: Swagger/OpenAPI 3.0
+- **File Upload**: Multer + AWS S3
+- **Real-time**: WebSocket (Socket.io)
+- **Payment**: VNPay Integration
+- **QR Code**: qrcode library
 
+### Frontend (Next.js)
+- **Framework**: Next.js 15 với TypeScript
+- **Styling**: TailwindCSS + Ant Design
+- **State Management**: React Hooks
+- **HTTP Client**: Axios
+- **Real-time**: Socket.io Client
+- **Forms**: React Hook Form + Yup
+- **Charts**: Recharts
+
+### DevOps & Tools
+- **Container**: Docker + Docker Compose
+- **Database**: PostgreSQL
+- **File Storage**: AWS S3 / Local Storage
+- **Process Manager**: PM2
+- **Linting**: ESLint + Prettier
+
+## 🏗️ Kiến trúc hệ thống
+
+```
+Restaurant Management System
+├── 🔒 Authentication Layer (JWT)
+├── 🌐 API Gateway (NestJS)
+├── 📱 Web Client (Next.js)
+├── 🗄️ Database (PostgreSQL)
+├── 📡 WebSocket (Real-time)
+├── 💾 File Storage (S3/Local)
+└── 💳 Payment Gateway (VNPay)
+```
+
+### Phân tầng Backend
+```
+src/
+├── 🔐 auth/              # Xác thực & JWT
+├── 👥 users/             # Quản lý người dùng
+├── 🏪 restaurants/       # Thông tin nhà hàng
+├── 🥬 ingredients/       # Nguyên liệu
+├── 🏢 suppliers/         # Nhà cung cấp
+├── 📂 categories/        # Phân loại
+├── 🍽️ dishes/           # Món ăn
+├── 📋 menus/            # Thực đơn
+├── 🪑 tables/           # Quản lý bàn
+├── 📋 orders/           # Đơn hàng
+├── 💳 payment/          # Thanh toán
+├── 📦 inventory/        # Kho
+├── 📊 reports/          # Báo cáo
+├── 👤 customer/         # API khách hàng
+├── 👨‍🍳 kitchen/          # Module bếp
+└── 📁 file-upload/      # Upload files
+```
+
+## 🚀 Cài đặt và chạy
+
+### Yêu cầu hệ thống
+- **Node.js**: v18+ 
+- **npm/yarn**: Latest version
+- **PostgreSQL**: v14+
+- **Docker** (optional): Latest version
+
+### 🔧 Cài đặt Backend
+
+1. **Clone repository**
    ```bash
-   cd server
+   git clone https://github.com/hoanghust2003/Restaurant-Management.git
+   cd Restaurant-Management/server
    ```
 
-2. Install dependencies:
-
+2. **Cài đặt dependencies**
    ```bash
-   npm install
+   npm install --legacy-peer-deps
    ```
 
-3. Set up your environment variables in `.env`:
-
+3. **Cấu hình môi trường**
+   ```bash
+   cp .env.example .env
    ```
+   
+   Chỉnh sửa file `.env`:
+   ```env
+   # Database
    DATABASE_URL=postgresql://username:password@localhost:5432/restaurant_db
-   JWT_SECRET=your_jwt_secret
+   DB_HOST=localhost
+   DB_PORT=5432
+   DB_USERNAME=your_username
+   DB_PASSWORD=your_password
+   DB_NAME=restaurant_db
+
+   # JWT
+   JWT_SECRET=your-super-secret-jwt-key
+   JWT_EXPIRES_IN=24h
+
+   # App
+   PORT=8000
    FRONTEND_URL=http://localhost:3000
+
+   # VNPay (Payment)
+   VNPAY_TMN_CODE=your_vnpay_tmn_code
+   VNPAY_SECRET_KEY=your_vnpay_secret_key
+   VNPAY_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+
+   # AWS S3 (File Upload)
+   AWS_ACCESS_KEY_ID=your_aws_access_key
+   AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+   AWS_S3_BUCKET=your_s3_bucket
+   AWS_S3_REGION=your_s3_region
    ```
 
-4. Run database migrations:
-
+4. **Tạo database**
    ```bash
-   npm run migrate
+   createdb restaurant_db
    ```
 
-5. Start the development server:
+5. **Chạy migrations** (nếu có)
+   ```bash
+   npm run typeorm:migration:run
+   ```
+
+6. **Khởi động development server**
    ```bash
    npm run start:dev
    ```
 
-#### Frontend Setup
+   Server sẽ chạy tại: `http://localhost:8000`
+   
+   Swagger Documentation: `http://localhost:8000/api/docs`
 
-1. Navigate to the client directory:
+### 🎨 Cài đặt Frontend
 
+1. **Chuyển đến thư mục client**
    ```bash
-   cd client
+   cd ../client
    ```
 
-2. Install dependencies:
-
+2. **Cài đặt dependencies**
    ```bash
    npm install
    ```
 
-3. Set up your environment variables in `.env.local`:
-
+3. **Cấu hình môi trường**
+   ```bash
+   cp .env.local.example .env.local
    ```
-   NEXT_PUBLIC_API_URL=http://localhost:3001
+   
+   Chỉnh sửa file `.env.local`:
+   ```env
+   NEXT_PUBLIC_API_URL=http://localhost:8000
+   NEXT_PUBLIC_SOCKET_URL=http://localhost:8000
+   NEXT_PUBLIC_APP_NAME=Restaurant Management
    ```
 
-4. Start the development server:
+4. **Khởi động development server**
    ```bash
    npm run dev
    ```
 
-## Testing the QR Code Feature
+   Client sẽ chạy tại: `http://localhost:3000`
 
-1. Log in as an administrator
-2. Navigate to the QR Code Management page
-3. Generate QR codes for tables
-4. Print or download the QR codes
-5. Scan a QR code with a mobile device
-6. The menu should open with the correct table ID recognized
-7. Add items to cart and place an order
-8. Verify the order is received in the system with the correct table association
+### 🐳 Chạy với Docker
 
-## Documentation
+1. **Docker Compose**
+   ```bash
+   docker-compose up -d
+   ```
 
-Additional documentation can be found in:
+2. **Kiểm tra services**
+   ```bash
+   docker-compose ps
+   ```
 
-- [QR_CODE_TEST_PLAN.md](./QR_CODE_TEST_PLAN.md) - Comprehensive test plan for the QR code feature
-- [server/README.md](./server/README.md) - API documentation and server setup
-- [client/README.md](./client/README.md) - Client application details
+## 📱 Hướng dẫn sử dụng
+
+### 👩‍💼 Dành cho Quản lý
+1. **Đăng nhập** với tài khoản Admin
+2. **Thiết lập nhà hàng**: Thông tin cơ bản, menu, bàn ăn
+3. **Quản lý nhân viên**: Tạo tài khoản cho staff, kitchen, waiter
+4. **Cấu hình menu**: Tạo categories, dishes, ingredients
+5. **Tạo QR codes** cho các bàn ăn
+
+### 👨‍🍳 Dành cho Bếp
+1. **Đăng nhập** với tài khoản Kitchen
+2. **Theo dõi đơn hàng** real-time
+3. **Xác nhận bắt đầu chế biến**
+4. **Cập nhật trạng thái món** khi hoàn thành
+
+### 🧑‍🤝‍🧑 Dành cho Khách hàng
+1. **Quét QR Code** trên bàn
+2. **Xem menu** và chọn món
+3. **Đặt hàng** với ghi chú đặc biệt
+4. **Theo dõi trạng thái** đơn hàng
+5. **Thanh toán** online hoặc tại quầy
+
+## 🧪 Testing
+
+### API Testing
+- **Swagger UI**: `http://localhost:8000/api/docs`
+- **Postman Collection**: Import từ `docs/openapi.json`
+
+### QR Code Testing
+1. Tạo QR code cho bàn test
+2. Quét bằng điện thoại 
+3. Đặt món thử nghiệm
+4. Kiểm tra workflow từ kitchen đến payment
+
+## 📚 Tài liệu
+
+### API Documentation
+- **Swagger UI**: [http://localhost:8000/api/docs](http://localhost:8000/api/docs)
+- **OpenAPI Spec**: [docs/openapi.json](./server/docs/openapi.json)
+- **API Guide**: [server/docs/README.md](./server/docs/README.md)
+
+### Development Docs  
+- **Backend Setup**: [server/README.md](./server/README.md)
+- **Frontend Setup**: [client/README.md](./client/README.md)
+- **Database Schema**: [restaurant.sql](./restaurant.sql)
+- **Project Context**: [server/project-context.md](./server/project-context.md)
+
+## 🤝 Đóng góp
+
+1. Fork repository
+2. Tạo feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Tạo Pull Request
+
+## 📝 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+## 📞 Liên hệ
+
+- **Developer**: [hoanghust2003](https://github.com/hoanghust2003)
+- **Email**: [your-email@example.com](mailto:your-email@example.com)
+- **Project Link**: [https://github.com/hoanghust2003/Restaurant-Management](https://github.com/hoanghust2003/Restaurant-Management)
+
+---
+
+<div align="center">
+
+**⭐ Star this repo if you find it helpful!**
+
+*Made with ❤️ by [hoanghust2003](https://github.com/hoanghust2003)*
+
+</div>
